@@ -17,9 +17,6 @@ const Sidebar = ({ role }) => {
             <Link to="/formulation-builder" className="nav-link">Build Formulation</Link>
           </>
         )}
-        {role === 'ADMIN' && (
-          <Link to="/users" className="nav-link">Users</Link>
-        )}
         {(role === 'ADMIN' || role === 'FORMULATOR' ) && ( 
           <Link to="/feed-profiles" className="nav-link">Feed Profiles</Link>
         )}
