@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
@@ -10,10 +10,21 @@ import FormulationEnginePage from './pages/FormulationEnginePage';
 import FormulationLibraryPage from './pages/FormulationLibraryPage';
 import FormulationBuilderPage from './pages/FormulationBuilderPage';
 import PelletingQueuePage from './pages/PelletingQueuePage';
-
+import FinanceDashboard from './components/Finance/FinanceDashboard';
+import FeeConfigPage from './components/Finance/FeeConfigPage';
+import InvoiceListPage from './pages/finance/InvoiceListPage';
 
 const App = () => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem("user", JSON.stringify(user));
+    }
+  }, [user]);
 
   if (!user) {
     return <Login setUser={setUser} />;
@@ -30,7 +41,9 @@ const App = () => {
         <Route path="/formulation-library" element={<FormulationLibraryPage />} />   
         <Route path="/formulation-builder" element={<FormulationBuilderPage />} /> 
         <Route path="/pelleting" element={<PelletingQueuePage />} />
-        {/* Add more as needed */}
+        <Route path="/finance" element={<FinanceDashboard />} />
+        <Route path="/finance/config" element={<FeeConfigPage />} />
+        <Route path="/finance/invoices" element={<InvoiceListPage />} />
       </Route>
     </Routes>
   );

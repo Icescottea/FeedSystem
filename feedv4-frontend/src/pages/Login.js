@@ -17,6 +17,7 @@ const Login = ({ setUser }) => {
       if (!res.ok) throw new Error('Login failed');
       const data = await res.json();
       setUser(data);
+      localStorage.setItem("user", JSON.stringify(data))
       navigate('/');
     } catch (err) {
       setError('Invalid email or password');

@@ -20,14 +20,14 @@ const Sidebar = ({ role }) => {
         {role === 'ADMIN' && (
           <Link to="/users" className="nav-link">Users</Link>
         )}
-        {role === 'FINANCE_OFFICER' && (
-          <Link to="/finance" className="nav-link">Finance</Link>
-        )}
-        {(role == 'ADMIN' || role == 'FORMULATOR' ) && ( 
+        {(role === 'ADMIN' || role === 'FORMULATOR' ) && ( 
           <Link to="/feed-profiles" className="nav-link">Feed Profiles</Link>
         )}
         {(role === 'ADMIN' || role === 'OPERATOR') && (
-          <li><Link to="/pelleting">Pelleting Queue</Link></li>
+          <Link to="/pelleting">Pelleting Queue</Link>
+        )}
+        {(role === 'ADMIN' || role === 'FINANCE_OFFICER') && (
+          <Link to="/finance">Finance Dashboard</Link>
         )}
       </nav>
     </div>
