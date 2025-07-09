@@ -3,7 +3,7 @@ package com.feed.feedv4.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -35,8 +35,8 @@ public class Formulation {
     @OneToMany(mappedBy = "formulation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<FormulationIngredient> ingredients;
 
-    private LocalDate createdAt;
-    private LocalDate updatedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     // Custom accessors (already provided in your code but kept here for clarity)
     public boolean isFinalized() {
@@ -47,11 +47,11 @@ public class Formulation {
         this.finalized = finalized;
     }
 
-    public LocalDate getUpdatedAt() {
+    public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDate updatedAt) {
+    public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
 }

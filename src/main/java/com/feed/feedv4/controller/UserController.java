@@ -4,8 +4,6 @@ import com.feed.feedv4.model.Role;
 import com.feed.feedv4.model.User;
 import com.feed.feedv4.repository.UserRepository;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

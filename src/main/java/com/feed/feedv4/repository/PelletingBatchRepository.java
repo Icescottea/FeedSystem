@@ -8,4 +8,5 @@ import java.util.List;
 public interface PelletingBatchRepository extends JpaRepository<PelletingBatch, Long> {
     List<PelletingBatch> findByOperatorId(Long operatorId);
     List<PelletingBatch> findByStatus(String status);
+    int countByStatus(String status);
 }

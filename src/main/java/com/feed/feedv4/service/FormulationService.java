@@ -48,8 +48,8 @@ public class FormulationService {
     }
 
     public Formulation save(Formulation formulation) {
-        formulation.setCreatedAt(LocalDate.now());
-        formulation.setUpdatedAt(LocalDate.now());
+        formulation.setCreatedAt(LocalDateTime.now());
+        formulation.setUpdatedAt(LocalDateTime.now());
         if (formulation.getIngredients() != null) {
             formulation.getIngredients().forEach(i -> i.setFormulation(formulation));
         }
@@ -67,7 +67,7 @@ public class FormulationService {
             existing.setTags(updated.getTags());
             existing.setNotes(updated.getNotes());
             existing.setCostPerKg(updated.getCostPerKg());
-            existing.setUpdatedAt(LocalDate.now());
+            existing.setUpdatedAt(LocalDateTime.now());
 
             existing.getIngredients().clear();
             if (updated.getIngredients() != null) {
@@ -123,7 +123,7 @@ public class FormulationService {
         }
 
         formulation.setFinalized(finalized);
-        formulation.setUpdatedAt(LocalDate.now());
+        formulation.setUpdatedAt(LocalDateTime.now());
         repository.save(formulation);
     }
 

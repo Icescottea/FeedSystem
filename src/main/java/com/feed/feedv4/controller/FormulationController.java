@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -135,8 +136,8 @@ public class FormulationController {
         formulation.setStrategy(String.join(", ", request.getStrategy()));  // join list into string
         formulation.setStatus("Draft");
         formulation.setVersion("v1.0");
-        formulation.setCreatedAt(LocalDate.now());
-        formulation.setUpdatedAt(LocalDate.now());
+        formulation.setCreatedAt(LocalDateTime.now());
+        formulation.setUpdatedAt(LocalDateTime.now());
         formulation.setLocked(false);
         formulation.setFinalized(false);
         formulation.setTags(new ArrayList<>());

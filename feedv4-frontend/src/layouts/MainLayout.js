@@ -9,7 +9,8 @@ const MainLayout = ({ user }) => {
     <div className="layout">
       <Sidebar role={user.role} />
       <div className="main-content">
-        <Outlet />
+        {/* ✅ Pass user as context to Outlet */}
+        <Outlet context={{ user }} />
         <Footer />
       </div>
     </div>
