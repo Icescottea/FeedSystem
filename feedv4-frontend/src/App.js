@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import DashboardPage from './pages/DashboardPage';
-import Users from './pages/Users';
 import Login from './pages/Login';
 import InventoryPage from './pages/InventoryPage';
 import FeedProfilePage from './pages/FeedProfilePage';
@@ -30,7 +29,6 @@ const App = () => {
 
         {/* 3. Authenticated routes */}
         <Route path="/dashboard" element={<DashboardPage user={user} />} />
-        <Route path="/users" element={<Users />} />
         <Route path="/inventory" element={<InventoryPage />} />
         <Route path="/feed-profiles" element={<FeedProfilePage />} />
         <Route path="/formulations" element={<FormulationEnginePage />} />

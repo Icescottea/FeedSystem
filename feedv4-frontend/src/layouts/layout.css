@@ -1,3 +1,4 @@
+
 * {
   margin: 0;
   padding: 0;
@@ -12,25 +13,29 @@ html, body, #root {
 .layout {
   display: flex;
   height: 100vh;
-}
-
-.sidebar {
-  width: 220px;
-  background-color: #1f2937;
-  color: white;
-  padding: 20px;
-}
-
-.sidebar a {
-  display: block;
-  color: white;
-  text-decoration: none;
-  margin: 10px 0;
+  width: 100%;
 }
 
 .main-content {
-  flex: 1;
-  padding: 20px;
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
+  width: calc(100% - 16rem); /* 16rem = 256px = width of sidebar */
+}
+
+.content-area {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* Hide scrollbar for Chrome, Safari, Opera */
+.custom-scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge, Firefox */
+.custom-scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;    /* Firefox */
 }
