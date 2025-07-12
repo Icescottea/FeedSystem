@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import loginImage from '../assets/login1.jpg';
+import login2Image from '../assets/login2.jpg';
+import login3Image from '../assets/login3.jpg';
+import logoImage from '../assets/taglessLogo.png';
+import letsImage from '../assets/lets.jpeg';
 
 const Login = ({ setUser }) => {
   const [email, setEmail] = useState('');
@@ -9,6 +13,8 @@ const Login = ({ setUser }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const images = [loginImage, login2Image, login3Image];
+  const [currentImage, setCurrentImage] = useState(0);
 
   const handleLogin = async () => {
     try {
@@ -27,13 +33,42 @@ const Login = ({ setUser }) => {
     }
   };
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % images.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[#f5f6fa] flex items-center justify-center px-4">
-      <div className="w-full max-w-4xl h-[520px] bg-white shadow-xl flex border border-gray-200">
+    <div className="min-h-screen bg-[#f5f6fa] flex items-center justify-between px-8">
+
+      {/* Left Logo Area */}
+      <div className="flex-1 flex flex-col items-center justify-center">
+        <img
+          src={logoImage}
+          alt="Logo"
+          className="w-44 h-auto mb-4" // ⬅️ larger logo
+        />
+        <div className="flex items-center space-x-2">
+          <span className="text-base text-gray-600 font-medium">Made by</span>
+          <img
+            src={letsImage}
+            alt="Let's"
+            className="h-auto w-20"
+          />
+        </div>
+      </div>
+
+      {/* Right-Aligned Container */}
+      <div className="w-full max-w-4xl h-[520px] rounded-xl shadow-2xl flex overflow-hidden mr-4 bg-white">
         
-        {/* Left: Form */}
+        {/* Left: Login Form */}
         <div className="w-1/2 p-12 flex flex-col justify-center">
-          <h2 className="text-3xl font-semibold text-gray-800 mb-8 tracking-tight">Login</h2>
+          <div className="mb-8">
+            <h2 className="text-3xl font-semibold text-gray-800 tracking-tight">Login</h2>
+            <p className="text-sm text-gray-500 mt-1">Welcome to Feed Management System</p>
+          </div>
 
           {/* Email */}
           <div className="mb-5">
@@ -93,13 +128,18 @@ const Login = ({ setUser }) => {
           </button>
         </div>
 
-        {/* Right: Visual Image */}
-        <div className="w-1/2 h-full relative">
-          <img
-            src={loginImage}
-            alt="Visual"
-            className="object-cover w-full h-full"
-          />
+        <div className="w-1/2 h-full relative overflow-hidden">
+          {images.map((img, index) => (
+            <img
+              key={index}
+              src={img}
+              alt={`Slide ${index}`}
+              className={`
+                absolute top-0 left-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out
+                ${index === currentImage ? 'opacity-100 z-10' : 'opacity-0 z-0'}
+              `}
+            />
+          ))}
         </div>
       </div>
     </div>
