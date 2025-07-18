@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
+
 import InventoryList from '../components/InventoryList';
 import InventoryForm from '../components/InventoryForm';
-import * as XLSX from 'xlsx';
 
 const InventoryPage = () => {
   const [inventory, setInventory] = useState([]);
@@ -12,179 +13,185 @@ const InventoryPage = () => {
   const [previewData, setPreviewData] = useState([]);
   const [lowStockItems, setLowStockItems] = useState([]);
 
-  const fetchInventory = () => {
+  /* ───────── fetch helpers ───────── */
+  const fetchInventory = async () => {
     const url = showArchived ? '/api/inventory/all' : '/api/inventory';
-
-    console.log(`📡 Fetching from: ${url}`);
-
-    fetch(url)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
-      })
-      .then(data => {
-        console.log("📦 Raw data from backend:", data);
-        setInventory(data);
-      })
-      .catch(err => {
-        console.error("❌ Error fetching inventory:", err);
-      });
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setInventory(await res.json());
+    } catch (err) {
+      console.error('❌ Error fetching inventory:', err);
+    }
   };
 
   useEffect(() => {
     fetchInventory();
   }, [showArchived]);
 
-  const handleAddClick = () => {
-    setSelectedItem(null);
-    setShowForm(true);
-  };
-
-  const handleEditClick = (item) => {
-    setSelectedItem(item);
-    setShowForm(true);
-  };
-
-  const handleSuccess = () => {
-    console.log("✅ Operation successful, refreshing inventory...");
+  const refreshAndClose = () => {
     fetchInventory();
     setShowForm(false);
   };
 
-  const handleCancel = () => {
-    setShowForm(false);
-  };
+  const handleDelete  = (id) => fetch(`/api/inventory/${id}`,           { method: 'DELETE' }).then(refreshAndClose);
+  const handleArchive = (id) => fetch(`/api/inventory/${id}/toggle-archive`, { method: 'PUT'    }).then(refreshAndClose);
 
-  const handleDelete = async (id) => {
-    await fetch(`/api/inventory/${id}`, { method: 'DELETE' });
-    console.log(`🗑 Deleted item with ID ${id}`);
-    handleSuccess();
-  };
-
-  const handleArchive = async (id) => {
-    await fetch(`/api/inventory/${id}/toggle-archive`, { method: 'PUT' });
-    console.log(`📁 Toggled archive status for item ID ${id}`);
-    handleSuccess();
-  };
-
+  /* ───────── excel upload ───────── */
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     setExcelFile(file);
 
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const data = new Uint8Array(event.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      const parsedData = XLSX.utils.sheet_to_json(firstSheet);
-      setPreviewData(parsedData);
-      console.log("📄 Excel Preview:", parsedData);
+    reader.onload = (ev) => {
+      const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
+      const firstSheet = wb.Sheets[wb.SheetNames[0]];
+      setPreviewData(XLSX.utils.sheet_to_json(firstSheet));
     };
     reader.readAsArrayBuffer(file);
   };
 
   const handleUpload = async () => {
+    if (!excelFile) return;
     const formData = new FormData();
     formData.append('file', excelFile);
 
-    try {
-      const response = await fetch('/api/inventory/bulk-upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (response.ok) {
-        console.log('✅ Upload successful');
-        setPreviewData([]);
-        fetchInventory();
-      } else {
-        console.error('❌ Upload failed');
-      }
-    } catch (error) {
-      console.error('❌ Upload error:', error);
-    }
+    const res = await fetch('/api/inventory/bulk-upload', { method: 'POST', body: formData });
+    if (res.ok) {
+      setPreviewData([]);
+      fetchInventory();
+    } else console.error('❌ Upload failed');
   };
 
+  /* ───────── low‑stock check ───────── */
   const handleLowStockCheck = async () => {
     const res = await fetch('/api/inventory/low-stock');
-    const data = await res.json();
-    setLowStockItems(data);
-    console.log("⚠️ Low Stock Items:", data);
+    setLowStockItems(await res.json());
   };
 
+  /* filter active/archived */
   const filteredInventory = showArchived
     ? inventory
-    : inventory.filter(item => !item.archived);
+    : inventory.filter((i) => !i.archived);
 
-  console.log("📋 Displaying items:", filteredInventory);
-
+  /* ───────── render ───────── */
   return (
-    <div>
-      <h1>Inventory</h1>
-
-      <button onClick={() => setShowArchived(!showArchived)}>
-        {showArchived ? 'Hide Archived' : 'Show Archived'}
-      </button>
-
-      <input
-        type="file"
-        accept=".xlsx, .xls"
-        onChange={handleFileChange}
-      />
-
-      {previewData.length > 0 && (
-        <div>
-          <h3>Preview</h3>
-          <table>
-            <thead>
-              <tr>
-                {Object.keys(previewData[0]).map((key) => (
-                  <th key={key}>{key}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {previewData.map((row, index) => (
-                <tr key={index}>
-                  {Object.values(row).map((value, idx) => (
-                    <td key={idx}>{value}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <button onClick={handleUpload}>Confirm Upload</button>
+    <div className="w-full max-w-full mx-auto p-4 text-xs text-gray-800">
+      {/* header bar */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-semibold">Inventory</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowArchived((s) => !s)}
+            className={`px-3 py-1 rounded ${
+              showArchived ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-800'
+            }`}
+          >
+            {showArchived ? 'Hide Archived' : 'Show Archived'}
+          </button>
+          <button
+            onClick={() => { setSelectedItem(null); setShowForm(true); }}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded"
+          >
+            Add Raw Material
+          </button>
+          <button
+            onClick={handleLowStockCheck}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-1 rounded"
+          >
+            Check Low Stock
+          </button>
         </div>
-      )}
+      </div>
 
-      {!showForm && <button onClick={handleAddClick}>Add Raw Material</button>}
+      {/* ───── Bulk Upload Card ───── */}
+      <div className="bg-white rounded-lg shadow-md border p-4 max-w-full overflow-hidden mb-6">
+        <h2 className="text-lg font-medium mb-2">Bulk Upload</h2>
+        <input
+          type="file"
+          accept=".xlsx,.xls"
+          onChange={handleFileChange}
+          className="file:mr-4 file:py-1 file:px-3 file:border-0 file:rounded file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
+        />
 
-      {showForm && (
+        {previewData.length > 0 && (
+          <div className="mt-4">
+            <h3 className="font-semibold mb-2">Preview</h3>
+            <div className="overflow-x-auto border rounded">
+              <table className="min-w-[800px] text-xs border-collapse">
+                <thead className="bg-gray-100 text-gray-600">
+                  <tr>
+                    {Object.keys(previewData[0]).map((k) => (
+                      <th
+                        key={k}
+                        className="px-2 py-1 border whitespace-nowrap"
+                      >
+                        {k}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewData.map((row, i) => (
+                    <tr key={i} className="even:bg-gray-50">
+                      {Object.values(row).map((val, idx) => (
+                        <td
+                          key={idx}
+                          className="px-2 py-1 border whitespace-nowrap"
+                        >
+                          {val}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <button
+              onClick={handleUpload}
+              className="mt-3 bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded"
+            >
+              Confirm Upload
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ───── Form OR List ───── */}
+      {showForm ? (
         <InventoryForm
           item={selectedItem}
-          onSuccess={handleSuccess}
-          onCancel={handleCancel}
+          onSuccess={refreshAndClose}
+          onCancel={() => setShowForm(false)}
+        />
+      ) : (
+        <InventoryList
+          inventory={filteredInventory}
+          onEdit={(itm) => { setSelectedItem(itm); setShowForm(true); }}
+          onDelete={handleDelete}
+          onArchive={handleArchive}
+          showArchived={showArchived}
         />
       )}
 
-      <InventoryList
-        inventory={filteredInventory}
-        onEdit={handleEditClick}
-        onDelete={handleDelete}
-        onArchive={handleArchive}
-        showArchived={showArchived}
-      />
-
-      <button onClick={handleLowStockCheck}>Check Low Stock</button>
+      {/* ───── Low‑Stock Section ───── */}
       {lowStockItems.length > 0 && (
-        <div>
-          <h3>⚠️ Low Stock (≤ 50kg)</h3>
-          <InventoryList inventory={lowStockItems} />
+        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded mt-6 max-w-full">
+          <h3 className="font-semibold text-yellow-800 mb-2">
+            ⚠️ Low Stock (≤ 50 kg)
+          </h3>
+          {/* simply render InventoryList—its internal wrapper will scroll the table */}
+          <InventoryList
+            inventory={lowStockItems}
+            onEdit={(itm) => { setSelectedItem(itm); setShowForm(true); }}
+            onDelete={handleDelete}
+            onArchive={handleArchive}
+            showArchived={false}
+          />
         </div>
       )}
-
     </div>
   );
 };

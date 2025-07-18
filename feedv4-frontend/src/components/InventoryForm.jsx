@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 const InventoryForm = ({ item, onSuccess, onCancel }) => {
   const [form, setForm] = useState({
+    id: undefined,
     name: '',
     type: '',
     costPerKg: '',
@@ -16,16 +17,41 @@ const InventoryForm = ({ item, onSuccess, onCancel }) => {
     fat: '',
     fiber: '',
     ash: '',
-    locked: false
+    locked: false,
+    archived: false,
   });
 
   useEffect(() => {
-    if (item) setForm(item);
+    if (item) {
+      // Spread to avoid mutating incoming object
+      setForm({
+        id: item.id,
+        name: item.name ?? '',
+        type: item.type ?? '',
+        costPerKg: item.costPerKg ?? '',
+        inStockKg: item.inStockKg ?? '',
+        expiryDate: item.expiryDate ?? '',
+        supplier: item.supplier ?? '',
+        batchId: item.batchId ?? '',
+        qualityGrade: item.qualityGrade ?? '',
+        cp: item.cp ?? '',
+        me: item.me ?? '',
+        calcium: item.calcium ?? '',
+        fat: item.fat ?? '',
+        fiber: item.fiber ?? '',
+        ash: item.ash ?? '',
+        locked: !!item.locked,
+        archived: !!item.archived,
+      });
+    }
   }, [item]);
 
   const handleChange = (e) => {
     const { name, value, type: inputType, checked } = e.target;
-    setForm({ ...form, [name]: inputType === 'checkbox' ? checked : value });
+    setForm((f) => ({
+      ...f,
+      [name]: inputType === 'checkbox' ? checked : value,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -33,22 +59,22 @@ const InventoryForm = ({ item, onSuccess, onCancel }) => {
 
     const payload = {
       id: form.id,
-      name: form.name,
-      type: form.type,
-      costPerKg: parseFloat(form.costPerKg),
-      inStockKg: parseFloat(form.inStockKg),
+      name: form.name.trim(),
+      type: form.type.trim(),
+      costPerKg: parseFloat(form.costPerKg) || 0,
+      inStockKg: parseFloat(form.inStockKg) || 0,
       expiryDate: form.expiryDate,
-      supplier: form.supplier,
-      batchId: form.batchId,
-      qualityGrade: form.qualityGrade,     
-      cp: parseFloat(form.cp),
-      me: parseFloat(form.me),
-      calcium: parseFloat(form.calcium),
-      fat: parseFloat(form.fat),
-      fiber: parseFloat(form.fiber),
-      ash: parseFloat(form.ash),
-      locked: form.locked || false,
-      archived: form.archived || false
+      supplier: form.supplier.trim(),
+      batchId: form.batchId.trim(),
+      qualityGrade: form.qualityGrade.trim(),
+      cp: parseFloat(form.cp) || 0,
+      me: parseFloat(form.me) || 0,
+      calcium: parseFloat(form.calcium) || 0,
+      fat: parseFloat(form.fat) || 0,
+      fiber: parseFloat(form.fiber) || 0,
+      ash: parseFloat(form.ash) || 0,
+      locked: !!form.locked,
+      archived: !!form.archived,
     };
 
     const method = item ? 'PUT' : 'POST';
@@ -63,27 +89,86 @@ const InventoryForm = ({ item, onSuccess, onCancel }) => {
     onSuccess();
   };
 
+  /* Field meta: [name, label, inputType] */
+  const FIELDS = [
+    ['name', 'Name', 'text'],
+    ['type', 'Type', 'text'],              // replace w/ <select> later if you want strict categories
+    ['costPerKg', 'Cost per Kg', 'number'],
+    ['inStockKg', 'Stock (Kg)', 'number'],
+    ['expiryDate', 'Expiry Date', 'date'],
+    ['supplier', 'Supplier', 'text'],
+    ['batchId', 'Batch ID', 'text'],
+    ['qualityGrade', 'Quality Grade', 'text'], // could be select A/B/C
+    ['cp', 'CP', 'number'],
+    ['me', 'ME', 'number'],
+    ['calcium', 'Calcium', 'number'],
+    ['fat', 'Fat', 'number'],
+    ['fiber', 'Fiber', 'number'],
+    ['ash', 'Ash', 'number'],
+  ];
+
   return (
-    <form onSubmit={handleSubmit}>
-      <input name="name" placeholder="Name" value={form.name} onChange={handleChange} required />
-      <input name="type" placeholder="Type" value={form.type} onChange={handleChange} required />
-      <input name="costPerKg" type="number" placeholder="Cost per Kg" value={form.costPerKg} onChange={handleChange} required />
-      <input name="inStockKg" type="number" placeholder="Stock (Kg)" value={form.inStockKg} onChange={handleChange} required />
-      <input name="expiryDate" type="date" value={form.expiryDate} onChange={handleChange} />
-      <input name="supplier" placeholder="Supplier" value={form.supplier} onChange={handleChange} />
-      <input name="batchId" placeholder="Batch ID" value={form.batchId} onChange={handleChange} />
-      <input name="qualityGrade" placeholder="Grade" value={form.qualityGrade} onChange={handleChange} />
-      <input name="cp" type="number" placeholder="CP" value={form.cp} onChange={handleChange} />
-      <input name="me" type="number" placeholder="ME" value={form.me} onChange={handleChange} />
-      <input name="calcium" type="number" placeholder="Calcium" value={form.calcium} onChange={handleChange} />
-      <input name="fat" type="number" placeholder="Fat" value={form.fat} onChange={handleChange} />
-      <input name="fiber" type="number" placeholder="Fiber" value={form.fiber} onChange={handleChange} />
-      <input name="ash" type="number" placeholder="Ash" value={form.ash} onChange={handleChange} />
-      <label>
-        Locked: <input name="locked" type="checkbox" checked={form.locked} onChange={handleChange} />
-      </label>
-      <button type="submit">{item ? 'Update' : 'Add'}</button>
-      <button type="button" onClick={onCancel}>Cancel</button>
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white p-4 rounded-lg shadow-md border mt-6 w-full max-w-full overflow-hidden"
+    >
+      <h2 className="text-lg font-semibold mb-4 text-gray-800">
+        {item ? 'Edit Raw Material' : 'Add Raw Material'}
+      </h2>
+
+      {/* Responsive dense grid; wraps instead of widening layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-xs sm:text-sm">
+        {FIELDS.map(([name, label, type]) => (
+          <div key={name} className="flex flex-col">
+            <label
+              htmlFor={name}
+              className="block text-gray-600 mb-1 whitespace-nowrap"
+            >
+              {label}
+            </label>
+            <input
+              id={name}
+              name={name}
+              type={type}
+              value={form[name]}
+              onChange={handleChange}
+              required={['name', 'type', 'costPerKg', 'inStockKg'].includes(name)}
+              className="w-full border border-gray-300 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              step={type === 'number' ? 'any' : undefined}
+              min={type === 'number' ? '0' : undefined}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center mt-4 gap-4 text-xs sm:text-sm">
+        <label className="flex items-center gap-2 text-gray-700">
+          <input
+            name="locked"
+            type="checkbox"
+            checked={form.locked}
+            onChange={handleChange}
+            className="accent-blue-600"
+          />
+          Locked
+        </label>
+      </div>
+
+      <div className="flex justify-end mt-6 gap-3">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded text-sm"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded text-sm"
+        >
+          {item ? 'Update' : 'Add'}
+        </button>
+      </div>
     </form>
   );
 };

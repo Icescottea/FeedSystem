@@ -1,0 +1,25 @@
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import Sidebar from '../components/Sidebar';
+import Footer from '../components/Footer';
+
+const MainLayout = ({ user }) => {
+  /*  overflow‑x‑hidden  → page itself can’t scroll sideways
+      flex‑shrink‑0      → sidebar keeps its 256 px width, never squashes   */
+  return (
+    <div className="flex h-screen w-screen overflow-x-hidden">
+      <aside className="w-60 flex-shrink-0 bg-gray-900 overflow-y-auto custom-scrollbar-hide">
+        <Sidebar role={user.role} />
+      </aside>
+
+      <main className="flex flex-col flex-1 bg-white">
+        <section className="flex-1 overflow-y-auto px-6 py-4">
+          <Outlet context={{ user }} />
+        </section>
+        <Footer />
+      </main>
+    </div>
+  );
+};
+
+export default MainLayout;

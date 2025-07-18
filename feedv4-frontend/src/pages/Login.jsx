@@ -41,9 +41,9 @@ const Login = ({ setUser }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#f5f6fa] flex items-center justify-between px-8">
+    <div className=" relative min-h-screen bg-[#f5f6fa] flex items-center justify-between px-8">
       {/* Left Logo Area */}
-      <div className="flex-1 flex flex-col items-center justify-center">
+      <div className="flex-1 flex flex-col items-center justify-center z-10">
         <img src={logoImage} alt="Logo" className="w-44 h-auto mb-4" />
         <div className="flex items-center space-x-2">
           <span className="text-lg font-custom3 text-gray-600 font-medium mt-[5px]">Made by</span>
@@ -52,7 +52,7 @@ const Login = ({ setUser }) => {
       </div>
 
       {/* Right-Aligned Container */}
-      <div className="w-full max-w-4xl h-[520px] rounded-xl shadow-2xl flex overflow-hidden mr-4 bg-white">
+      <div className="w-full max-w-4xl h-[520px] rounded-xl shadow-2xl flex overflow-hidden mr-4 bg-white z-10">
         {/* Left: Login Form */}
         <div className="w-1/2 p-12 flex flex-col justify-center">
           <div className="mb-8">
