@@ -9,12 +9,7 @@ const MyPelletingBatches = () => {
     fetch('/api/pelleting/my-batches')
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) {
-          setBatches(data);
-        } else {
-          console.error("Expected an array but got:", data);
-          setBatches([]); // fallback
-        }
+        setBatches(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch(err => {
@@ -28,24 +23,49 @@ const MyPelletingBatches = () => {
     fetchBatches();
   }, []);
 
-  if (loading) return <p>Loading your batches...</p>;
-  if (!Array.isArray(batches) || batches.length === 0) return <p>No batches assigned to you.</p>;
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 text-gray-600 py-6">
+        <p className="text-sm">Loading your batches...</p>
+      </div>
+    );
+  }
+
+  if (!batches.length) {
+    return (
+      <div className="px-4 sm:px-6 text-gray-600 py-6">
+        <p className="text-sm">No batches assigned to you.</p>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h2>My Pelleting Batches</h2>
-      {batches.map(batch => (
-        <div key={batch.id} style={{ border: '1px solid #ccc', padding: 12, marginBottom: 20 }}>
-          <p><strong>Formulation:</strong> {batch.formulation?.name || 'Unnamed'}</p>
-          <p><strong>Target Quantity:</strong> {batch.targetQuantityKg} kg</p>
-          <p><strong>Status:</strong> {batch.status}</p>
-          <p><strong>Machine:</strong> {batch.machineUsed}</p>
-          <p><strong>Started At:</strong> {batch.startedAt || '-'}</p>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6 pb-6">
+      <h2 className="text-xl font-semibold text-gray-800 pt-4">My Pelleting Batches</h2>
 
-          <PelletingStatusUpdater
-            batchId={batch.id}
-            onUpdated={fetchBatches}
-          />
+      {batches.map(batch => (
+        <div
+          key={batch.id}
+          className="bg-white border rounded-md shadow p-6 space-y-4"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-700">
+            <div>
+              <p><span className="font-medium">Formulation:</span> {batch.formulation?.name || '-'}</p>
+              <p><span className="font-medium">Target Quantity:</span> {batch.targetQuantityKg} kg</p>
+              <p><span className="font-medium">Status:</span> {batch.status}</p>
+            </div>
+            <div>
+              <p><span className="font-medium">Machine:</span> {batch.machineUsed || '-'}</p>
+              <p><span className="font-medium">Started At:</span> {batch.startedAt?.substring(0,16) || '-'}</p>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <PelletingStatusUpdater
+              batchId={batch.id}
+              onUpdated={fetchBatches}
+            />
+          </div>
         </div>
       ))}
     </div>
