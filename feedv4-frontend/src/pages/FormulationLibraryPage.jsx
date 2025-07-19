@@ -37,9 +37,7 @@ const FormulationLibraryPage = () => {
     setFiltered(filteredList);
   }, [searchTerm, statusFilter, formulations]);
 
-  const handleEdit = (id) => {
-    navigate(`/formulations/builder/${id}`);
-  };
+  const handleEdit = (id) => navigate(`/formulations/builder/${id}`);
 
   const handleDuplicate = (formulation) => {
     const newFormulation = {
@@ -87,69 +85,35 @@ const FormulationLibraryPage = () => {
     );
   };
 
-  const renderComparison = () => {
-    const items = formulations.filter(f => compareSet.includes(f.id));
-    if (items.length < 2) return null;
-
-    return (
-      <div style={{ marginTop: '20px' }}>
-        <h3>Comparison</h3>
-        <table border={1}>
-          <thead>
-            <tr>
-              <th>Field</th>
-              {items.map(f => <th key={f.id}>{f.name}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Status</td>
-              {items.map(f => <td key={f.id}>{f.status}</td>)}
-            </tr>
-            <tr>
-              <td>Version</td>
-              {items.map(f => <td key={f.id}>{f.version}</td>)}
-            </tr>
-            <tr>
-              <td>Cost/kg</td>
-              {items.map(f => <td key={f.id}>{f.costPerKg?.toFixed(2) || 'N/A'}</td>)}
-            </tr>
-            <tr>
-              <td>Finalized</td>
-              {items.map(f => <td key={f.id}>{f.finalized ? 'Yes' : 'No'}</td>)}
-            </tr>
-            <tr>
-              <td>Locked</td>
-              {items.map(f => <td key={f.id}>{f.locked ? 'Yes' : 'No'}</td>)}
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
   const handleUnarchive = async (id) => {
     await fetch(`/api/formulations/${id}/unarchive`, { method: 'PUT' });
     alert('Formulation unarchived!');
   };
-  
+
   const handleUnfinalize = async (id) => {
     await fetch(`/api/formulations/${id}/unfinalize`, { method: 'PUT' });
     alert('Formulation marked as draft again.');
   };
 
   return (
-    <div>
-      <h1>📚 Formulation Library</h1>
+    <div className="w-full max-w-full mx-auto p-4 text-xs text-gray-800 overflow-x-hidden">
+      <div className="mb-6 flex justify-between items-center">
+        <h1 className="text-2xl font-semibold">📚 Formulation Library</h1>
+      </div>
 
-      <div style={{ marginBottom: '15px' }}>
+      <div className="mb-4 flex flex-wrap gap-4 items-center">
         <input
           type="text"
           placeholder="Search by name or tag..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
+          className="border border-gray-300 px-3 py-2 rounded-md text-sm w-64"
         />
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          className="border border-gray-300 px-3 py-2 rounded-md text-sm"
+        >
           <option value="All">All</option>
           <option value="Draft">Draft</option>
           <option value="Finalized">Finalized</option>
@@ -157,53 +121,91 @@ const FormulationLibraryPage = () => {
         </select>
       </div>
 
-      <table border={1} cellPadding={6}>
-        <thead>
-          <tr>
-            <th>Compare</th>
-            <th>Name</th>
-            <th>Status</th>
-            <th>Version</th>
-            <th>Cost/kg</th>
-            <th>Finalized</th>
-            <th>Locked</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map(f => (
-            <tr key={f.id}>
-              <td>
-                <input
-                  type="checkbox"
-                  checked={compareSet.includes(f.id)}
-                  onChange={() => toggleCompare(f.id)}
-                />
-              </td>
-              <td>{f.name}</td>
-              <td>{f.status}</td>
-              <td>{f.version}</td>
-              <td>{f.costPerKg?.toFixed(2) || 'N/A'}</td>
-              <td>{f.finalized ? 'Yes' : 'No'}</td>
-              <td>{f.locked ? 'Yes' : 'No'}</td>
-              <td>
-                <button onClick={() => handleEdit(f.id)}>Edit</button>
-                <button onClick={() => handleDuplicate(f)}>Duplicate</button>
-                <button onClick={() => handleExportPDF(f)}>PDF</button>
-                <button onClick={() => handleExportExcel(f)}>Excel</button>
-                {f.status === 'Archived' && (
-                  <button onClick={() => handleUnarchive(f.id)}>Undo Archive</button>
-                )}
-                {f.finalized && (
-                  <button onClick={() => handleUnfinalize(f.id)}>Unfinalize</button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="bg-white rounded-lg shadow-md border p-4 overflow-hidden" style={{ maxWidth: 'calc(100vw - 298px)' }}>
+        <div className="overflow-x-auto">
+          <table className="min-w-[1100px] table-auto text-xs text-left">
+            <thead className="bg-gray-100 text-gray-600">
+              <tr>
+                <th className="px-3 py-2">✓</th>
+                <th className="px-3 py-2">Name</th>
+                <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Version</th>
+                <th className="px-3 py-2">Cost/kg</th>
+                <th className="px-3 py-2">Finalized</th>
+                <th className="px-3 py-2">Locked</th>
+                <th className="px-3 py-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(f => (
+                <tr key={f.id} className="border-t hover:bg-gray-50">
+                  <td className="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={compareSet.includes(f.id)}
+                      onChange={() => toggleCompare(f.id)}
+                    />
+                  </td>
+                  <td className="px-3 py-2">{f.name}</td>
+                  <td className="px-3 py-2">{f.status}</td>
+                  <td className="px-3 py-2">{f.version}</td>
+                  <td className="px-3 py-2">{f.costPerKg?.toFixed(2) || 'N/A'}</td>
+                  <td className="px-3 py-2">{f.finalized ? 'Yes' : 'No'}</td>
+                  <td className="px-3 py-2">{f.locked ? 'Yes' : 'No'}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <div className="flex gap-2 text-xs">
+                      <button onClick={() => handleEdit(f.id)} className="text-blue-600 hover:underline px-1">Edit</button>
+                      <button onClick={() => handleDuplicate(f)} className="text-purple-600 hover:underline px-1">Duplicate</button>
+                      <button onClick={() => handleExportPDF(f)} className="text-red-600 hover:underline px-1">PDF</button>
+                      <button onClick={() => handleExportExcel(f)} className="text-green-600 hover:underline px-1">Excel</button>
+                      {f.status === 'Archived' && (
+                        <button onClick={() => handleUnarchive(f.id)} className="text-yellow-600 hover:underline px-1">Undo Archive</button>
+                      )}
+                      {f.finalized && (
+                        <button onClick={() => handleUnfinalize(f.id)} className="text-indigo-600 hover:underline px-1">Unfinalize</button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-      {renderComparison()}
+      {compareSet.length >= 2 && (
+        <div className="mt-8 bg-white shadow-md border rounded-md p-4">
+          <h2 className="text-sm font-semibold mb-2">Comparison</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-[600px] text-xs border">
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="px-3 py-2 text-left">Field</th>
+                  {formulations.filter(f => compareSet.includes(f.id)).map(f => (
+                    <th key={f.id} className="px-3 py-2 text-left">{f.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {['status', 'version', 'costPerKg', 'finalized', 'locked'].map(field => (
+                  <tr key={field} className="border-t">
+                    <td className="px-3 py-2 capitalize">{field.replace('costPerKg', 'Cost/kg')}</td>
+                    {formulations.filter(f => compareSet.includes(f.id)).map(f => (
+                      <td key={f.id} className="px-3 py-2">
+                        {field === 'costPerKg'
+                          ? (f[field]?.toFixed(2) || 'N/A')
+                          : typeof f[field] === 'boolean'
+                            ? (f[field] ? 'Yes' : 'No')
+                            : f[field]}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

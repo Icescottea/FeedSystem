@@ -8,10 +8,12 @@ const FormulationBuilderPage = ({ formulationId }) => {
   const [percentages, setPercentages] = useState({});
   const [isFinalized, setIsFinalized] = useState(false);
   const [suggestions, setSuggestions] = useState({});
-  const [logs, setLogs] = useState([]); // ✅ FIXED
+  const [logs, setLogs] = useState([]);
+
   const nutrientKeys = ['protein', 'energy', 'calcium', 'phosphorus', 'fiber', 'fat', 'methionine', 'lysine'];
 
   useEffect(() => {
+    // Load main formulation
     fetch(`/api/formulations/${formulationId}`)
       .then(res => res.json())
       .then(data => {
@@ -25,17 +27,17 @@ const FormulationBuilderPage = ({ formulationId }) => {
         setPercentages(init);
       });
 
-    if (formulationId) {
-      fetch(`/api/formulations/${formulationId}/suggestions`)
-        .then(res => res.json())
-        .then(setSuggestions)
-        .catch(console.error);
+    // Load suggestions
+    fetch(`/api/formulations/${formulationId}/suggestions`)
+      .then(res => res.json())
+      .then(setSuggestions)
+      .catch(console.error);
 
-      fetch(`/api/formulations/${formulationId}/logs`)
-        .then(res => res.json())
-        .then(setLogs)
-        .catch(console.error);
-    }
+    // Load activity logs
+    fetch(`/api/formulations/${formulationId}/logs`)
+      .then(res => res.json())
+      .then(setLogs)
+      .catch(console.error);
   }, [formulationId]);
 
   const handleSlider = (name, value) => {
@@ -51,18 +53,17 @@ const FormulationBuilderPage = ({ formulationId }) => {
   };
 
   const calcCost = () => {
-    return (formulation.ingredients || []).reduce((sum, i) => {
+    if (!Array.isArray(formulation?.ingredients)) return 0;
+    return formulation.ingredients.reduce((sum, i) => {
       const pct = percentages[i.rawMaterial.name] || 0;
       return sum + (pct * i.rawMaterial.costPerKg) / 100;
     }, 0);
   };
 
   const calculateActualNutrients = () => {
+    if (!formulation?.ingredients) return {};
     const totals = {};
     nutrientKeys.forEach(k => (totals[k] = 0));
-
-    if (!formulation || !formulation.ingredients) return totals;
-
     formulation.ingredients.forEach(i => {
       const pct = percentages[i.rawMaterial.name] || 0;
       nutrientKeys.forEach(k => {
@@ -87,16 +88,19 @@ const FormulationBuilderPage = ({ formulationId }) => {
     return deviations;
   };
 
-  const actualNutrients = formulation ? calculateActualNutrients() : {};
-  const targetNutrients = formulation?.feedProfile || {};
+  if (!formulation) {
+    return <div className="text-sm text-gray-600 px-4 py-6">Loading...</div>;
+  }
+  if (formulation.locked) {
+    return <div className="text-sm text-gray-700 px-4 py-6">🔒 This formulation is locked and cannot be edited.</div>;
+  }
+
+  const actualNutrients = calculateActualNutrients();
+  const targetNutrients = formulation.feedProfile || {};
   const deviations = getDeviation(actualNutrients, targetNutrients);
 
   const handleSave = async (final) => {
-    const body = {
-      ingredientPercentages: percentages,
-      lockedIngredients,
-      finalized: final,
-    };
+    const body = { ingredientPercentages: percentages, lockedIngredients, finalized: final };
     await fetch(`/api/formulations/${formulationId}/update`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -105,140 +109,168 @@ const FormulationBuilderPage = ({ formulationId }) => {
     alert(final ? 'Formulation Finalized' : 'Draft Saved');
   };
 
-  if (!formulation) return <div>Loading...</div>;
-  if (formulation.locked) return <div>🔒 This formulation is locked and cannot be edited.</div>;
-
   return (
-    <div>
-      <h2>Formulation Builder: {formulation.name}</h2>
+    <div className="w-full max-w-full mx-auto p-4 text-xs text-gray-800 overflow-x-hidden">
+      <h2 className="text-2xl font-semibold pt-4  mb-5">Formulation Builder: {formulation.name}</h2>
 
-      <IngredientSelector
-        ingredients={formulation.ingredients}
-        percentages={percentages}
-        onChange={handleSlider}
-        locked={lockedIngredients}
-        onToggleLock={toggleIngredientLock}
-      />
+      <div className="bg-white border rounded-md shadow p-6 space-y-6">
+        <IngredientSelector
+          ingredients={formulation.ingredients || []}
+          percentages={percentages}
+          onChange={handleSlider}
+          locked={lockedIngredients}
+          onToggleLock={toggleIngredientLock}
+        />
 
-      <NutrientGraph target={targetNutrients} actual={actualNutrients} />
+        <NutrientGraph target={targetNutrients} actual={actualNutrients} />
 
-      <table>
-        <thead>
-          <tr>
-            <th>Ingredient</th>
-            <th>%</th>
-            <th>Cost/kg</th>
-            <th>Contribution (kg)</th>
-            <th>Locked</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(formulation.ingredients || []).map(i => (
-            <tr key={i.rawMaterial.name}>
-              <td>{i.rawMaterial.name}</td>
-              <td>{percentages[i.rawMaterial.name] || 0}</td>
-              <td>{i.rawMaterial.costPerKg}</td>
-              <td>{((percentages[i.rawMaterial.name] || 0) * formulation.batchSize) / 100}</td>
-              <td>{lockedIngredients.includes(i.rawMaterial.name) ? 'Yes' : 'No'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        <div className="overflow-x-auto">
+          <table className="min-w-[900px] text-xs table-auto border w-full">
+            <thead className="bg-gray-100 text-gray-600">
+              <tr>
+                <th className="px-3 py-2 text-left">Ingredient</th>
+                <th className="px-3 py-2 text-left">%</th>
+                <th className="px-3 py-2 text-left">Cost/kg</th>
+                <th className="px-3 py-2 text-left">Contribution (kg)</th>
+                <th className="px-3 py-2 text-left">Locked</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.isArray(formulation.ingredients) && formulation.ingredients.map(i => (
+                <tr key={i.rawMaterial.name} className="border-t">
+                  <td className="px-3 py-2">{i.rawMaterial.name}</td>
+                  <td className="px-3 py-2">{percentages[i.rawMaterial.name] || 0}</td>
+                  <td className="px-3 py-2">{i.rawMaterial.costPerKg}</td>
+                  <td className="px-3 py-2">{((percentages[i.rawMaterial.name] || 0) * formulation.batchSize) / 100}</td>
+                  <td className="px-3 py-2">{lockedIngredients.includes(i.rawMaterial.name) ? 'Yes' : 'No'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      {suggestions && (
-        <div>
-          <h3>🔄 Ingredient Alternatives</h3>
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium">🔄 Ingredient Alternatives</h3>
           {Object.entries(suggestions).map(([name, alts]) => (
-            <div key={name}>
-              <strong>{name}</strong>:&nbsp;
-              {alts.length === 0
-                ? 'No better alternatives'
-                : alts.map(alt => `${alt.name} (${alt.costPerKg} LKR/kg)`).join(', ')
-              }
+            <div key={name} className="text-xs">
+              <strong>{name}</strong>: {Array.isArray(alts)
+                ? (alts.length === 0
+                    ? 'No better alternatives'
+                    : alts.map(alt => `${alt.name} (${alt.costPerKg} LKR/kg)`).join(', '))
+                : 'Invalid data'}
             </div>
           ))}
         </div>
-      )}
 
-      <p><strong>Total Cost per Kg:</strong> {calcCost().toFixed(2)} LKR</p>
-
-      {!isFinalized && (
-        <div>
-          <button onClick={() => handleSave(false)}>Save Draft</button>
-          <button onClick={() => handleSave(true)}>Finalize</button>
+        <div className="text-sm">
+          <strong>Total Cost per Kg:</strong> {calcCost().toFixed(2)} LKR
         </div>
-      )}
 
-      {isFinalized && (
-        <div>
-          <p>✅ Finalized</p>
-          <button onClick={async () => {
-            await fetch(`/api/formulations/${formulationId}/unfinalize`, { method: 'PUT' });
-            alert("Formulation unfinalized");
-            setIsFinalized(false);
-          }}>
-            Undo Finalize
+        {!isFinalized && (
+          <div className="flex gap-4 pt-4">
+            <button
+              onClick={() => handleSave(false)}
+              className="bg-gray-200 hover:bg-gray-300 px-4 py-2 text-sm rounded-md"
+            >
+              Save Draft
+            </button>
+            <button
+              onClick={() => handleSave(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm rounded-md"
+            >
+              Finalize
+            </button>
+          </div>
+        )}
+
+        {isFinalized && (
+          <div className="bg-green-100 border border-green-300 p-4 rounded-md text-sm text-green-700">
+            ✅ Finalized
+            <button
+              onClick={async () => {
+                await fetch(`/api/formulations/${formulationId}/unfinalize`, { method: 'PUT' });
+                alert("Formulation unfinalized");
+                setIsFinalized(false);
+              }}
+              className="ml-4 text-blue-600 hover:underline text-xs"
+            >
+              Undo Finalize
+            </button>
+          </div>
+        )}
+
+        {formulation.status === "Archived" && (
+          <div className="bg-yellow-100 border border-yellow-300 p-4 rounded-md text-sm text-yellow-800">
+            📦 This formulation is archived.
+            <button
+              onClick={async () => {
+                await fetch(`/api/formulations/${formulationId}/unarchive`, { method: 'PUT' });
+                alert("Formulation unarchived");
+                window.location.reload();
+              }}
+              className="ml-4 text-blue-600 hover:underline text-xs"
+            >
+              Undo Archive
+            </button>
+          </div>
+        )}
+
+        {formulation.locked && (
+          <div className="bg-red-100 border border-red-300 p-4 rounded-md text-sm text-red-700">
+            🔒 Locked Formulation
+            <button
+              onClick={async () => {
+                await fetch(`/api/formulations/${formulationId}/unlock`, { method: 'PUT' });
+                alert("Formulation unlocked");
+                window.location.reload();
+              }}
+              className="ml-4 text-blue-600 hover:underline text-xs"
+            >
+              Unlock Formulation
+            </button>
+          </div>
+        )}
+
+        <div className="flex gap-4 pt-4">
+          <button
+            onClick={() => window.open(`/api/formulations/${formulationId}/export/excel`, "_blank")}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm rounded-md"
+          >
+            Export to Excel
+          </button>
+          <button
+            onClick={() => window.open(`/api/formulations/${formulationId}/export/pdf`, "_blank")}
+            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm rounded-md"
+          >
+            Export to PDF
           </button>
         </div>
-      )}
 
-      {formulation.status === "Archived" && (
-        <div>
-          <p>📦 This formulation is archived.</p>
-          <button onClick={async () => {
-            await fetch(`/api/formulations/${formulationId}/unarchive`, { method: 'PUT' });
-            alert("Formulation unarchived");
-            window.location.reload();
-          }}>
-            Undo Archive
-          </button>
-        </div>
-      )}
-
-      {formulation.locked && (
-        <div>
-          <p>🔒 Locked Formulation</p>
-          <button onClick={async () => {
-            await fetch(`/api/formulations/${formulationId}/unlock`, { method: 'PUT' });
-            alert("Formulation unlocked");
-            window.location.reload();
-          }}>
-            Unlock Formulation
-          </button>
-        </div>
-      )}
-
-      <div style={{ marginTop: '10px' }}>
-        <button onClick={() => window.open(`/api/formulations/${formulationId}/export/excel`, "_blank")}>
-          Export to Excel
-        </button>
-        <button onClick={() => window.open(`/api/formulations/${formulationId}/export/pdf`, "_blank")}>
-          Export to PDF
-        </button>
-      </div>
-
-      <h3>📜 Activity Log</h3>
-      <ul>
-        {logs.map(log => (
-          <li key={log.id}>
-            [{new Date(log.timestamp).toLocaleString()}] - <strong>{log.action}</strong>: {log.message}
-          </li>
-        ))}
-      </ul>
-
-      {Object.keys(deviations).length > 0 && (
-        <div style={{ border: '1px solid red', padding: '10px', marginTop: '1rem', color: 'darkred' }}>
-          <strong>⚠️ Nutrient Deviation Detected:</strong>
-          <ul>
-            {Object.entries(deviations).map(([nutrient, deviation]) => (
-              <li key={nutrient}>
-                {nutrient.toUpperCase()}: {deviation > 0 ? '+' : ''}{deviation}% deviation
+        <div className="pt-6">
+          <h3 className="text-sm font-medium mb-2">📜 Activity Log</h3>
+          <ul className="text-xs space-y-1">
+            {Array.isArray(logs) && logs.map(log => (
+              <li key={log.id}>
+                [{new Date(log.timestamp).toLocaleString()}] - <strong>{log.action}</strong>: {log.message}
               </li>
             ))}
           </ul>
-          <small>Adjust ingredient percentages to meet the target profile.</small>
         </div>
-      )}
+
+        {Object.keys(deviations).length > 0 && (
+          <div className="mt-6 bg-red-50 border border-red-300 text-red-700 p-4 rounded-md text-sm">
+            <strong>⚠️ Nutrient Deviation Detected:</strong>
+            <ul className="list-disc pl-5">
+              {Object.entries(deviations).map(([nutrient, deviation]) => (
+                <li key={nutrient}>
+                  {nutrient.toUpperCase()}: {deviation > 0 ? '+' : ''}{deviation}% deviation
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs">Adjust ingredient percentages to meet the target profile.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

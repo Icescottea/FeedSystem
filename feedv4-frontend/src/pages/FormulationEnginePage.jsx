@@ -13,7 +13,7 @@ const FormulationEnginePage = () => {
 
     const payload = {
       ...data,
-      status: 'Draft' // ✅ Set default status
+      status: 'Draft'
     };
 
     fetch('/api/formulations', {
@@ -36,20 +36,24 @@ const FormulationEnginePage = () => {
   };
 
   return (
-    <div>
-      <h1>Formulation Engine</h1>
+    <div className="w-full max-w-full mx-auto p-4 text-xs text-gray-800 overflow-x-hidden">
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold">Formulation Engine</h1>
+      </div>
 
       {error && (
-        <div style={{ color: 'red', marginBottom: '1rem' }}>
+        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-md border border-red-300 text-sm">
           ⚠️ {error}
         </div>
       )}
 
-      {!wizardData ? (
-        <FormulationWizard onFinish={handleWizardFinish} />
-      ) : (
-        <p>Creating formulation...</p> // Optional loading state
-      )}
+      <div className="bg-white shadow-md rounded-md border p-6">
+        {!wizardData ? (
+          <FormulationWizard onFinish={handleWizardFinish} />
+        ) : (
+          <p className="text-sm text-gray-500 italic">Creating formulation...</p>
+        )}
+      </div>
     </div>
   );
 };

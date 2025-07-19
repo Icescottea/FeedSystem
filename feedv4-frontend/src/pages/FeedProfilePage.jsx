@@ -20,7 +20,7 @@ const FeedProfilePage = () => {
   useEffect(fetchProfiles, []);
 
   const onEdit = (profile) => {
-    if (profile && profile.locked) {
+    if (profile?.locked) {
       alert("🔒 This profile is locked and cannot be edited.");
       return;
     }
@@ -63,11 +63,11 @@ const FeedProfilePage = () => {
   const onExport = (profile) => {
     const doc = new jsPDF();
     let y = 10;
-  
+
     doc.setFontSize(16);
     doc.text(`Feed Profile: ${profile.feedName}`, 10, y);
     y += 10;
-  
+
     const fields = [
       ['Species', profile.species],
       ['Stage', profile.stage],
@@ -86,13 +86,13 @@ const FeedProfilePage = () => {
       ['Mandatory Ingredients', (profile.mandatoryIngredients || []).join(', ')],
       ['Restricted Ingredients', (profile.restrictedIngredients || []).join(', ')]
     ];
-  
+
     fields.forEach(([label, value]) => {
       doc.setFontSize(12);
       doc.text(`${label}: ${value}`, 10, y);
       y += 7;
     });
-  
+
     doc.save(`${profile.feedName}.pdf`);
   };
 
@@ -102,32 +102,50 @@ const FeedProfilePage = () => {
   };
 
   return (
-    <div>
-      <h1>Feed Profiles</h1>
-      {!showForm && <button onClick={() => onEdit(null)}>Add Profile</button>}
+    <div className="w-full max-w-full mx-auto p-4 text-xs text-gray-800 overflow-x-hidden">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold">Feed Profile Management</h1>
+        {!showForm && (
+          <button
+            onClick={() => onEdit(null)}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-1 rounded"
+          >
+            + Add Profile
+          </button>
+        )}
+      </div>
+
       {showForm && (
-        <FeedProfileForm
-          profile={selected}
-          onSuccess={onSuccess}
-          onCancel={() => setShowForm(false)}
-        />
+        <div className="mb-6 bg-white shadow-md rounded-md p-6">
+          <FeedProfileForm
+            profile={selected}
+            onSuccess={onSuccess}
+            onCancel={() => setShowForm(false)}
+          />
+        </div>
       )}
-      <FeedProfileList
-        profiles={profiles}
-        compareIds={compareIds}
-        onEdit={onEdit}
-        onClone={onClone}
-        onArchive={onArchive}
-        onLock={onToggleLock}
-        onDelete={onDelete}
-        onCompareToggle={onCompareToggle}
-        onExport={onExport}
-      />
-      {compareIds.length === 2 && (
-        <CompareProfiles
-          a={profiles.find(p => p.id === compareIds[0])}
-          b={profiles.find(p => p.id === compareIds[1])}
+
+      <div className="mb-6">
+        <FeedProfileList
+          profiles={profiles}
+          compareIds={compareIds}
+          onEdit={onEdit}
+          onClone={onClone}
+          onArchive={onArchive}
+          onLock={onToggleLock}
+          onDelete={onDelete}
+          onCompareToggle={onCompareToggle}
+          onExport={onExport}
         />
+      </div>
+
+      {compareIds.length === 2 && (
+        <div className="bg-white shadow-md rounded-md p-6">
+          <CompareProfiles
+            a={profiles.find(p => p.id === compareIds[0])}
+            b={profiles.find(p => p.id === compareIds[1])}
+          />
+        </div>
       )}
     </div>
   );
