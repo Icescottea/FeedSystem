@@ -11,7 +11,7 @@ const InventoryList = ({ inventory, onEdit, onDelete, onArchive, showArchived })
 
   return (
     <div
-      className="bg-white rounded-lg shadow-md border p-4 mx-auto"
+      className="bg-white rounded-lg shadow-md border p-4 overflow-hidden"
       style={{
         /* 
            100vw minus: 
@@ -19,7 +19,7 @@ const InventoryList = ({ inventory, onEdit, onDelete, onArchive, showArchived })
            - 2rem page padding (32px) 
            = calc(100vw - 288px)
         */
-        maxWidth: 'calc(100vw - 288px)'
+        maxWidth: 'calc(100vw - 298px)'
       }}
     >
       {/* *** Only THIS scrolls horizontally *** */}

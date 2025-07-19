@@ -77,7 +77,9 @@ const InventoryPage = () => {
 
   /* ───────── render ───────── */
   return (
-    <div className="w-full max-w-full mx-auto p-4 text-xs text-gray-800">
+    <div className="w-full max-w-full mx-auto p-4 text-xs text-gray-800 overflow-x-hidden"
+    style={{maxWidth: 'calc(100vw - 258px)'
+      }}>
       {/* header bar */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Inventory</h1>
@@ -106,7 +108,16 @@ const InventoryPage = () => {
       </div>
 
       {/* ───── Bulk Upload Card ───── */}
-      <div className="bg-white rounded-lg shadow-md border p-4 max-w-full overflow-hidden mb-6">
+      <div className="bg-white rounded-lg shadow-md border p-4 max-w-full overflow-hidden mb-6"
+          style={{
+        /* 
+           100vw minus: 
+           - 16rem sidebar (256px) 
+           - 2rem page padding (32px) 
+           = calc(100vw - 288px)
+        */
+        maxWidth: 'calc(100vw - 298px)'
+      }}>
         <h2 className="text-lg font-medium mb-2">Bulk Upload</h2>
         <input
           type="file"
@@ -178,11 +189,10 @@ const InventoryPage = () => {
 
       {/* ───── Low‑Stock Section ───── */}
       {lowStockItems.length > 0 && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded mt-6 max-w-full">
+        <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded mt-6 overflow-hiddens">
           <h3 className="font-semibold text-yellow-800 mb-2">
             ⚠️ Low Stock (≤ 50 kg)
           </h3>
-          {/* simply render InventoryList—its internal wrapper will scroll the table */}
           <InventoryList
             inventory={lowStockItems}
             onEdit={(itm) => { setSelectedItem(itm); setShowForm(true); }}
