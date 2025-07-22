@@ -8,7 +8,8 @@ import {
   Wrench,
   Target,
   Factory,
-  DollarSign
+  DollarSign,
+  User as UserIcon
 } from 'lucide-react';
 
 const Sidebar = ({ role }) => {
@@ -102,6 +103,14 @@ const Sidebar = ({ role }) => {
               Finance
             </NavLink>
           </>
+        )}
+
+        {(role === 'ADMIN') && (
+          <>
+          <SectionHeader>User</SectionHeader>
+          <NavLink to="/users" icon={UserIcon}>
+            User Management
+          </NavLink></>
         )}
       </nav>
     </div>

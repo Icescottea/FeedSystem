@@ -12,6 +12,7 @@ import PelletingQueuePage from './pages/PelletingQueuePage';
 import FinanceDashboard from './components/Finance/FinanceDashboard';
 import FeeConfigPage from './components/Finance/FeeConfigPage';
 import InvoiceListPage from './pages/finance/InvoiceListPage';
+import UserManagementPage from './pages/UserManagementPage';
 
 const App = () => {
   const [user, setUser] = useState(null);
@@ -38,6 +39,7 @@ const App = () => {
         <Route path="/finance" element={<FinanceDashboard />} />
         <Route path="/finance/config" element={<FeeConfigPage />} />
         <Route path="/finance/invoices" element={<InvoiceListPage />} />
+        <Route path="/users" element={<UserManagementPage />} />
       </Route>
     </Routes>
   );
