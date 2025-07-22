@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import DashboardPage from './pages/DashboardPage';
@@ -13,9 +13,16 @@ import FinanceDashboard from './components/Finance/FinanceDashboard';
 import FeeConfigPage from './components/Finance/FeeConfigPage';
 import InvoiceListPage from './pages/finance/InvoiceListPage';
 import UserManagementPage from './pages/UserManagementPage';
+import PaymentListPage from './pages/finance/PaymentListPage';
+import ReportsPage from './pages/finance/ReportsPage';
 
 const App = () => {
   const [user, setUser] = useState(null);
+ 
+  useEffect(() => {
+    const stored = localStorage.getItem('user');
+    if (stored) setUser(JSON.parse(stored));
+  }, []);
 
   // 1. Show login if no user
   if (!user) {
@@ -40,6 +47,10 @@ const App = () => {
         <Route path="/finance/config" element={<FeeConfigPage />} />
         <Route path="/finance/invoices" element={<InvoiceListPage />} />
         <Route path="/users" element={<UserManagementPage />} />
+        <Route path="/finance/payments" element={<PaymentListPage />} />
+        <Route path="/finance/reports" element={<ReportsPage />} />
+
+        {/* 4. Catch-all redirect */}
       </Route>
     </Routes>
   );
