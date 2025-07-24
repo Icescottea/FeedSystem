@@ -1,4 +1,3 @@
-// src/pages/finance/InvoiceListPage.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
@@ -12,55 +11,90 @@ const InvoiceListPage = () => {
   const fetchInvoices = async () => {
     try {
       const response = await axios.get('/api/invoices');
-      setInvoices(response.data);
+      setInvoices(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error fetching invoices:', error);
+      setInvoices([]);
     }
   };
 
-  const getStatus = (invoice) => {
-    return invoice.amountPaid >= invoice.totalAmount ? 'Paid' : 'Unpaid';
-  };
+  const getStatus = (inv) =>
+    inv.amountPaid >= inv.totalAmount ? 'Paid' : 'Unpaid';
 
   return (
-    <div className="container mt-4">
-      <h2>Invoices</h2>
-      <button className="btn btn-primary mb-3" onClick={() => window.location.href = '/finance/invoices/new'}>
-        Create New Invoice
-      </button>
-      <table className="table table-bordered table-striped">
-        <thead className="thead-dark">
-          <tr>
-            <th>ID</th>
-            <th>Customer</th>
-            <th>Total</th>
-            <th>Paid</th>
-            <th>Status</th>
-            <th>Created</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoices.map(inv => (
-            <tr key={inv.id}>
-              <td>{inv.id}</td>
-              <td>{inv.customerName || 'N/A'}</td>
-              <td>Rs. {inv.totalAmount.toFixed(2)}</td>
-              <td>Rs. {inv.amountPaid.toFixed(2)}</td>
-              <td>
-                <span className={`badge ${getStatus(inv) === 'Paid' ? 'bg-success' : 'bg-warning'}`}>
-                  {getStatus(inv)}
-                </span>
-              </td>
-              <td>{new Date(inv.createdAt).toLocaleDateString()}</td>
-              <td>
-                <button className="btn btn-sm btn-info me-2">View</button>
-                <button className="btn btn-sm btn-danger">Delete</button>
-              </td>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 text-gray-800">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-semibold">Invoices</h2>
+        <button
+          onClick={() => (window.location.href = '/finance/invoices/new')}
+          className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md shadow-sm"
+        >
+          + Create New Invoice
+        </button>
+      </div>
+
+      <div className="bg-white border rounded-md shadow p-4 overflow-x-auto">
+        <table className="min-w-[800px] table-auto text-sm w-full">
+          <thead className="bg-gray-100 text-gray-600">
+            <tr>
+              <th className="px-3 py-2 text-left">ID</th>
+              <th className="px-3 py-2 text-left">Customer</th>
+              <th className="px-3 py-2 text-left">Total</th>
+              <th className="px-3 py-2 text-left">Paid</th>
+              <th className="px-3 py-2 text-left">Status</th>
+              <th className="px-3 py-2 text-left">Created</th>
+              <th className="px-3 py-2 text-left">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {invoices.map(inv => (
+              <tr key={inv.id} className="hover:bg-gray-50 whitespace-nowrap">
+                <td className="px-3 py-2">{inv.id}</td>
+                <td className="px-3 py-2">{inv.customerName || 'N/A'}</td>
+                <td className="px-3 py-2">Rs. {inv.totalAmount.toFixed(2)}</td>
+                <td className="px-3 py-2">Rs. {inv.amountPaid.toFixed(2)}</td>
+                <td className="px-3 py-2">
+                  <span
+                    className={`inline-block px-2 py-1 text-xs font-medium rounded ${
+                      getStatus(inv) === 'Paid'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}
+                  >
+                    {getStatus(inv)}
+                  </span>
+                </td>
+                <td className="px-3 py-2">
+                  {new Date(inv.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-3 py-2">
+                  <div className="flex gap-2 text-xs">
+                    <button
+                      onClick={() => window.location.href = `/finance/invoices/${inv.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => {/* implement delete logic */}}
+                      className="text-red-600 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {invoices.length === 0 && (
+              <tr>
+                <td colSpan="7" className="px-3 py-4 text-center text-gray-500">
+                  No invoices found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

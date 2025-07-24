@@ -13,18 +13,16 @@ const FeeConfigPage = () => {
     try {
       const res = await fetch('/api/charges-config');
       const data = await res.json();
-
-      if (Array.isArray(data)) {
-        setConfigs(data);
-      } else {
-        console.error("Expected array but got:", data);
-        setConfigs([]);
-      }
+      setConfigs(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch configs:", err);
       setConfigs([]);
     }
   };
+
+  useEffect(() => {
+    fetchConfigs();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -41,104 +39,141 @@ const FeeConfigPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-
       if (res.ok) {
         alert('Configuration saved');
         await fetchConfigs();
-        setForm({
-          serviceType: '',
-          feeType: '',
-          rate: 0,
-          percentage: false,
-        });
+        setForm({ serviceType: '', feeType: '', rate: 0, percentage: false });
       } else {
         alert('Failed to save configuration');
       }
     } catch (err) {
       console.error("Failed to save config:", err);
+      alert('Failed to save configuration');
     }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this config?')) return;
-
     try {
-      await fetch(`/api/charges-config/${id}`, {
-        method: 'DELETE',
-      });
+      await fetch(`/api/charges-config/${id}`, { method: 'DELETE' });
       await fetchConfigs();
     } catch (err) {
       console.error("Failed to delete config:", err);
+      alert('Failed to delete configuration');
     }
   };
 
-  useEffect(() => {
-    fetchConfigs();
-  }, []);
-
   return (
-    <div>
-      <h2>⚙️ Fee Configuration</h2>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 text-gray-800 space-y-8">
+      {/* Page Title */}
+      <h2 className="text-2xl font-semibold">⚙️ Fee Configuration</h2>
 
-      <div style={{ marginBottom: '20px' }}>
-        <label>Service Type:</label>
-        <input name="serviceType" value={form.serviceType} onChange={handleChange} />
-
-        <label>Fee Type:</label>
-        <input name="feeType" value={form.feeType} onChange={handleChange} />
-
-        <label>Rate:</label>
-        <input
-          type="number"
-          name="rate"
-          value={form.rate}
-          onChange={handleChange}
-        />
-
-        <label>
-          <input
-            type="checkbox"
-            name="percentage"
-            checked={form.percentage}
-            onChange={handleChange}
-          />
-          Percentage Based
-        </label>
-
-        <button onClick={handleSubmit}>Save Config</button>
+      {/* Form Card */}
+      <div className="bg-white border rounded-md shadow p-6">
+        <h3 className="text-lg font-medium mb-4">Add / Edit Configuration</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Service Type */}
+          <div>
+            <label htmlFor="serviceType" className="block text-sm font-medium text-gray-700 mb-1">
+              Service Type
+            </label>
+            <input
+              id="serviceType"
+              name="serviceType"
+              value={form.serviceType}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          {/* Fee Type */}
+          <div>
+            <label htmlFor="feeType" className="block text-sm font-medium text-gray-700 mb-1">
+              Fee Type
+            </label>
+            <input
+              id="feeType"
+              name="feeType"
+              value={form.feeType}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          {/* Rate */}
+          <div>
+            <label htmlFor="rate" className="block text-sm font-medium text-gray-700 mb-1">
+              Rate
+            </label>
+            <input
+              id="rate"
+              name="rate"
+              type="number"
+              value={form.rate}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          {/* Percentage */}
+          <div className="flex items-center mt-6 sm:mt-0">
+            <input
+              id="percentage"
+              name="percentage"
+              type="checkbox"
+              checked={form.percentage}
+              onChange={handleChange}
+              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="percentage" className="ml-2 text-sm text-gray-700">
+              Percentage Based
+            </label>
+          </div>
+        </div>
+        <div className="mt-6 text-right">
+          <button
+            onClick={handleSubmit}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-5 py-2 rounded-md shadow-sm"
+          >
+            Save Config
+          </button>
+        </div>
       </div>
 
-      <hr />
-
-      <h3>Existing Configs</h3>
-      {configs.length === 0 ? (
-        <p>No configurations found.</p>
-      ) : (
-        <table border="1" cellPadding="6">
-          <thead>
-            <tr>
-              <th>Service</th>
-              <th>Fee Type</th>
-              <th>Rate</th>
-              <th>Is %</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {configs.map((cfg) => (
-              <tr key={cfg.id}>
-                <td>{cfg.serviceType}</td>
-                <td>{cfg.feeType}</td>
-                <td>{cfg.rate}</td>
-                <td>{cfg.percentage ? 'Yes' : 'No'}</td>
-                <td>
-                  <button onClick={() => handleDelete(cfg.id)}>🗑️</button>
-                </td>
+      {/* Existing Configs Table */}
+      <div className="bg-white border rounded-md shadow p-6 overflow-x-auto">
+        <h3 className="text-lg font-medium mb-4">Existing Configurations</h3>
+        {configs.length === 0 ? (
+          <p className="text-sm text-gray-600">No configurations found.</p>
+        ) : (
+          <table className="min-w-[700px] table-auto text-sm text-left w-full">
+            <thead className="bg-gray-100 text-gray-600">
+              <tr>
+                <th className="px-3 py-2">Service</th>
+                <th className="px-3 py-2">Fee Type</th>
+                <th className="px-3 py-2">Rate</th>
+                <th className="px-3 py-2">Is %</th>
+                <th className="px-3 py-2">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {configs.map(cfg => (
+                <tr key={cfg.id} className="hover:bg-gray-50 whitespace-nowrap">
+                  <td className="px-3 py-2">{cfg.serviceType}</td>
+                  <td className="px-3 py-2">{cfg.feeType}</td>
+                  <td className="px-3 py-2">{cfg.rate}</td>
+                  <td className="px-3 py-2">{cfg.percentage ? 'Yes' : 'No'}</td>
+                  <td className="px-3 py-2">
+                    <button
+                      onClick={() => handleDelete(cfg.id)}
+                      className="text-red-600 hover:underline text-sm px-1"
+                    >
+                      🗑️ Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 };
