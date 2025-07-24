@@ -9,15 +9,27 @@ const FeedProfilePage = () => {
   const [selected, setSelected] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [compareIds, setCompareIds] = useState([]);
+  const [showArchived, setShowArchived] = useState(false);
 
-  const fetchProfiles = () => {
-    fetch('/api/feed-profiles')
-      .then(res => res.json())
-      .then(setProfiles)
-      .catch(console.error);
+  const fetchProfiles = async () => {
+    const url = showArchived ? '/api/feed-profiles/all' : '/api/feed-profiles';
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      setProfiles(data);
+    } catch (err) {
+      console.error('❌ Failed to fetch profiles:', err);
+    }
   };
 
-  useEffect(fetchProfiles, []);
+  useEffect(() => {
+    fetchProfiles();
+  }, [showArchived]);
+
+  const refreshAndClose = () => {
+    fetchProfiles();
+    setShowForm(false);
+  };
 
   const onEdit = (profile) => {
     if (profile?.locked) {
@@ -50,6 +62,8 @@ const FeedProfilePage = () => {
   };
 
   const onDelete = async (id) => {
+    const confirm = window.confirm('Are you sure you want to delete this profile?');
+    if (!confirm) return;
     await fetch(`/api/feed-profiles/${id}`, { method: 'DELETE' });
     fetchProfiles();
   };
@@ -96,30 +110,39 @@ const FeedProfilePage = () => {
     doc.save(`${profile.feedName}.pdf`);
   };
 
-  const onSuccess = () => {
-    setShowForm(false);
-    fetchProfiles();
-  };
+  const filteredProfiles = showArchived
+    ? profiles
+    : profiles.filter(profile => !profile.archived);
 
   return (
     <div className="w-full max-w-full mx-auto p-4 text-xs text-gray-800 overflow-x-hidden">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Feed Profile Management</h1>
-        {!showForm && (
+        <div className="flex gap-2">
           <button
-            onClick={() => onEdit(null)}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-1 rounded"
+            className={`text-sm px-4 py-2 rounded border ${
+              showArchived ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-800'
+            }`}
+            onClick={() => setShowArchived(prev => !prev)}
           >
-            + Add Profile
+            {showArchived ? 'Hide Archived' : 'Show Archived'}
           </button>
-        )}
+          {!showForm && (
+            <button
+              onClick={() => onEdit(null)}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-1 rounded"
+            >
+              + Add Profile
+            </button>
+          )}
+        </div>
       </div>
 
       {showForm && (
         <div className="mb-6 bg-white shadow-md rounded-md p-6">
           <FeedProfileForm
             profile={selected}
-            onSuccess={onSuccess}
+            onSuccess={refreshAndClose}
             onCancel={() => setShowForm(false)}
           />
         </div>
@@ -127,6 +150,7 @@ const FeedProfilePage = () => {
 
       <div className="mb-6">
         <FeedProfileList
+          profile={filteredProfiles}
           profiles={profiles}
           compareIds={compareIds}
           onEdit={onEdit}

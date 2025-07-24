@@ -11,9 +11,20 @@ const defaultProfile = {
 
 const FeedProfileForm = ({ profile, onSuccess, onCancel }) => {
   const [form, setForm] = useState(defaultProfile);
+  const [arraysAsText, setArraysAsText] = useState({
+    mandatoryIngredients: '',
+    restrictedIngredients: '',
+    tags: ''
+  });
 
   useEffect(() => {
-    setForm(profile || defaultProfile);
+    const current = profile || defaultProfile;
+    setForm(current);
+    setArraysAsText({
+      mandatoryIngredients: current.mandatoryIngredients.join(', '),
+      restrictedIngredients: current.restrictedIngredients.join(', '),
+      tags: current.tags.join(', ')
+    });
   }, [profile]);
 
   const handleChange = (e) => {
@@ -22,20 +33,30 @@ const FeedProfileForm = ({ profile, onSuccess, onCancel }) => {
     setForm(prev => ({ ...prev, [name]: val }));
   };
 
-  const handleArrChange = (name, value) => {
-    const arr = value.split(',').map(s => s.trim()).filter(Boolean);
-    setForm(prev => ({ ...prev, [name]: arr }));
+  const handleArrayTextChange = (e) => {
+    const { name, value } = e.target;
+    setArraysAsText(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const finalForm = {
+      ...form,
+      mandatoryIngredients: arraysAsText.mandatoryIngredients.split(',').map(s => s.trim()).filter(Boolean),
+      restrictedIngredients: arraysAsText.restrictedIngredients.split(',').map(s => s.trim()).filter(Boolean),
+      tags: arraysAsText.tags.split(',').map(s => s.trim()).filter(Boolean)
+    };
+
     const method = profile ? 'PUT' : 'POST';
     const url = profile ? `/api/feed-profiles/${profile.id}` : '/api/feed-profiles';
+
     await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
+      body: JSON.stringify(finalForm)
     });
+
     onSuccess();
   };
 
@@ -69,26 +90,29 @@ const FeedProfileForm = ({ profile, onSuccess, onCancel }) => {
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {fields.map(([key, label]) => (
-          <div key={key}>
-            <label htmlFor={key} className="block text-sm font-medium text-gray-700 mb-1">
-              {label}
-            </label>
-            <input
-              type={typeof defaultProfile[key] === 'number' ? 'number' : 'text'}
-              name={key}
-              id={key}
-              value={Array.isArray(form[key]) ? form[key].join(', ') : form[key]}
-              onChange={(e) =>
-                ['mandatoryIngredients', 'restrictedIngredients', 'tags'].includes(key)
-                  ? handleArrChange(key, e.target.value)
-                  : handleChange(e)
-              }
-              required={['feedName', 'species', 'stage'].includes(key)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
-            />
-          </div>
-        ))}
+        {fields.map(([key, label]) => {
+          const isArrayField = ['mandatoryIngredients', 'restrictedIngredients', 'tags'].includes(key);
+          const inputValue = isArrayField ? arraysAsText[key] : form[key];
+          const type = typeof defaultProfile[key] === 'number' ? 'number' : 'text';
+
+          return (
+            <div key={key}>
+              <label htmlFor={key} className="block text-sm font-medium text-gray-700 mb-1">
+                {label}
+              </label>
+              <input
+                type={type}
+                id={key}
+                name={key}
+                value={inputValue}
+                required={['feedName', 'species', 'stage'].includes(key)}
+                onChange={isArrayField ? handleArrayTextChange : handleChange}
+                placeholder={isArrayField ? 'e.g., corn, soy, wheat' : ''}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
+          );
+        })}
       </div>
 
       <div className="flex justify-end gap-4 pt-4">

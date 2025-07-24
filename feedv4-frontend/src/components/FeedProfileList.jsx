@@ -22,9 +22,7 @@ const FeedProfileList = ({
   return (
     <div
       className="bg-white rounded-lg shadow-md border p-4 overflow-hidden"
-      style={{
-        maxWidth: 'calc(100vw - 298px)'
-      }}
+      style={{ maxWidth: 'calc(100vw - 298px)' }}
     >
       <div className="overflow-x-auto">
         <table className="min-w-[1400px] table-auto text-xs text-left">
@@ -68,7 +66,7 @@ const FeedProfileList = ({
                     onChange={() => onCompareToggle(p.id)}
                   />
                 </td>
-                <td className="px-3 py-2">{p.feedName}</td>
+                <td className="px-3 py-2 truncate max-w-[160px]" title={p.feedName}>{p.feedName}</td>
                 <td className="px-3 py-2">{p.species}</td>
                 <td className="px-3 py-2">{p.stage}</td>
                 <td className="px-3 py-2">{p.protein}%</td>
@@ -81,50 +79,71 @@ const FeedProfileList = ({
                 <td className="px-3 py-2">{p.lysine}</td>
                 <td className="px-3 py-2">{p.maxSalt}</td>
                 <td className="px-3 py-2">{p.maxFiber}</td>
-                <td className="px-3 py-2 truncate max-w-[120px]">{p.mandatoryIngredients?.join(', ')}</td>
-                <td className="px-3 py-2 truncate max-w-[120px]">{p.restrictedIngredients?.join(', ')}</td>
+                <td className="px-3 py-2 truncate max-w-[120px]" title={p.mandatoryIngredients?.join(', ')}>
+                  {p.mandatoryIngredients?.join(', ')}
+                </td>
+                <td className="px-3 py-2 truncate max-w-[120px]" title={p.restrictedIngredients?.join(', ')}>
+                  {p.restrictedIngredients?.join(', ')}
+                </td>
                 <td className="px-3 py-2">{p.preferenceStrategy}</td>
                 <td className="px-3 py-2">{p.archived ? 'Yes' : 'No'}</td>
-                <td className="px-3 py-2 text-center">
-                  {p.locked ? '🔒' : '—'}
+                <td className="px-3 py-2 text-center">{p.locked ? '🔒' : '—'}</td>
+                <td className="px-3 py-2 truncate max-w-[100px]" title={p.tags?.join(', ')}>
+                  {p.tags?.join(', ')}
                 </td>
-                <td className="px-3 py-2 truncate max-w-[100px]">{p.tags?.join(', ')}</td>
 
                 <td className="px-3 py-2 whitespace-nowrap">
-                  {!p.locked ? (
-                    <div className="flex gap-2 text-xs">
-                      <button
-                        onClick={() => onEdit(p)}
-                        className="text-blue-600 hover:underline px-1"
-                      >Edit</button>
-                      <button
-                        onClick={() => onClone(p.id)}
-                        className="text-purple-600 hover:underline px-1"
-                      >Clone</button>
-                      <button
-                        onClick={() => onArchive(p.id)}
-                        className="text-yellow-600 hover:underline px-1"
-                      >
-                        {p.archived ? 'Unarchive' : 'Archive'}
-                      </button>
-                      <button
-                        onClick={() => onLock(p.id)}
-                        className="text-indigo-600 hover:underline px-1"
-                      >
-                        {p.locked ? 'Unlock' : 'Lock'}
-                      </button>
-                      <button
-                        onClick={() => onDelete(p.id)}
-                        className="text-red-600 hover:underline px-1"
-                      >Delete</button>
-                      <button
-                        onClick={() => onExport(p)}
-                        className="text-green-600 hover:underline px-1"
-                      >Export</button>
-                    </div>
-                  ) : (
-                    <span className="text-gray-400 text-xs">Locked</span>
-                  )}
+                  <div className="flex gap-2 text-xs">
+                    {/* Lock/Unlock always available */}
+                    <button
+                      onClick={() => onLock(p.id)}
+                      className={`px-1 ${p.locked ? 'text-yellow-600' : 'text-green-600'} hover:underline`}
+                    >
+                      {p.locked ? 'Unlock' : 'Lock'}
+                    </button>
+
+                    {/* Disable rest if locked */}
+                    <button
+                      onClick={() => onEdit(p)}
+                      className="text-blue-600 hover:underline px-1 disabled:opacity-30"
+                      disabled={p.locked}
+                      title={p.locked ? 'Locked' : 'Edit'}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => onClone(p.id)}
+                      className="text-purple-600 hover:underline px-1 disabled:opacity-30"
+                      disabled={p.locked}
+                      title={p.locked ? 'Locked' : 'Clone'}
+                    >
+                      Clone
+                    </button>
+                    <button
+                      onClick={() => onArchive(p.id)}
+                      className="text-yellow-600 hover:underline px-1 disabled:opacity-30"
+                      disabled={p.locked}
+                      title={p.locked ? 'Locked' : 'Archive'}
+                    >
+                      {p.archived ? 'Unarchive' : 'Archive'}
+                    </button>
+                    <button
+                      onClick={() => onDelete(p.id)}
+                      className="text-red-600 hover:underline px-1 disabled:opacity-30"
+                      disabled={p.locked}
+                      title={p.locked ? 'Locked' : 'Delete'}
+                    >
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => onExport(p)}
+                      className="text-green-600 hover:underline px-1 disabled:opacity-30"
+                      disabled={p.locked}
+                      title={p.locked ? 'Locked' : 'Export'}
+                    >
+                      Export
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
