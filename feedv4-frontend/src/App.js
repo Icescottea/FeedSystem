@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import MainLayout from './layouts/MainLayout';
 import DashboardPage from './pages/DashboardPage';
 import Login from './pages/Login';
@@ -20,6 +20,11 @@ import RequireAuth from './RequireAuth';
 
 const App = () => {
   const [user, setUser] = useState(undefined); 
+
+  const FormulationBuilderWrapper = () => {
+    const { formulationId } = useParams();
+    return <FormulationBuilderPage formulationId={formulationId} />;
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem('user');
@@ -48,6 +53,7 @@ const App = () => {
           <Route path="/finance/payments" element={<PaymentListPage />} />
           <Route path="/finance/reports" element={<ReportsPage />} />
           <Route path="/users" element={<UserManagementPage />} />
+          <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
         </Route>
       </Route>
     </Routes>

@@ -39,8 +39,12 @@ public class FormulationService {
         this.repository = repository;
     }
 
+    public List<Formulation> getAllActive() {
+        return repository.findByStatusNot("Archived");
+    }
+
     public List<Formulation> getAll() {
-        return repository.findAll();
+        return repository.findAll(); // This includes archived
     }
 
     public Formulation getById(Long id) {
@@ -68,6 +72,7 @@ public class FormulationService {
             existing.setNotes(updated.getNotes());
             existing.setCostPerKg(updated.getCostPerKg());
             existing.setUpdatedAt(LocalDateTime.now());
+            existing.setLocked(updated.isLocked());
 
             existing.getIngredients().clear();
             if (updated.getIngredients() != null) {
@@ -107,22 +112,44 @@ public class FormulationService {
     public void updateFormulation(Long id, Map<String, Object> body) {
         Formulation formulation = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Formulation not found"));
-
-        Map<String, Double> newPercents = (Map<String, Double>) body.get("ingredientPercentages");
-        List<String> lockedNames = (List<String>) body.get("lockedIngredients");
-        boolean finalized = (boolean) body.getOrDefault("finalized", false);
-
-        for (FormulationIngredient fi : formulation.getIngredients()) {
-            if (fi.getRawMaterial() != null && fi.getRawMaterial().getName() != null) {
-                String name = fi.getRawMaterial().getName();
-                if (newPercents.containsKey(name)) {
-                    fi.setPercentage(newPercents.get(name));
-                    fi.setLocked(lockedNames != null && lockedNames.contains(name));
+    
+        // --- Handle form fields from FormulationEditForm ---
+        if (body.containsKey("name"))
+            formulation.setName((String) body.get("name"));
+    
+        if (body.containsKey("version"))
+            formulation.setVersion((String) body.get("version"));
+    
+        if (body.containsKey("notes"))
+            formulation.setNotes((String) body.get("notes"));
+    
+        if (body.containsKey("tags")) {
+            formulation.setTags((List<String>) body.get("tags"));
+        }
+    
+        if (body.containsKey("locked"))
+            formulation.setLocked((Boolean) body.get("locked"));
+    
+        // --- Existing logic for ingredients ---
+        if (body.containsKey("ingredientPercentages") && body.containsKey("lockedIngredients")) {
+            Map<String, Double> newPercents = (Map<String, Double>) body.get("ingredientPercentages");
+            List<String> lockedNames = (List<String>) body.get("lockedIngredients");
+        
+            for (FormulationIngredient fi : formulation.getIngredients()) {
+                if (fi.getRawMaterial() != null && fi.getRawMaterial().getName() != null) {
+                    String name = fi.getRawMaterial().getName();
+                    if (newPercents.containsKey(name)) {
+                        fi.setPercentage(newPercents.get(name));
+                        fi.setLocked(lockedNames != null && lockedNames.contains(name));
+                    }
                 }
             }
         }
-
-        formulation.setFinalized(finalized);
+    
+        // Optional finalized field
+        if (body.containsKey("finalized"))
+            formulation.setFinalized((Boolean) body.get("finalized"));
+    
         formulation.setUpdatedAt(LocalDateTime.now());
         repository.save(formulation);
     }

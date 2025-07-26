@@ -34,7 +34,14 @@ const FormulationWizard = ({ onFinish }) => {
 
   const handleNext = () => setStep(prev => prev + 1);
   const handlePrev = () => setStep(prev => prev - 1);
-  const handleSubmit = () => onFinish(formulation);
+  const handleSubmit = () => {
+  const cleanFormulation = {
+      ...formulation,
+      profileId: Number(formulation.profileId),
+      batchSize: Number(formulation.batchSize)
+    };
+    onFinish(cleanFormulation);
+  };
 
   return (
     <div className="space-y-6 text-sm text-gray-800">

@@ -9,4 +9,5 @@ public interface FormulationRepository extends JpaRepository<Formulation, Long> 
     List<Formulation> findByFeedProfileId(Long feedProfileId);
     List<Formulation> findByTagsContaining(String tag);
     int countByCreatedAtAfter(java.time.LocalDateTime date);
+    List<Formulation> findByStatusNot(String status); // To exclude archived
 }

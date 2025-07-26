@@ -37,7 +37,12 @@ public class FormulationController {
     }
 
     @GetMapping
-    public List<Formulation> getAll() {
+    public List<Formulation> getActiveFormulations() {
+        return service.getAllActive();
+    }
+    
+    @GetMapping("/all")
+    public List<Formulation> getAllFormulations() {
         return service.getAll();
     }
 
@@ -131,7 +136,7 @@ public class FormulationController {
 
         Formulation formulation = new Formulation();
         formulation.setFeedProfile(profile);
-        formulation.setName("New Formulation - " + profile.getFeedName());
+        formulation.setName(request.getName());
         formulation.setBatchSize(request.getBatchSize());
         formulation.setStrategy(String.join(", ", request.getStrategy()));  // join list into string
         formulation.setStatus("Draft");
@@ -145,6 +150,19 @@ public class FormulationController {
 
         Formulation saved = formulationRepository.save(formulation);
         return ResponseEntity.ok(saved);
+    }
+
+    @PutMapping("/{id}/toggle-archive")
+    public ResponseEntity<?> toggleArchive(@PathVariable Long id) {
+        Formulation f = formulationRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Not found"));
+        if ("Archived".equals(f.getStatus())) {
+            f.setStatus("Draft");
+        } else {
+            f.setStatus("Archived");
+        }
+        formulationRepository.save(f);
+        return ResponseEntity.ok().build();
     }
 
 }

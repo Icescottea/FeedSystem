@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import IngredientSelector from '../components/IngredientSelector';
 import NutrientGraph from '../components/NutrientGraph';
+import { useParams } from 'react-router-dom';
 
-const FormulationBuilderPage = ({ formulationId }) => {
+const FormulationBuilderPage = () => {
+  const { formulationId } = useParams();
   const [formulation, setFormulation] = useState(null);
   const [lockedIngredients, setLockedIngredients] = useState([]);
   const [percentages, setPercentages] = useState({});
   const [isFinalized, setIsFinalized] = useState(false);
   const [suggestions, setSuggestions] = useState({});
   const [logs, setLogs] = useState([]);
-
   const nutrientKeys = ['protein', 'energy', 'calcium', 'phosphorus', 'fiber', 'fat', 'methionine', 'lysine'];
 
   useEffect(() => {
@@ -124,27 +125,55 @@ const FormulationBuilderPage = ({ formulationId }) => {
 
         <NutrientGraph target={targetNutrients} actual={actualNutrients} />
 
-        <div className="overflow-x-auto">
-          <table className="min-w-[900px] text-xs table-auto border w-full">
-            <thead className="bg-gray-100 text-gray-600">
+        <div className="overflow-x-auto mt-6 border rounded">
+          <table className="min-w-full text-sm border-collapse">
+            <thead className="bg-gray-100">
               <tr>
-                <th className="px-3 py-2 text-left">Ingredient</th>
-                <th className="px-3 py-2 text-left">%</th>
-                <th className="px-3 py-2 text-left">Cost/kg</th>
-                <th className="px-3 py-2 text-left">Contribution (kg)</th>
-                <th className="px-3 py-2 text-left">Locked</th>
+                <th className="px-4 py-2 text-left">Ingredient</th>
+                <th className="px-4 py-2 text-left">Percentage</th>
+                <th className="px-4 py-2 text-left">Lock</th>
               </tr>
             </thead>
             <tbody>
-              {Array.isArray(formulation.ingredients) && formulation.ingredients.map(i => (
-                <tr key={i.rawMaterial.name} className="border-t">
-                  <td className="px-3 py-2">{i.rawMaterial.name}</td>
-                  <td className="px-3 py-2">{percentages[i.rawMaterial.name] || 0}</td>
-                  <td className="px-3 py-2">{i.rawMaterial.costPerKg}</td>
-                  <td className="px-3 py-2">{((percentages[i.rawMaterial.name] || 0) * formulation.batchSize) / 100}</td>
-                  <td className="px-3 py-2">{lockedIngredients.includes(i.rawMaterial.name) ? 'Yes' : 'No'}</td>
-                </tr>
-              ))}
+              {formulation.ingredients?.map((i) => {
+                const name = i.rawMaterial.name;
+                const locked = lockedIngredients.includes(name);
+                const percentage = percentages[name] ?? 0;
+              
+                return (
+                  <tr key={name} className={locked ? 'bg-gray-100' : ''}>
+                    <td className="px-4 py-2 font-medium">{name}</td>
+                    <td className="px-4 py-2 w-64">
+                      {locked ? (
+                        <span>{percentage.toFixed(2)}%</span>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={percentage}
+                            onChange={(e) => handleSlider(name, parseFloat(e.target.value))}
+                            className="flex-1"
+                          />
+                          <span className="w-12 text-right">{percentage.toFixed(2)}%</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleIngredientLock(name)}
+                        className="text-xl"
+                        title={locked ? 'Unlock' : 'Lock'}
+                      >
+                        {locked ? '🔒' : '🔓'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

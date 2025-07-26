@@ -2,7 +2,10 @@ package com.feed.feedv4.service;
 
 import com.feed.feedv4.model.RawMaterial;
 import com.feed.feedv4.repository.RawMaterialRepository;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -55,6 +58,14 @@ public class InventoryService {
 
     public List<RawMaterial> getLowStockMaterials() {
         return repository.findByInStockKgLessThanEqual(50.0);
+    }
+
+    public void toggleLock(Long id) {
+        RawMaterial rm = repository.findById(id)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Raw material not found"));
+        
+        rm.setLocked(!rm.isLocked());
+        repository.save(rm);
     }
 
 }

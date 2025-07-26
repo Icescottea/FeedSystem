@@ -12,6 +12,7 @@ const InventoryPage = () => {
   const [excelFile, setExcelFile] = useState(null);
   const [previewData, setPreviewData] = useState([]);
   const [lowStockItems, setLowStockItems] = useState([]);
+  const [errorMsg, setErrorMsg] = useState('');
 
   /* ───────── fetch helpers ───────── */
   const fetchInventory = async () => {
@@ -34,7 +35,15 @@ const InventoryPage = () => {
     setShowForm(false);
   };
 
-  const handleDelete  = (id) => fetch(`/api/inventory/${id}`,           { method: 'DELETE' }).then(refreshAndClose);
+  const handleDelete  = (id) => { 
+    const confirmDelete = window.confirm("Are you sure you want to delete this item?");
+    if (!confirmDelete) return;
+    
+    fetch(`/api/inventory/${id}`, { method: 'DELETE' })
+    .then(refreshAndClose)
+    .catch(err => console.error('❌ Error deleting item:', err));
+  };
+
   const handleArchive = (id) => fetch(`/api/inventory/${id}/toggle-archive`, { method: 'PUT'    }).then(refreshAndClose);
 
   /* ───────── excel upload ───────── */
@@ -52,16 +61,41 @@ const InventoryPage = () => {
     reader.readAsArrayBuffer(file);
   };
 
+  const handleCancelUpload = () => {
+    setPreviewData([]);
+    setExcelFile(null);
+    setErrorMsg('');
+  };
+
   const handleUpload = async () => {
     if (!excelFile) return;
     const formData = new FormData();
     formData.append('file', excelFile);
 
-    const res = await fetch('/api/inventory/bulk-upload', { method: 'POST', body: formData });
-    if (res.ok) {
+    try {
+      const res = await fetch('/api/inventory/bulk-upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!res.ok) {
+        const err = await res.text(); // Expecting meaningful backend error string
+        throw new Error(err || "Unknown error");
+      }
+
       setPreviewData([]);
+      setExcelFile(null);
+      setErrorMsg('');
       fetchInventory();
-    } else console.error('❌ Upload failed');
+    } catch (err) {
+      console.error("❌ Upload failed:", err);
+      setErrorMsg(err.message || "Upload failed. Please check your file format.");
+    }
+  };
+
+  const handleToggleLock = async (id) => {
+    await fetch(`/api/inventory/${id}/toggle-lock`, { method: 'PUT' });
+    fetchInventory();
   };
 
   /* ───────── low‑stock check ───────── */
@@ -119,6 +153,11 @@ const InventoryPage = () => {
         maxWidth: 'calc(100vw - 298px)'
       }}>
         <h2 className="text-lg font-medium mb-2">Bulk Upload</h2>
+        {errorMsg && (
+          <div className="text-red-600 mb-2 text-sm font-medium">
+            ⚠️ {errorMsg}
+          </div>
+        )}
         <input
           type="file"
           accept=".xlsx,.xls"
@@ -166,6 +205,13 @@ const InventoryPage = () => {
             >
               Confirm Upload
             </button>
+
+            <button
+              onClick={handleCancelUpload}
+              className="mt-3 ml-2 bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-1 rounded"
+            >
+              Cancel
+            </button>
           </div>
         )}
       </div>
@@ -183,6 +229,7 @@ const InventoryPage = () => {
           onEdit={(itm) => { setSelectedItem(itm); setShowForm(true); }}
           onDelete={handleDelete}
           onArchive={handleArchive}
+          onToggleLock={handleToggleLock}
           showArchived={showArchived}
         />
       )}
@@ -198,6 +245,7 @@ const InventoryPage = () => {
             onEdit={(itm) => { setSelectedItem(itm); setShowForm(true); }}
             onDelete={handleDelete}
             onArchive={handleArchive}
+            onToggleLock={handleToggleLock}
             showArchived={false}
           />
         </div>

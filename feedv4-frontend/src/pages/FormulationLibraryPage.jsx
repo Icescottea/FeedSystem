@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
+import FormulationEditForm from '../components/FormulationEditForm';
+import { showToast } from '../components/toast';
 
 const FormulationLibraryPage = () => {
   const [formulations, setFormulations] = useState([]);
@@ -9,75 +11,55 @@ const FormulationLibraryPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [compareSet, setCompareSet] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [tagFilter, setTagFilter] = useState(null);
+  const [showArchived, setShowArchived] = useState(false);
+
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetch('/api/formulations')
+  const fetchFormulations = () => {
+    const url = showArchived ? '/api/formulations/all' : '/api/formulations';
+    fetch(url)
       .then(res => res.json())
       .then(data => {
-        setFormulations(data);
-        setFiltered(data);
+        setFormulations(data || []);
+      })
+      .catch(err => {
+        console.error('Fetch failed:', err);
+        setFormulations([]);
       });
-  }, []);
+  };
 
   useEffect(() => {
-    let filteredList = formulations;
+    fetchFormulations();
+  }, [showArchived]);
 
-    if (statusFilter !== 'All') {
-      filteredList = filteredList.filter(f => f.status === statusFilter);
-    }
+  useEffect(() => {
+  let list = [...formulations];
 
-    if (searchTerm.trim()) {
-      filteredList = filteredList.filter(f =>
-        f.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (f.tags || []).some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
+  if (!showArchived) {
+    list = list.filter(f => f.status !== 'Archived');
+  }
 
-    setFiltered(filteredList);
-  }, [searchTerm, statusFilter, formulations]);
+  if (statusFilter !== 'All') {
+    list = list.filter(f => f.status === statusFilter);
+  }
 
-  const handleEdit = (id) => navigate(`/formulations/builder/${id}`);
+  if (searchTerm.trim()) {
+    const term = searchTerm.toLowerCase();
+    list = list.filter(f =>
+      f.name.toLowerCase().includes(term) ||
+      (f.tags || []).some(tag => tag.toLowerCase().includes(term)) ||
+      (f.notes || '').toLowerCase().includes(term)
+    );
+  }
 
-  const handleDuplicate = (formulation) => {
-    const newFormulation = {
-      ...formulation,
-      name: `${formulation.name} (Copy)`,
-      id: null,
-      finalized: false,
-      locked: false,
-      status: 'Draft',
-    };
-    fetch('/api/formulations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newFormulation),
-    })
-      .then(res => res.json())
-      .then((created) => {
-        navigate(`/formulations/builder/${created.id}`);
-      });
-  };
+  if (tagFilter) {
+    list = list.filter(f => f.tags?.includes(tagFilter));
+  }
 
-  const handleExportPDF = (formulation) => {
-    const doc = new jsPDF();
-    doc.text(`Formulation: ${formulation.name}`, 10, 10);
-    doc.text(`Status: ${formulation.status}`, 10, 20);
-    doc.text(`Version: ${formulation.version}`, 10, 30);
-    doc.text(`Cost/kg: ${formulation.costPerKg || 'N/A'}`, 10, 40);
-    doc.save(`${formulation.name}.pdf`);
-  };
-
-  const handleExportExcel = (formulation) => {
-    const wsData = [
-      ['Name', 'Status', 'Version', 'Cost/kg'],
-      [formulation.name, formulation.status, formulation.version, formulation.costPerKg || 'N/A'],
-    ];
-    const worksheet = XLSX.utils.aoa_to_sheet(wsData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Formulation');
-    XLSX.writeFile(workbook, `${formulation.name}.xlsx`);
-  };
+  setFiltered(list);
+}, [searchTerm, statusFilter, formulations, tagFilter, showArchived]);
 
   const toggleCompare = (id) => {
     setCompareSet(prev =>
@@ -85,26 +67,112 @@ const FormulationLibraryPage = () => {
     );
   };
 
+  const handleDuplicate = async (id) => {
+    const original = formulations.find(f => f.id === id);
+    if (!original) return showToast('Original formulation not found.', 'error');
+
+    const profileId = original.feedProfile?.id;
+    if (!profileId) return showToast('Invalid profile in original formulation.', 'error');
+
+    const payload = {
+      profileId,
+      batchSize: original.batchSize,
+      strategy: (original.strategy || '').split(',').map(s => s.trim()),
+      lockedIngredients: [],
+      name: original.name + ' (Copy)'
+    };
+
+    try {
+      const res = await fetch('/api/formulations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('Failed to duplicate');
+
+      showToast('Formulation duplicated!', 'success');
+      fetchFormulations();
+    } catch (err) {
+      console.error('❌ Duplicate failed:', err);
+      showToast('Duplicate failed. Check console.', 'error');
+    }
+  };
+
+  const handleExportPDF = (f) => {
+    const doc = new jsPDF();
+    doc.text(`Formulation: ${f.name}`, 10, 10);
+    doc.text(`Status: ${f.status}`, 10, 20);
+    doc.text(`Version: ${f.version}`, 10, 30);
+    doc.text(`Cost/kg: ${f.costPerKg || 'N/A'}`, 10, 40);
+    doc.save(`${f.name}.pdf`);
+  };
+
+  const handleExportExcel = (f) => {
+    const wsData = [
+      ['Name', 'Status', 'Version', 'Cost/kg'],
+      [f.name, f.status, f.version, f.costPerKg || 'N/A'],
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(wsData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Formulation');
+    XLSX.writeFile(workbook, `${f.name}.xlsx`);
+  };
+
   const handleUnarchive = async (id) => {
     await fetch(`/api/formulations/${id}/unarchive`, { method: 'PUT' });
-    alert('Formulation unarchived!');
+    showToast('Formulation unarchived!');
+    fetchFormulations();
   };
 
   const handleUnfinalize = async (id) => {
     await fetch(`/api/formulations/${id}/unfinalize`, { method: 'PUT' });
-    alert('Formulation marked as draft again.');
+    showToast('Marked as draft.');
+    fetchFormulations();
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Delete this formulation?")) {
+      await fetch(`/api/formulations/${id}`, { method: 'DELETE' });
+      showToast('Deleted!');
+      fetchFormulations();
+    }
+  };
+
+  const handleArchive = async (id) => {
+    await fetch(`/api/formulations/${id}/archive`, { method: 'PUT' });
+    showToast('Archived!');
+    fetchFormulations();
+  };
+
+  const handleFinalize = async (id) => {
+    await fetch(`/api/formulations/${id}/update`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ finalized: true, status: 'Finalized' })
+    });
+    showToast('Finalized!');
+    fetchFormulations();
   };
 
   return (
     <div className="w-full max-w-full mx-auto p-4 text-xs text-gray-800 overflow-x-hidden">
       <div className="mb-6 flex justify-between items-center">
         <h1 className="text-2xl font-semibold">📚 Formulation Library</h1>
+        {tagFilter && (
+          <button
+            className="text-xs text-blue-600 underline"
+            onClick={() => setTagFilter(null)}
+          >
+            Clear tag filter: {tagFilter}
+          </button>
+        )}
       </div>
 
       <div className="mb-4 flex flex-wrap gap-4 items-center">
         <input
           type="text"
-          placeholder="Search by name or tag..."
+          placeholder="Search..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
           className="border border-gray-300 px-3 py-2 rounded-md text-sm w-64"
@@ -119,11 +187,19 @@ const FormulationLibraryPage = () => {
           <option value="Finalized">Finalized</option>
           <option value="Archived">Archived</option>
         </select>
+        <button
+          onClick={() => setShowArchived(s => !s)}
+          className={`px-3 py-1 rounded ${
+            showArchived ? 'bg-gray-700 text-white' : 'bg-gray-200 text-gray-800'
+          }`}
+        >
+          {showArchived ? 'Hide Archived' : 'Show Archived'}
+        </button>
       </div>
 
       <div className="bg-white rounded-lg shadow-md border p-4 overflow-hidden" style={{ maxWidth: 'calc(100vw - 298px)' }}>
         <div className="overflow-x-auto">
-          <table className="min-w-[1100px] table-auto text-xs text-left">
+          <table className="min-w-[1200px] table-auto text-xs text-left">
             <thead className="bg-gray-100 text-gray-600">
               <tr>
                 <th className="px-3 py-2">✓</th>
@@ -133,12 +209,14 @@ const FormulationLibraryPage = () => {
                 <th className="px-3 py-2">Cost/kg</th>
                 <th className="px-3 py-2">Finalized</th>
                 <th className="px-3 py-2">Locked</th>
+                <th className="px-3 py-2">Notes</th>
+                <th className="px-3 py-2">Tags</th>
                 <th className="px-3 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(f => (
-                <tr key={f.id} className="border-t hover:bg-gray-50">
+                <tr key={f.id} className={`border-t hover:bg-gray-50 ${f.status === 'Archived' ? 'bg-gray-200 text-gray-500' : ''}`}>
                   <td className="px-3 py-2">
                     <input
                       type="checkbox"
@@ -152,14 +230,34 @@ const FormulationLibraryPage = () => {
                   <td className="px-3 py-2">{f.costPerKg?.toFixed(2) || 'N/A'}</td>
                   <td className="px-3 py-2">{f.finalized ? 'Yes' : 'No'}</td>
                   <td className="px-3 py-2">{f.locked ? 'Yes' : 'No'}</td>
+                  <td className="px-3 py-2 max-w-[200px] truncate">{f.notes || '-'}</td>
+                  <td className="px-3 py-2">
+                    {(f.tags || []).map(tag => (
+                      <span
+                        key={tag}
+                        onClick={() => setTagFilter(tag)}
+                        className="inline-block bg-blue-100 text-blue-800 px-2 py-1 mr-1 mb-1 rounded-full cursor-pointer hover:bg-blue-200"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <div className="flex gap-2 text-xs">
-                      <button onClick={() => handleEdit(f.id)} className="text-blue-600 hover:underline px-1">Edit</button>
-                      <button onClick={() => handleDuplicate(f)} className="text-purple-600 hover:underline px-1">Duplicate</button>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <button onClick={() => setEditingId(f.id)} className="text-blue-600 hover:underline px-1">Edit</button>
+                      <button onClick={() => handleDuplicate(f.id)} className="text-purple-600 hover:underline px-1">Duplicate</button>
                       <button onClick={() => handleExportPDF(f)} className="text-red-600 hover:underline px-1">PDF</button>
                       <button onClick={() => handleExportExcel(f)} className="text-green-600 hover:underline px-1">Excel</button>
-                      {f.status === 'Archived' && (
-                        <button onClick={() => handleUnarchive(f.id)} className="text-yellow-600 hover:underline px-1">Undo Archive</button>
+                      {f.status === 'Archived' ? (
+                        <button onClick={() => handleUnarchive(f.id)} className="text-yellow-600 hover:underline px-1">Unarchive</button>
+                      ) : (
+                        <>
+                          <button onClick={() => handleArchive(f.id)} className="text-yellow-600 hover:underline px-1">Archive</button>
+                          <button onClick={() => handleDelete(f.id)} className="text-red-600 hover:underline px-1">Delete</button>
+                          {!f.finalized && (
+                            <button onClick={() => handleFinalize(f.id)} className="text-indigo-600 hover:underline px-1">Finalize</button>
+                          )}
+                        </>
                       )}
                       {f.finalized && (
                         <button onClick={() => handleUnfinalize(f.id)} className="text-indigo-600 hover:underline px-1">Unfinalize</button>
@@ -173,37 +271,16 @@ const FormulationLibraryPage = () => {
         </div>
       </div>
 
-      {compareSet.length >= 2 && (
-        <div className="mt-8 bg-white shadow-md border rounded-md p-4">
-          <h2 className="text-sm font-semibold mb-2">Comparison</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-[600px] text-xs border">
-              <thead className="bg-gray-50 text-gray-600">
-                <tr>
-                  <th className="px-3 py-2 text-left">Field</th>
-                  {formulations.filter(f => compareSet.includes(f.id)).map(f => (
-                    <th key={f.id} className="px-3 py-2 text-left">{f.name}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {['status', 'version', 'costPerKg', 'finalized', 'locked'].map(field => (
-                  <tr key={field} className="border-t">
-                    <td className="px-3 py-2 capitalize">{field.replace('costPerKg', 'Cost/kg')}</td>
-                    {formulations.filter(f => compareSet.includes(f.id)).map(f => (
-                      <td key={f.id} className="px-3 py-2">
-                        {field === 'costPerKg'
-                          ? (f[field]?.toFixed(2) || 'N/A')
-                          : typeof f[field] === 'boolean'
-                            ? (f[field] ? 'Yes' : 'No')
-                            : f[field]}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {editingId && (
+        <div className="mt-10">
+          <FormulationEditForm
+            formulationId={editingId}
+            onClose={() => setEditingId(null)}
+            onSaved={() => {
+              fetchFormulations();
+              setEditingId(null);
+            }}
+          />
         </div>
       )}
     </div>

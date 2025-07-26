@@ -12,6 +12,8 @@ const MainLayout = ({ user }) => {
         <Sidebar role={user.role} />
       </aside>
 
+      <div id="toast-container" className="fixed top-5 right-5 z-50 space-y-2" />
+
       <main className="flex flex-col flex-1 bg-white">
         <section className="flex-1 overflow-y-auto px-4 py-6">
           <div className="max-w-7xl w-full mx-auto">

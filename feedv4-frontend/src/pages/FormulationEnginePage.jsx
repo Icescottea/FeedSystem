@@ -8,14 +8,11 @@ const FormulationEnginePage = () => {
   const navigate = useNavigate();
 
   const handleWizardFinish = (data) => {
-    console.log("🧪 Wizard completed:", data);
-    setWizardData(data);
-
     const payload = {
       ...data,
       status: 'Draft'
     };
-
+  
     fetch('/api/formulations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -27,7 +24,7 @@ const FormulationEnginePage = () => {
       })
       .then(created => {
         console.log("✅ New formulation created:", created);
-        navigate(`/formulations/builder/${created.id}`);
+        navigate(`/formulations/${created.id}/builder`); // <-- 🔁 Redirect after creation
       })
       .catch(err => {
         console.error("❌ Error:", err);

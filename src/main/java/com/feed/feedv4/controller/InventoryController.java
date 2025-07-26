@@ -107,4 +107,10 @@ public class InventoryController {
         return service.getLowStockMaterials();
     }
 
+    @PutMapping("/{id}/toggle-lock")
+    public ResponseEntity<?> toggleLock(@PathVariable Long id) {
+        service.toggleLock(id);
+        return ResponseEntity.ok().build();
+    }
+
 }

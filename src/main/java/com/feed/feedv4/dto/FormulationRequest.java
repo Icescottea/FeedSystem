@@ -9,4 +9,5 @@ public class FormulationRequest {
     private double batchSize;
     private List<String> strategy;
     private List<String> lockedIngredients;
+    private String name;
 }

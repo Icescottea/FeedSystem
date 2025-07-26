@@ -1,6 +1,6 @@
 import React from 'react';
 
-const InventoryList = ({ inventory, onEdit, onDelete, onArchive, showArchived }) => {
+const InventoryList = ({ inventory, onEdit, onDelete, onArchive, onToggleLock, showArchived }) => {
   if (!inventory || inventory.length === 0) {
     return (
       <p className="text-gray-500 italic mt-4">
@@ -13,24 +13,17 @@ const InventoryList = ({ inventory, onEdit, onDelete, onArchive, showArchived })
     <div
       className="bg-white rounded-lg shadow-md border p-4 overflow-hidden"
       style={{
-        /* 
-           100vw minus: 
-           - 16rem sidebar (256px) 
-           - 2rem page padding (32px) 
-           = calc(100vw - 288px)
-        */
         maxWidth: 'calc(100vw - 298px)'
       }}
     >
-      {/* *** Only THIS scrolls horizontally *** */}
       <div className="overflow-x-auto">
         <table className="min-w-[1400px] table-auto text-xs text-left">
           <thead className="bg-gray-100 text-gray-600">
             <tr>
               {[
-                'Name','Type','Cost','Stock','Expiry',
-                'Supplier','Batch','Grade','CP','ME',
-                'Ca','Fat','Fiber','Ash','🔒','Status','Actions'
+                'Name', 'Type', 'Cost', 'Stock', 'Expiry',
+                'Supplier', 'Batch', 'Grade', 'CP', 'ME',
+                'Ca', 'Fat', 'Fiber', 'Ash', '🔒', 'Status', 'Actions'
               ].map(col => (
                 <th key={col} className="px-3 py-2 whitespace-nowrap">
                   {col}
@@ -46,45 +39,102 @@ const InventoryList = ({ inventory, onEdit, onDelete, onArchive, showArchived })
                   item.archived ? 'text-gray-400 italic' : 'text-gray-800'
                 }`}
               >
-                {[
-                  item.name, item.type, item.costPerKg, item.inStockKg,
-                  item.expiryDate, item.supplier, item.batchId,
-                  item.qualityGrade, item.cp, item.me,
-                  item.calcium, item.fat, item.fiber, item.ash
-                ].map((val, i) => (
-                  <td key={i} className="px-3 py-2 whitespace-nowrap">
-                    {val}
-                  </td>
-                ))}
+                {/* Name */}
+                <td className="px-3 py-2 max-w-[150px] truncate" title={item.name}>
+                  {item.name}
+                </td>
 
-                <td className="px-3 py-2 text-center whitespace-nowrap">
+                {/* Type */}
+                <td className="px-3 py-2">{item.type}</td>
+
+                {/* Cost */}
+                <td className="px-3 py-2">{item.costPerKg}</td>
+
+                {/* Stock */}
+                <td className="px-3 py-2">{item.inStockKg}</td>
+
+                {/* Expiry */}
+                <td className="px-3 py-2">{item.expiryDate}</td>
+
+                {/* Supplier */}
+                <td className="px-3 py-2 max-w-[150px] truncate" title={item.supplier}>
+                  {item.supplier}
+                </td>
+
+                {/* Batch */}
+                <td className="px-3 py-2 max-w-[150px] truncate" title={item.batchId}>
+                  {item.batchId}
+                </td>
+
+                {/* Grade */}
+                <td className="px-3 py-2 max-w-[120px] truncate" title={item.qualityGrade}>
+                  {item.qualityGrade}
+                </td>
+
+                {/* CP */}
+                <td className="px-3 py-2">{item.cp}</td>
+
+                {/* ME */}
+                <td className="px-3 py-2">{item.me}</td>
+
+                {/* Ca */}
+                <td className="px-3 py-2">{item.calcium}</td>
+
+                {/* Fat */}
+                <td className="px-3 py-2">{item.fat}</td>
+
+                {/* Fiber */}
+                <td className="px-3 py-2">{item.fiber}</td>
+
+                {/* Ash */}
+                <td className="px-3 py-2">{item.ash}</td>
+
+                {/* Locked */}
+                <td className="px-3 py-2 text-center">
                   <input type="checkbox" checked={item.locked} readOnly />
                 </td>
 
-                <td className="px-3 py-2 whitespace-nowrap">
+                {/* Status */}
+                <td className="px-3 py-2">
                   {item.archived ? 'Archived' : 'Active'}
                 </td>
 
+                {/* Actions */}
                 <td className="px-3 py-2 whitespace-nowrap">
-                  {!item.locked ? (
+                  {item.locked ? (
+                    <button
+                      onClick={() => onToggleLock(item.id)}
+                      className="text-indigo-600 hover:underline px-1"
+                    >
+                      Unlock
+                    </button>
+                  ) : (
                     <div className="flex gap-2 text-xs">
                       <button
                         onClick={() => onEdit(item)}
                         className="text-blue-600 hover:underline px-1"
-                      >Edit</button>
-                      <button
-                        onClick={() => onDelete(item.id)}
-                        className="text-red-600 hover:underline px-1"
-                      >Delete</button>
+                      >
+                        Edit
+                      </button>
                       <button
                         onClick={() => onArchive(item.id)}
                         className="text-yellow-600 hover:underline px-1"
                       >
                         {item.archived ? 'Unarchive' : 'Archive'}
                       </button>
+                      <button
+                        onClick={() => onToggleLock(item.id)}
+                        className="text-indigo-600 hover:underline px-1"
+                      >
+                        Lock
+                      </button>
+                      <button
+                        onClick={() => onDelete(item.id)}
+                        className="text-red-600 hover:underline px-1"
+                      >
+                        Delete
+                      </button>
                     </div>
-                  ) : (
-                    <span className="text-gray-400">Locked</span>
                   )}
                 </td>
               </tr>
