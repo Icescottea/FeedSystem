@@ -13,7 +13,6 @@ public class Payment {
     @ManyToOne
     private Invoice invoice;
 
-    private double amount;
     private String method; 
     private double amountPaid;
     private String paymentMethod;

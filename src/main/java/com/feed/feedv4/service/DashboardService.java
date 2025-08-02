@@ -29,8 +29,8 @@ public class DashboardService {
     @Autowired
     private PaymentRepository paymentRepo;
 
-    public DashboardSummaryDTO getDashboardByRole(Role role) {
-        System.out.println("Dashboard requested for role: " + role);
+    public DashboardSummaryDTO getDashboardByRoles(Set<Role> roles) {
+        System.out.println("Dashboard requested for role: " + roles);
         DashboardSummaryDTO dto = new DashboardSummaryDTO();
         dto.setSnapshotDate(LocalDate.now());
 
@@ -43,7 +43,7 @@ public class DashboardService {
         }
 
         // --- For Formulators / Admin ---
-        if (role == Role.ADMIN || role == Role.FORMULATOR) {
+        if (roles.contains(Role.ADMIN) || roles.contains(Role.FORMULATOR)) {
             int todayFormulations = formulationRepo.countByCreatedAtAfter(LocalDate.now().atStartOfDay());
             dto.setTodaysFormulations(todayFormulations);
 
@@ -57,7 +57,7 @@ public class DashboardService {
         }
 
         // --- For Pelleting Operators ---
-        if (role == Role.ADMIN || role == Role.OPERATOR) {
+        if (roles.contains(Role.ADMIN) || roles.contains(Role.OPERATOR)) {
             int pendingJobs = pelletingRepo.countByStatus("Not Started");
             dto.setPendingPelletingJobs(pendingJobs);
 
@@ -66,7 +66,7 @@ public class DashboardService {
         }
 
         // --- For Inventory Managers ---
-        if (role == Role.ADMIN || role == Role.INVENTORY_MANAGER) {
+        if (roles.contains(Role.ADMIN) || roles.contains(Role.INVENTORY_MANAGER)) {
             List<RawMaterial> lowStock = rawMaterialRepo.findLowStock(50.0);
             List<Map<String, Object>> lowStockMapped = lowStock.stream().map(rm -> {
                 Map<String, Object> map = new HashMap<>();
@@ -89,7 +89,7 @@ public class DashboardService {
         }
 
         // --- For Finance ---
-        if (role == Role.ADMIN || role == Role.FINANCE_OFFICER) {
+        if (roles.contains(Role.ADMIN) || roles.contains(Role.FINANCE_OFFICER)) {
             List<Double> revenueTrend = new ArrayList<>();
             for (int i = 0; i < 30; i++) revenueTrend.add(Math.random() * 5000);
             dto.setRevenueTrendLast30Days(revenueTrend);

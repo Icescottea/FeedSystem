@@ -1,0 +1,276 @@
+Folder PATH listing
+Volume serial number is 1460-5328
+C:.
+|   .gitattributes
+|   .gitignore
+|   HELP.md
+|   mvnw
+|   mvnw.cmd
+|   pom.xml
+|   tree.txt
+|   
++---.mvn
+|   \---wrapper
+|           maven-wrapper.properties
+|           
++---.vscode
+|       settings.json
+|       
++---feedv4-frontend
+|   |   .gitignore
+|   |   package-lock.json
+|   |   package.json
+|   |   README.md
+|   |     |           
+|   +---public
+|   |   |   index.html
+|   |   |   
+|   |   \---fonts
+|   |           brasika-display-trial.otf
+|   |           Moglan_DEMO.ttf
+|   |           Sentient-Regular.otf
+|   |           
+|   \---src
+|       |   App.js
+|       |   index.js
+|       |   RequireAuth.jsx
+|       |   
+|       +---assets
+|       |       lets.jpeg
+|       |       login1.jpg
+|       |       login2.jpg
+|       |       login3.jpg
+|       |       logo.png
+|       |       taglessLogo.png
+|       |       
+|       +---components
+|       |   |   BulkUpload.jsx
+|       |   |   CompareProfiles.jsx
+|       |   |   ErrorAlert.jsx
+|       |   |   FeedProfileForm.jsx
+|       |   |   FeedProfileList.jsx
+|       |   |   Footer.jsx
+|       |   |   FormulationEditForm.jsx
+|       |   |   FormulationEditor.jsx
+|       |   |   FormulationWizard.jsx
+|       |   |   IngredientSelector.jsx
+|       |   |   InventoryForm.jsx
+|       |   |   InventoryList.jsx
+|       |   |   MyPelletingBatches.jsx
+|       |   |   NutrientGraph.jsx
+|       |   |   PelletingBatchForm.jsx
+|       |   |   PelletingBatchList.jsx
+|       |   |   PelletingStatusUpdater.jsx
+|       |   |   Sidebar.jsx
+|       |   |   toast.jsx
+|       |   |   UserForm.jsx
+|       |   |   UserList.jsx
+|       |   |   
+|       |   +---Dashboard
+|       |   |       WidgetCard.jsx
+|       |   |       
+|       |   \---Finance
+|       |           FeeConfigPage.jsx
+|       |           FinanceDashboard.jsx
+|       |           PaymentForm.jsx
+|       |           
+|       +---layouts
+|       |       layout.css
+|       |       MainLayout.jsx
+|       |       
+|       +---pages
+|       |   |   DashboardPage.jsx
+|       |   |   FeedProfilePage.jsx
+|       |   |   FormulationBuilderPage.jsx
+|       |   |   FormulationEnginePage.jsx
+|       |   |   FormulationLibraryPage.jsx
+|       |   |   InventoryPage.jsx
+|       |   |   Login.jsx
+|       |   |   PelletingQueuePage.jsx
+|       |   |   UserManagementPage.jsx
+|       |   |   
+|       |   \---finance
+|       |           InvoiceForm.jsx
+|       |           InvoiceListPage.jsx
+|       |           PaymentListPage.jsx
+|       |           ReportsPage.jsx
+|       |           
+|       \---services
++---src
+|   +---main
+|   |   +---java
+|   |   |   \---com
+|   |   |       \---feed
+|   |   |           \---feedv4
+|   |   |               |   Feedv4Application.java
+|   |   |               |   
+|   |   |               +---config
+|   |   |               |       SecurityConfig.java
+|   |   |               |       
+|   |   |               +---controller
+|   |   |               |       AuthController.java
+|   |   |               |       ChargesConfigController.java
+|   |   |               |       DashboardController.java
+|   |   |               |       FeedProfileController.java
+|   |   |               |       FinanceReportController.java
+|   |   |               |       FormulationController.java
+|   |   |               |       InventoryController.java
+|   |   |               |       InvoiceController.java
+|   |   |               |       PaymentController.java
+|   |   |               |       PelletingBatchController.java
+|   |   |               |       TestController.java
+|   |   |               |       UserController.java
+|   |   |               |       
+|   |   |               +---dto
+|   |   |               |       CreateInvoiceDTO.java
+|   |   |               |       CreatePaymentDTO.java
+|   |   |               |       DashboardSummaryDTO.java
+|   |   |               |       FeeConfigDTO.java
+|   |   |               |       FinanceReportDTO.java
+|   |   |               |       FormulationGenerationRequest.java
+|   |   |               |       FormulationIngredientDTO.java
+|   |   |               |       FormulationResponse.java
+|   |   |               |       InventoryResponseDTO.java
+|   |   |               |       InvoiceSummaryDTO.java
+|   |   |               |       InvoiceWithPaymentsDTO.java
+|   |   |               |       ReceivablesReportDTO.java
+|   |   |               |       
+|   |   |               +---model
+|   |   |               |       ChargesConfig.java
+|   |   |               |       FeedProfile.java
+|   |   |               |       Formulation.java
+|   |   |               |       FormulationIngredient.java
+|   |   |               |       FormulationLog.java
+|   |   |               |       Invoice.java
+|   |   |               |       Payment.java
+|   |   |               |       PelletingBatch.java
+|   |   |               |       RawMaterial.java
+|   |   |               |       Role.java
+|   |   |               |       TestEntity.java
+|   |   |               |       User.java
+|   |   |               |       
+|   |   |               +---repository
+|   |   |               |       ChargesConfigRepository.java
+|   |   |               |       FeedProfileRepository.java
+|   |   |               |       FormulationIngredientRepository.java
+|   |   |               |       FormulationLogRepository.java
+|   |   |               |       FormulationRepository.java
+|   |   |               |       InvoiceRepository.java
+|   |   |               |       PaymentRepository.java
+|   |   |               |       PelletingBatchRepository.java
+|   |   |               |       RawMaterialRepository.java
+|   |   |               |       TestEntityRepository.java
+|   |   |               |       UserRepository.java
+|   |   |               |       
+|   |   |               +---service
+|   |   |               |       ChargesConfigService.java
+|   |   |               |       DashboardService.java
+|   |   |               |       FeedProfileService.java
+|   |   |               |       FinanceReportService.java
+|   |   |               |       FormulationService.java
+|   |   |               |       InventoryService.java
+|   |   |               |       InvoiceService.java
+|   |   |               |       PaymentService.java
+|   |   |               |       PelletingBatchService.java
+|   |   |               |       
+|   |   |               \---util
+|   |   |                       ExcelHelper.java
+|   |   |                       
+|   |   \---resources
+|   |       |   application.properties
+|   |       |   
+|   |       +---static
+|   |       \---templates
+|   \---test
+|       \---java
+|           \---com
+|               \---feed
+|                   \---feedv4
+|                           Feedv4ApplicationTests.java
+|                           
+\---target
+    +---classes
+    |   |   application.properties
+    |   |   
+    |   \---com
+    |       \---feed
+    |           \---feedv4
+    |               |   Feedv4Application.class
+    |               |   
+    |               +---config
+    |               |       SecurityConfig.class
+    |               |       
+    |               +---controller
+    |               |       AuthController$LoginRequest.class
+    |               |       AuthController.class
+    |               |       ChargesConfigController.class
+    |               |       DashboardController.class
+    |               |       FeedProfileController.class
+    |               |       FinanceReportController.class
+    |               |       FormulationController.class
+    |               |       InventoryController.class
+    |               |       InvoiceController.class
+    |               |       PaymentController.class
+    |               |       PelletingBatchController.class
+    |               |       TestController.class
+    |               |       UserController.class
+    |               |       
+    |               +---dto
+    |               |       CreateInvoiceDTO.class
+    |               |       CreatePaymentDTO.class
+    |               |       DashboardSummaryDTO.class
+    |               |       FeeConfigDTO.class
+    |               |       FinanceReportDTO$MonthlyProfitSnapshot.class
+    |               |       FinanceReportDTO.class
+    |               |       FormulationGenerationRequest.class
+    |               |       FormulationIngredientDTO.class
+    |               |       FormulationResponse.class
+    |               |       InventoryResponseDTO.class
+    |               |       InvoiceSummaryDTO.class
+    |               |       InvoiceWithPaymentsDTO$PaymentEntry.class
+    |               |       InvoiceWithPaymentsDTO.class
+    |               |       ReceivablesReportDTO.class
+    |               |       
+    |               +---model
+    |               |       ChargesConfig.class
+    |               |       FeedProfile$FeedProfileBuilder.class
+    |               |       FeedProfile.class
+    |               |       Formulation.class
+    |               |       FormulationIngredient.class
+    |               |       FormulationLog.class
+    |               |       Invoice.class
+    |               |       Payment.class
+    |               |       PelletingBatch$PelletingBatchBuilder.class
+    |               |       PelletingBatch.class
+    |               |       RawMaterial.class
+    |               |       Role.class
+    |               |       TestEntity.class
+    |               |       User.class
+    |               |       
+    |               +---repository
+    |               |       ChargesConfigRepository.class
+    |               |       FeedProfileRepository.class
+    |               |       FormulationIngredientRepository.class
+    |               |       FormulationLogRepository.class
+    |               |       FormulationRepository.class
+    |               |       InvoiceRepository.class
+    |               |       PaymentRepository.class
+    |               |       PelletingBatchRepository.class
+    |               |       RawMaterialRepository.class
+    |               |       TestEntityRepository.class
+    |               |       UserRepository.class
+    |               |       
+    |               +---service
+    |               |       ChargesConfigService.class
+    |               |       DashboardService.class
+    |               |       FeedProfileService.class
+    |               |       FinanceReportService.class
+    |               |       FormulationService.class
+    |               |       InventoryService.class
+    |               |       InvoiceService.class
+    |               |       PaymentService.class
+    |               |       PelletingBatchService.class
+    |               |       
+    |               \---util
+    |                       ExcelHelper.class
+    |                       

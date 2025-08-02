@@ -1,128 +1,148 @@
 import React, { useState, useEffect } from 'react';
 
 const PaymentForm = ({ onSuccess }) => {
-  const [invoices, setInvoices] = useState([]);
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
-  const [amount, setAmount] = useState('');
-  const [method, setMethod] = useState('Cash');
-  const [notes, setNotes] = useState('');
+  const [formData, setFormData] = useState({
+    customerName: '',
+    amount: '',
+    paymentDate: '',
+    method: '',
+    tax: '',
+    discount: '',
+  });
+
+  const [customers, setCustomers] = useState([]);
 
   useEffect(() => {
-    fetch('/api/invoices')
+    fetch('/api/invoices/unpaid-customers')
       .then(res => res.json())
-      .then(data => setInvoices(Array.isArray(data) ? data : []))
-      .catch(() => setInvoices([]));
+      .then(setCustomers)
+      .catch(err => console.error('Failed to fetch customers:', err));
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = (e) => {
     e.preventDefault();
-    const res = await fetch('/api/payments', {
+
+    fetch('/api/payments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        invoiceId: selectedInvoiceId,
-        amountPaid: parseFloat(amount),
-        paymentMethod: method,
-        notes
+      body: JSON.stringify(formData)
+    })
+      .then(res => {
+        if (res.ok) {
+          setFormData({
+            customerName: '',
+            amount: '',
+            paymentDate: '',
+            method: '',
+            tax: '',
+            discount: '',
+          });
+          onSuccess?.();
+        } else {
+          throw new Error('Failed to submit payment');
+        }
       })
-    });
-    if (res.ok) {
-      alert('✅ Payment recorded');
-      onSuccess?.();
-      setAmount('');
-      setNotes('');
-      setSelectedInvoiceId('');
-    } else {
-      alert('Failed to record payment');
-    }
+      .catch(err => console.error('Submission error:', err));
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="max-w-4xl mx-auto px-4 sm:px-6 py-6 bg-white border rounded-md shadow p-6 space-y-6"
-    >
-      <h2 className="text-xl font-semibold text-gray-800">Record Payment</h2>
+    <div className="max-w-xl mx-auto bg-white shadow-md rounded-2xl p-6 space-y-6 border border-gray-100">
+      <h2 className="text-xl font-bold mb-4 text-gray-700">New Payment</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Invoice Select */}
         <div>
-          <label htmlFor="invoice" className="block text-sm font-medium text-gray-700 mb-1">
-            Invoice
-          </label>
+          <label className="block mb-1 text-sm font-medium text-gray-700">Customer</label>
           <select
-            id="invoice"
-            value={selectedInvoiceId}
-            onChange={e => setSelectedInvoiceId(e.target.value)}
+            name="customerName"
+            value={formData.customerName}
+            onChange={handleChange}
+            className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
             required
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">-- Select Invoice --</option>
-            {invoices.map(i => (
-              <option key={i.id} value={i.id}>
-                #{i.id} – {i.customerName} – Rs. {i.amount} ({i.serviceType})
-              </option>
+            <option value="">-- Select Customer --</option>
+            {customers.map((name, idx) => (
+              <option key={idx} value={name}>{name}</option>
             ))}
           </select>
         </div>
 
-        {/* Amount Input */}
         <div>
-          <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
-            Amount Paid
-          </label>
+          <label className="block mb-1 text-sm font-medium text-gray-700">Amount (Rs.)</label>
           <input
-            id="amount"
             type="number"
-            value={amount}
-            onChange={e => setAmount(e.target.value)}
+            name="amount"
+            value={formData.amount}
+            onChange={handleChange}
+            className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
             required
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-            placeholder="0.00"
           />
         </div>
 
-        {/* Method Select */}
         <div>
-          <label htmlFor="method" className="block text-sm font-medium text-gray-700 mb-1">
-            Payment Method
-          </label>
-          <select
-            id="method"
-            value={method}
-            onChange={e => setMethod(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-          >
-            {['Cash', 'Bank Transfer', 'Online', 'Cheque'].map(m => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Notes */}
-        <div className="md:col-span-2">
-          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-            Notes
-          </label>
-          <textarea
-            id="notes"
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm resize-none h-24 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Optional comments..."
+          <label className="block mb-1 text-sm font-medium text-gray-700">Payment Date</label>
+          <input
+            type="date"
+            name="paymentDate"
+            value={formData.paymentDate}
+            onChange={handleChange}
+            className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            required
           />
         </div>
-      </div>
 
-      <div className="text-right">
-        <button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-5 py-2 rounded-md shadow-sm"
-        >
-          Save Payment
-        </button>
-      </div>
-    </form>
+        <div>
+          <label className="block mb-1 text-sm font-medium text-gray-700">Method</label>
+          <input
+            type="text"
+            name="method"
+            value={formData.method}
+            onChange={handleChange}
+            className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block mb-1 text-sm font-medium text-gray-700">Discount (%)</label>
+            <input
+              type="number"
+              name="discount"
+              value={formData.discount}
+              onChange={handleChange}
+              className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block mb-1 text-sm font-medium text-gray-700">Tax (%)</label>
+            <input
+              type="number"
+              name="tax"
+              value={formData.tax}
+              onChange={handleChange}
+              className="w-full border rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="pt-4">
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition"
+          >
+            Submit Payment
+          </button>
+        </div>
+      </form>
+    </div>
   );
 };
 

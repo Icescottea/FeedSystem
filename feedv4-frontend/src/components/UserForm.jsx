@@ -5,7 +5,7 @@ const UserForm = ({ onSubmit, onCancel, editingUser }) => {
     fullName: '',
     email: '',
     password: '',
-    role: 'OPERATOR',
+    roles: ['OPERATOR'],
     active: true
   });
 
@@ -15,7 +15,7 @@ const UserForm = ({ onSubmit, onCancel, editingUser }) => {
         fullName: editingUser.fullName || '', 
         email: editingUser.email || '', 
         password: '', 
-        role: editingUser.role || 'OPERATOR', 
+        roles: editingUser.roles || ['OPERATOR'], 
         active: editingUser.active ?? true 
       });
     }
@@ -31,12 +31,22 @@ const UserForm = ({ onSubmit, onCancel, editingUser }) => {
 
   const handleSubmit = e => {
     e.preventDefault();
-    onSubmit(formData);
+    if (editingUser) {
+      onSubmit({ ...formData, id: editingUser.id }); // update
+    } else {
+      if (!formData.password) {
+        alert("Password cannot be blank for new users.");
+        return;
+      }
+      onSubmit(formData); // create
+    }
+  
+    // Reset form
     setFormData({
       fullName: '',
       email: '',
       password: '',
-      role: 'OPERATOR',
+      roles: ['OPERATOR'],
       active: true
     });
   };
@@ -101,22 +111,34 @@ const UserForm = ({ onSubmit, onCancel, editingUser }) => {
           </div>
         )}
 
-        {/* Role */}
+        {/* Roles */}
         <div>
-          <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-            Role
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Roles
           </label>
-          <select
-            id="role"
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-          >
-            {['ADMIN', 'FORMULATOR', 'INVENTORY_MANAGER', 'FINANCE_OFFICER', 'OPERATOR'].map(r => (
-              <option key={r} value={r}>{r}</option>
+          <div className="grid grid-cols-2 gap-2">
+            {['ADMIN', 'FORMULATOR', 'INVENTORY_MANAGER', 'FINANCE_OFFICER', 'OPERATOR'].map(roles => (
+              <label key={roles} className="flex items-center text-sm">
+                <input
+                  type="checkbox"
+                  name="roles"
+                  value={roles}
+                  checked={formData.roles?.includes(roles)}
+                  onChange={(e) => {
+                    const { checked, value } = e.target;
+                    setFormData(prev => ({
+                      ...prev,
+                      roles: checked
+                        ? [...(prev.roles || []), value]
+                        : prev.roles.filter(r => r !== value)
+                    }));
+                  }}
+                  className="mr-2"
+                />
+                {roles}
+              </label>
             ))}
-          </select>
+          </div>
         </div>
 
         {/* Active */}

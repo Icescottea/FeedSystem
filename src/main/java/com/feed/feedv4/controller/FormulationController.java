@@ -1,6 +1,7 @@
 package com.feed.feedv4.controller;
 
-import com.feed.feedv4.dto.FormulationRequest;
+import com.feed.feedv4.dto.FormulationGenerationRequest;
+import com.feed.feedv4.dto.FormulationResponse;
 import com.feed.feedv4.model.FeedProfile;
 import com.feed.feedv4.model.Formulation;
 import com.feed.feedv4.model.FormulationLog;
@@ -14,7 +15,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -130,15 +130,15 @@ public class FormulationController {
     }
 
     @PostMapping
-    public ResponseEntity<Formulation> createFormulation(@RequestBody FormulationRequest request) {
+    public ResponseEntity<Formulation> createFormulation(@RequestBody FormulationGenerationRequest request) {
         FeedProfile profile = feedProfileRepository.findById(request.getProfileId())
             .orElseThrow(() -> new RuntimeException("Feed Profile not found"));
 
         Formulation formulation = new Formulation();
         formulation.setFeedProfile(profile);
-        formulation.setName(request.getName());
         formulation.setBatchSize(request.getBatchSize());
-        formulation.setStrategy(String.join(", ", request.getStrategy()));  // join list into string
+        formulation.setName(request.getName());
+        formulation.setFactory(request.getFactory());
         formulation.setStatus("Draft");
         formulation.setVersion("v1.0");
         formulation.setCreatedAt(LocalDateTime.now());
@@ -146,7 +146,7 @@ public class FormulationController {
         formulation.setLocked(false);
         formulation.setFinalized(false);
         formulation.setTags(new ArrayList<>());
-        formulation.setIngredients(new ArrayList<>());  // initially empty
+        formulation.setIngredients(new ArrayList<>());  
 
         Formulation saved = formulationRepository.save(formulation);
         return ResponseEntity.ok(saved);
@@ -163,6 +163,17 @@ public class FormulationController {
         }
         formulationRepository.save(f);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/generate")
+    public ResponseEntity<FormulationResponse> generateFormulation(
+        @RequestBody FormulationGenerationRequest request) {
+        
+        FormulationResponse response = service.generateFormulation(
+            request.getProfileId(),
+            request.getBatchSize()
+        );
+        return ResponseEntity.ok(response);
     }
 
 }

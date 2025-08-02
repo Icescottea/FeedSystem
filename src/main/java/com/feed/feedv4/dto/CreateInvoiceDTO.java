@@ -83,11 +83,20 @@ public class CreateInvoiceDTO {
         return customerName;
     }
 
-    public Long getBatchId() {
-        return batchId;
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
     }
+
+    public Long getBatchId() { return batchId; }
+
+    public void setBatchId(Long batchId) { this.batchId = batchId; }
 
     public double getAmount() {
         return amount;
     }
+
+    public void setAmount(double amount) {
+        this.amount = amount;
+    }
+
 }

@@ -36,8 +36,8 @@ const DashboardPage = () => {
   const costChartRef = useRef(null);
 
   useEffect(() => {
-    if (user?.role) {
-      fetch(`/api/dashboard/${user.role}`)
+    if (user?.roles) {
+      fetch(`/api/dashboard/${user.roles}`)
         .then(res => res.json())
         .then(res => {
           setData(res);

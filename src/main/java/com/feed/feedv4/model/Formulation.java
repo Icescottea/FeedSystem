@@ -17,6 +17,7 @@ public class Formulation {
     private Long id;
 
     private String name;
+    private String factory;
     private double batchSize;
     private String strategy;
     private String status; // Draft, Finalized, Archived

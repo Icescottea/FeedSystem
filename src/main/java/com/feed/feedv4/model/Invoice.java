@@ -10,12 +10,14 @@ public class Invoice {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long customerId; 
+    private Long customerId;
     private String customerName;
     private String serviceType;
-    private Long batchId;
-    private double amount;
 
+    // 🔄 Changed from String to Long
+    private Long batchId;
+
+    private double amount;
     private String status;
     private LocalDateTime dateIssued;
     private boolean paid;
@@ -23,7 +25,11 @@ public class Invoice {
     private LocalDateTime paymentDate;
     private LocalDateTime updatedAt;
 
-    // ✅ Required Setters
+    // 🔽 Setters
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId;
+    }
+
     public void setCustomerName(String customerName) {
         this.customerName = customerName;
     }
@@ -48,9 +54,29 @@ public class Invoice {
         this.dateIssued = dateIssued;
     }
 
-    // ✅ Add getters too if not present
+    public void setPaid(boolean paid) {
+        this.paid = paid;
+    }
+
+    public void setAmountPaid(double amountPaid) {
+        this.amountPaid = amountPaid;
+    }
+
+    public void setPaymentDate(LocalDateTime paymentDate) {
+        this.paymentDate = paymentDate;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    // 🔼 Getters
     public Long getId() {
         return id;
+    }
+
+    public Long getCustomerId() {
+        return customerId;
     }
 
     public String getCustomerName() {
@@ -77,16 +103,8 @@ public class Invoice {
         return dateIssued;
     }
 
-    public void setPaid(boolean paid) {
-        this.paid = paid;
-    }
-
     public boolean isPaid() {
         return paid;
-    }
-
-    public void setAmountPaid(double amountPaid) {
-        this.amountPaid = amountPaid;
     }
 
     public double getAmountPaid() {
@@ -97,24 +115,16 @@ public class Invoice {
         return paymentDate;
     }
 
-    public void setPaymentDate(LocalDateTime paymentDate) {
-        this.paymentDate = paymentDate;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 
+    // 🔁 Helpers
     public double getPaidAmount() {
         return this.amountPaid;
     }
-    
+
     public double getTotalAmount() {
         return this.amount;
     }
-
 }

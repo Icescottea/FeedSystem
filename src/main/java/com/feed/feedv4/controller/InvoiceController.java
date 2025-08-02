@@ -29,6 +29,7 @@ public class InvoiceController {
 
     @PostMapping
     public ResponseEntity<Invoice> createInvoice(@RequestBody CreateInvoiceDTO dto) {
+        System.out.println("DTO received: " + dto); // debug log
         Invoice invoice = invoiceService.createInvoice(dto);
         return ResponseEntity.ok(invoice);
     }
@@ -49,4 +50,10 @@ public class InvoiceController {
     public List<Invoice> getInvoicesByCustomer(@PathVariable Long customerId) {
         return invoiceService.getInvoicesByCustomer(customerId);
     }
+
+    @GetMapping("/unpaid-customers")
+    public List<String> getUnpaidCustomers() {
+        return invoiceService.getUnpaidCustomerNames();
+    }
+
 }

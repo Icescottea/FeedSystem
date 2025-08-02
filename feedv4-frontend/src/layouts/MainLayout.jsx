@@ -9,7 +9,7 @@ const MainLayout = ({ user }) => {
   return (
     <div className="flex h-screen w-screen overflow-x-hidden">
       <aside className="w-60 flex-shrink-0 bg-gray-900 overflow-y-auto custom-scrollbar-hide">
-        <Sidebar role={user.role} />
+        <Sidebar roles={user.roles} />
       </aside>
 
       <div id="toast-container" className="fixed top-5 right-5 z-50 space-y-2" />

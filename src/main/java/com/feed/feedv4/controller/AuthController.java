@@ -4,6 +4,8 @@ import com.feed.feedv4.model.User;
 import com.feed.feedv4.repository.UserRepository;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -18,12 +20,18 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public User login(@RequestBody LoginRequest loginRequest) {
+    public Map<String, Object> login(@RequestBody LoginRequest loginRequest) {
         Optional<User> userOpt = userRepo.findByEmail(loginRequest.email());
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (user.getPassword().equals(loginRequest.password())) {
-                return user; // success
+                Map<String, Object> response = new HashMap<>();
+                response.put("id", user.getId());
+                response.put("fullName", user.getFullName());
+                response.put("email", user.getEmail());
+                response.put("roles", user.getRoles());
+                response.put("active", user.isActive());
+                return response;
             }
         }
         throw new RuntimeException("Invalid credentials");

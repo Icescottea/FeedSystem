@@ -12,7 +12,7 @@ import {
   User as UserIcon
 } from 'lucide-react';
 
-const Sidebar = ({ role }) => {
+const Sidebar = ({ roles }) => {
   const location = useLocation();
 
   const isActive = (path) => location.pathname === path;
@@ -60,7 +60,7 @@ const Sidebar = ({ role }) => {
           Dashboard
         </NavLink>
 
-        {(role === 'ADMIN' || role === 'INVENTORY_MANAGER') && (
+        {(roles.includes('ADMIN') || roles.includes('INVENTORY_MANAGER')) && (
           <>
             <SectionHeader>Inventory</SectionHeader>
             <NavLink to="/inventory" icon={Package}>
@@ -69,7 +69,7 @@ const Sidebar = ({ role }) => {
           </>
         )}
 
-        {(role === 'ADMIN' || role === 'FORMULATOR') && (
+        {(roles.includes('ADMIN') || roles.includes('FORMULATOR')) && (
           <>
             <SectionHeader>Formulation</SectionHeader>
             <NavLink to="/formulations" icon={Beaker}>
@@ -78,16 +78,13 @@ const Sidebar = ({ role }) => {
             <NavLink to="/formulation-library" icon={Library}>
               Library
             </NavLink>
-            <NavLink to="/formulation-builder" icon={Wrench}>
-              Builder
-            </NavLink>
             <NavLink to="/feed-profiles" icon={Target}>
               Profiles
             </NavLink>
           </>
         )}
 
-        {(role === 'ADMIN' || role === 'OPERATOR') && (
+        {(roles.includes('ADMIN') || roles.includes('OPERATOR')) && (
           <>
             <SectionHeader>Production</SectionHeader>
             <NavLink to="/pelleting" icon={Factory}>
@@ -96,7 +93,7 @@ const Sidebar = ({ role }) => {
           </>
         )}
 
-        {(role === 'ADMIN' || role === 'FINANCE_OFFICER') && (
+        {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
           <>
             <SectionHeader>Finance</SectionHeader>
             <NavLink to="/finance" icon={DollarSign}>
@@ -105,7 +102,7 @@ const Sidebar = ({ role }) => {
           </>
         )}
 
-        {(role === 'ADMIN') && (
+        {(roles.includes('ADMIN')) && (
           <>
           <SectionHeader>User</SectionHeader>
           <NavLink to="/users" icon={UserIcon}>

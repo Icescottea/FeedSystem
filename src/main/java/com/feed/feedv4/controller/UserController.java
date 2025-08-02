@@ -35,15 +35,24 @@ public class UserController {
 
     @GetMapping("/operators")
     public List<User> getOperators() {
-        return repo.findByRole(Role.OPERATOR);
+        return repo.findAll().stream()
+                .filter(u -> u.getRoles().contains(Role.OPERATOR))
+                .toList();
     }
 
     @PutMapping("/{id}")
     public User updateUser(@PathVariable Long id, @RequestBody User updated) {
-        User existing = repo.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        User existing = repo.findById(id)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+    
         existing.setFullName(updated.getFullName());
-        existing.setRole(updated.getRole());
+        existing.setRoles(updated.getRoles());
         existing.setActive(updated.isActive());
+    
+        if (updated.getPassword() != null && !updated.getPassword().isBlank()) {
+            existing.setPassword(updated.getPassword());
+        }
+    
         return repo.save(existing);
     }
 

@@ -66,4 +66,8 @@ public class InvoiceService {
         return invoiceRepo.save(invoice);
     }
 
+    public List<String> getUnpaidCustomerNames() {
+        return invoiceRepo.findDistinctCustomerNamesByStatus("Unpaid");
+    }
+
 }

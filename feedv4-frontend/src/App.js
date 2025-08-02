@@ -17,6 +17,8 @@ import PaymentListPage from './pages/finance/PaymentListPage';
 import ReportsPage from './pages/finance/ReportsPage';
 import InvoiceForm from './pages/finance/InvoiceForm';
 import RequireAuth from './RequireAuth';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
   const [user, setUser] = useState(undefined); 
@@ -33,6 +35,8 @@ const App = () => {
 
   if (user === undefined) return <div className="p-4 text-gray-500">Loading...</div>;
   if (!user) return <Login setUser={setUser} />;
+
+  <ToastContainer />
 
   return (
     <Routes>

@@ -6,6 +6,10 @@ import com.feed.feedv4.service.DashboardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/api/dashboard")
 @CrossOrigin(origins = "http://localhost:3000")
@@ -14,13 +18,19 @@ public class DashboardController {
     @Autowired
     private DashboardService dashboardService;
 
-    @GetMapping("/{role}")
-    public DashboardSummaryDTO getDashboard(@PathVariable String role) {
+    @GetMapping("/{roles}")
+    public DashboardSummaryDTO getDashboard(@PathVariable String roles) {
         try {
-            Role userRole = Role.valueOf(role.toUpperCase());
-            return dashboardService.getDashboardByRole(userRole);
+            Set<Role> roleSet = Arrays.stream(roles.split(","))
+                    .map(String::trim)
+                    .map(String::toUpperCase)
+                    .map(Role::valueOf)
+                    .collect(Collectors.toSet());
+
+            return dashboardService.getDashboardByRoles(roleSet);
+
         } catch (Exception e) {
-            e.printStackTrace(); // ✅ this logs the stack trace
+            e.printStackTrace();
             throw new RuntimeException("Dashboard error: " + e.getMessage());
         }
     }

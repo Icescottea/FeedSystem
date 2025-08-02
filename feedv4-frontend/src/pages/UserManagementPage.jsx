@@ -18,13 +18,20 @@ const UserManagementPage = () => {
   const handleSubmit = async (data) => {
     const method = data.id ? 'PUT' : 'POST';
     const url = data.id ? `/api/users/${data.id}` : '/api/users/create';
-
+    
+    const payload = { ...data };
+    
+    // 🔥 Skip blank password on update
+    if (data.id && (!data.password || data.password.trim() === '')) {
+      delete payload.password;
+    }
+  
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
-
+  
     if (res.ok) {
       fetchUsers();
       setEditingUser(null);

@@ -18,7 +18,7 @@ const UserList = ({ users, onEdit, onToggle, onDelete }) => {
               <tr>
                 <th className="px-3 py-2">Full Name</th>
                 <th className="px-3 py-2">Email</th>
-                <th className="px-3 py-2">Role</th>
+                <th className="px-3 py-2">Roles</th>
                 <th className="px-3 py-2">Active</th>
                 <th className="px-3 py-2">Actions</th>
               </tr>
@@ -28,7 +28,7 @@ const UserList = ({ users, onEdit, onToggle, onDelete }) => {
                 <tr key={user.id} className="hover:bg-gray-50 whitespace-nowrap">
                   <td className="px-3 py-2">{user.fullName}</td>
                   <td className="px-3 py-2">{user.email}</td>
-                  <td className="px-3 py-2">{user.role}</td>
+                  <td className="px-3 py-2">{user.roles}</td>
                   <td className="px-3 py-2">{user.active ? '✅ Active' : '❌ Inactive'}</td>
                   <td className="px-3 py-2">
                     <div className="flex gap-3 text-xs">
