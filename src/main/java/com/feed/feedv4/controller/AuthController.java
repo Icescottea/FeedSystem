@@ -19,30 +19,29 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody LoginRequest loginRequest) {
-        Optional<User> userOpt = userRepo.findByEmail(loginRequest.email);
+public Map<String, Object> login(@RequestBody LoginRequest loginRequest) {
+    Optional<User> userOpt = userRepo.findByEmail(loginRequest.email);
 
-        User user = userOpt.orElseGet(() -> {
-            // Return dummy user if not found — NO exception thrown
-            User dummy = new User();
-            dummy.setId(0L);
-            dummy.setFullName("Test User");
-            dummy.setEmail(loginRequest.email);
-            dummy.setPassword(loginRequest.password);
-            dummy.setActive(true);
-            dummy.setRoles(new HashSet<>(List.of(Role.ADMIN))); // Set enum role
-            return dummy;
-        });
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("id", user.getId());
-        response.put("fullName", user.getFullName());
-        response.put("email", user.getEmail());
-        response.put("roles", user.getRoles());
-        response.put("active", user.isActive());
-        response.put("success", true);
-        return response;
+    if (userOpt.isPresent()) {
+        User user = userOpt.get();
+        if (user.getPassword().equals(loginRequest.password)) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("id", user.getId());
+            response.put("fullName", user.getFullName());
+            response.put("email", user.getEmail());
+            response.put("roles", user.getRoles());
+            response.put("active", user.isActive());
+            response.put("success", true);
+            return response;
+        }
     }
+
+    // Instead of throwing an error, return a controlled failed response
+    Map<String, Object> fail = new HashMap<>();
+    fail.put("success", false);
+    fail.put("message", "Invalid credentials");
+    return fail;
+}
 
     public static class LoginRequest {
         public String email;
