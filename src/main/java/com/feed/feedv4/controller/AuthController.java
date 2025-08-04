@@ -10,7 +10,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*") // allow frontend
+@CrossOrigin(origins = "https://feed-system.vercel.app") // allow frontend
 public class AuthController {
 
     private final UserRepository userRepo;
