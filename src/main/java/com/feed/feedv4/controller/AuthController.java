@@ -10,7 +10,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:3000") // allow frontend
+@CrossOrigin(origins = "*") // allow frontend
 public class AuthController {
 
     private final UserRepository userRepo;
