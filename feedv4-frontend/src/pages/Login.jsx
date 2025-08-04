@@ -18,13 +18,18 @@ const Login = ({ setUser }) => {
 
   const handleLogin = async () => {
     try {
-        const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-      if (!res.ok) throw new Error('Login failed');
+      const res = await fetch(`${process.env.REACT_APP_API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+    
       const data = await res.json();
+    
+      if (!res.ok || !data.success) {
+        throw new Error('Invalid credentials');
+      }
+    
       setUser(data);
       localStorage.setItem('user', JSON.stringify(data));
       navigate('/');
