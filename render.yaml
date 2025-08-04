@@ -1,5 +1,0 @@
-DB_HOST=postgresql
-DB_PORT=5432
-DB_NAME=feedv4_db
-DB_USER=postgres
-DB_PASSWORD=newpassword
