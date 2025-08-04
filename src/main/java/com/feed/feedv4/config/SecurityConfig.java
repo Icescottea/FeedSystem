@@ -17,29 +17,27 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors() // ✅ Enables CORS at the security filter level
+            .cors() // Enables CORS
             .and()
             .csrf().disable()
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // ✅ Let preflight pass
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Preflight
                 .anyRequest().permitAll()
             );
-
         return http.build();
     }
 
-    // ✅ Define global CORS policy
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowCredentials(true);
+        config.setAllowCredentials(true); // Allow cookies and auth headers
         config.setAllowedOrigins(List.of(
-            "https://feedv4-frontend.vercel.app",
-            "http://localhost:3000"
+            "https://feedv4-frontend.vercel.app", // ✅ Vercel URL
+            "http://localhost:3000" // for local testing
         ));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.addExposedHeader("Authorization");
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
