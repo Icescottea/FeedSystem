@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@CrossOrigin(origins = "*") 
 @RestController
 @RequestMapping("/api/dashboard")
 public class DashboardController {
