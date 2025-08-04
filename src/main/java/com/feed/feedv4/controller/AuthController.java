@@ -22,10 +22,11 @@ public class AuthController {
 public Map<String, Object> login(@RequestBody LoginRequest loginRequest) {
     Optional<User> userOpt = userRepo.findByEmail(loginRequest.email);
 
+    Map<String, Object> response = new HashMap<>();
+
     if (userOpt.isPresent()) {
         User user = userOpt.get();
         if (user.getPassword().equals(loginRequest.password)) {
-            Map<String, Object> response = new HashMap<>();
             response.put("id", user.getId());
             response.put("fullName", user.getFullName());
             response.put("email", user.getEmail());
@@ -36,12 +37,11 @@ public Map<String, Object> login(@RequestBody LoginRequest loginRequest) {
         }
     }
 
-    // Instead of throwing an error, return a controlled failed response
-    Map<String, Object> fail = new HashMap<>();
-    fail.put("success", false);
-    fail.put("message", "Invalid credentials");
-    return fail;
+    response.put("success", false);
+    response.put("message", "Invalid credentials");
+    return response;
 }
+
 
     public static class LoginRequest {
         public String email;
