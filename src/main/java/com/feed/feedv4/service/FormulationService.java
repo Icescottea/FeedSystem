@@ -452,7 +452,7 @@ public class FormulationService {
         if (body.containsKey("locked"))
             formulation.setLocked((Boolean) body.get("locked"));
     
-        // --- Existing logic for ingredients ---
+        // --- Handle ingredient updates ---
         if (body.containsKey("ingredientPercentages") && body.containsKey("lockedIngredients")) {
             Map<String, Double> newPercents = (Map<String, Double>) body.get("ingredientPercentages");
             List<String> lockedNames = (List<String>) body.get("lockedIngredients");
@@ -468,9 +468,12 @@ public class FormulationService {
             }
         }
     
-        // Optional finalized field
+        // --- Finalization flags ---
         if (body.containsKey("finalized"))
             formulation.setFinalized((Boolean) body.get("finalized"));
+    
+        if (body.containsKey("status"))
+            formulation.setStatus((String) body.get("status"));
     
         formulation.setUpdatedAt(LocalDateTime.now());
         repository.save(formulation);
@@ -585,6 +588,16 @@ public class FormulationService {
         log.setMessage(message);
         log.setTimestamp(LocalDateTime.now());
         logRepository.save(log);
+    }
+
+    public void finalize(Long id) {
+        Formulation f = getById(id);
+        f.setFinalized(true);
+        f.setStatus("Finalized");
+        f.setUpdatedAt(LocalDateTime.now());
+        repository.save(f);
+        
+        logAction(f, "FINALIZED", "Formulation marked as finalized");
     }
 
 }

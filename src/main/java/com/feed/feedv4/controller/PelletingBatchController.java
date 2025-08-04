@@ -64,4 +64,16 @@ public class PelletingBatchController {
         return ResponseEntity.ok(service.logCompletion(id, actualYield, comments, leftovers, wastage));
     }
 
+    @PostMapping("/{id}/send-to-finance")
+    public ResponseEntity<String> sendToFinance(@PathVariable Long id) {
+        // Placeholder logic – you can later redirect or generate invoice
+        PelletingBatch batch = service.get(id);
+        if (!"Completed".equals(batch.getStatus())) {
+            return ResponseEntity.badRequest().body("Only completed batches can be sent to finance");
+        }
+
+        // Simulate forwarding to finance module (to be implemented)
+        return ResponseEntity.ok("Batch " + id + " sent to finance module.");
+    }
+
 }

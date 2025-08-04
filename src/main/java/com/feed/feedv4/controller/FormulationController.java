@@ -82,6 +82,7 @@ public class FormulationController {
 
     @PutMapping("/{id}/update")
     public ResponseEntity<?> updateFormulation(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        System.out.println("💬 Incoming update payload: " + body);
         try {
             service.updateFormulation(id, body);
             return ResponseEntity.ok().build();
@@ -174,6 +175,12 @@ public class FormulationController {
             request.getBatchSize()
         );
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{id}/finalize")
+    public ResponseEntity<?> finalize(@PathVariable Long id) {
+        service.finalize(id);
+        return ResponseEntity.ok().build();
     }
 
 }

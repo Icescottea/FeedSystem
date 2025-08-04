@@ -56,10 +56,22 @@ public class PelletingBatchService {
     public PelletingBatch updateStatus(Long id, String status) {
         PelletingBatch batch = get(id);
         batch.setStatus(status);
+        if ("In Progress".equals(batch.getStatus()) || "Completed".equals(batch.getStatus())) {
+            throw new RuntimeException("Cannot change status from " + batch.getStatus());
+        }
         if ("In Progress".equals(status)) {
             batch.setStartTime(LocalDateTime.now());
         } else if ("Completed".equals(status)) {
-            batch.setEndTime(LocalDateTime.now());
+            LocalDateTime end = LocalDateTime.now();
+            batch.setEndTime(end);  
+
+            if (batch.getStartTime() != null) {
+                long minutes = java.time.Duration.between(batch.getStartTime(), end).toMinutes();
+                batch.setTimeTakenMinutes(minutes);
+            } else {
+                batch.setTimeTakenMinutes(0L);
+            }
+
         }
         batch.setUpdatedAt(LocalDateTime.now());
         return pelletingRepo.save(batch);
@@ -74,6 +86,11 @@ public class PelletingBatchService {
         batch.setEndTime(LocalDateTime.now());
         batch.setStatus("Completed");
         batch.setUpdatedAt(LocalDateTime.now());
+        if (batch.getStartTime() != null && batch.getEndTime() != null) {
+            long minutes = java.time.Duration.between(batch.getStartTime(), batch.getEndTime()).toMinutes();
+            batch.setTimeTakenMinutes(minutes);
+        }
         return pelletingRepo.save(batch);
+        
     }
 }

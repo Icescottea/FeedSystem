@@ -40,6 +40,9 @@ public class PelletingBatch {
     private LocalDateTime startTime;
 
     private LocalDateTime endTime;
+    
+    @Transient
+    private Long timeTakenMinutes;
 
     private LocalDateTime createdAt;
 
