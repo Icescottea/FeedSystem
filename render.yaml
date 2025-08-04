@@ -1,7 +1,7 @@
 services:
   - type: web
     name: feedv4-backend
-    env: java
+    runtime: java
     plan: free
     buildCommand: ./mvnw clean install
     startCommand: ./mvnw spring-boot:run
