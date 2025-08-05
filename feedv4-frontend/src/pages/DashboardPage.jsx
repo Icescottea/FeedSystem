@@ -37,7 +37,7 @@ const DashboardPage = () => {
 
   useEffect(() => {
     if (user?.roles) {
-      fetch(`/api/dashboard/${user.roles}`)
+      fetch(`${process.env.REACT_APP_API_BASE_URL}/api/dashboard/${user.roles[0]}`)
         .then(res => res.json())
         .then(res => {
           setData(res);
