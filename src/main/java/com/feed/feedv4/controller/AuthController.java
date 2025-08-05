@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "https://feed-system.vercel.app", allowCredentials = "true")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {

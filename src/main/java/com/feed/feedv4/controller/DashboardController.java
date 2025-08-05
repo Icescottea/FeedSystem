@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@CrossOrigin(origins = "*") 
+@CrossOrigin(originPatterns = "https://feed-system.vercel.app", allowCredentials = "true")
 @RestController
 @RequestMapping("/api/dashboard")
 public class DashboardController {
