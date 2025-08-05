@@ -8,8 +8,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
+        System.out.println("✅ WebConfig: CORS settings applied");
+    
         registry.addMapping("/**")
-                .allowedOriginPatterns("https://feed-system.vercel.app")  // ✅ use this
+                .allowedOriginPatterns("https://feed-system.vercel.app", "http://localhost:3000")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);
