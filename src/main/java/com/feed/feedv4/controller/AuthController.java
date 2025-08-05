@@ -20,9 +20,8 @@ public class AuthController {
 
     @PostMapping("/login")
 public Map<String, Object> login(@RequestBody LoginRequest loginRequest) {
-    Optional<User> userOpt = userRepo.findByEmail(loginRequest.email);
-
     Map<String, Object> response = new HashMap<>();
+    Optional<User> userOpt = userRepo.findByEmail(loginRequest.email);
 
     if (userOpt.isPresent()) {
         User user = userOpt.get();
@@ -40,8 +39,7 @@ public Map<String, Object> login(@RequestBody LoginRequest loginRequest) {
     response.put("success", false);
     response.put("message", "Invalid credentials");
     return response;
-}
-
+} 
 
     public static class LoginRequest {
         public String email;
