@@ -3,6 +3,8 @@ import PelletingBatchForm from '../components/PelletingBatchForm';
 import PelletingBatchList from '../components/PelletingBatchList';
 import MyPelletingBatches from '../components/MyPelletingBatches';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const PelletingQueuePage = () => {
   return (
     <div className="w-full max-w-full mx-auto p-4 text-xs text-gray-800 overflow-x-hidden" style={{maxWidth: 'calc(100vw - 298px)'}}>

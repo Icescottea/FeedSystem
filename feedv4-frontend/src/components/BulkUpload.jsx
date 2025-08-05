@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
 import BulkUpload from '../components/BulkUpload';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const BulkUpload = ({ onUpload }) => {
   const [previewData, setPreviewData] = useState([]);
   const [file, setFile] = useState(null);
@@ -28,7 +30,7 @@ const BulkUpload = ({ onUpload }) => {
     formData.append("file", file);
     formData.append("overwrite", overwrite);
 
-    await fetch("/api/inventory/bulk-upload?overwrite=" + overwrite, {
+    await fetch(`${API_BASE}/api/inventory/bulk-upload?overwrite=${overwrite}`, {
       method: "POST",
       body: formData,
     });

@@ -5,6 +5,8 @@ import * as XLSX from 'xlsx';
 import FormulationEditForm from '../components/FormulationEditForm';
 import { showToast } from '../components/toast';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const FormulationLibraryPage = () => {
   const [formulations, setFormulations] = useState([]);
   const [filtered, setFiltered] = useState([]);
@@ -18,7 +20,7 @@ const FormulationLibraryPage = () => {
   const navigate = useNavigate();
 
   const fetchFormulations = () => {
-    const url = showArchived ? '/api/formulations/all' : '/api/formulations';
+    const url = showArchived ? `${API_BASE}/api/formulations/all` : `${API_BASE}/api/formulations`;
     fetch(url)
       .then(res => res.json())
       .then(data => {
@@ -83,7 +85,7 @@ const FormulationLibraryPage = () => {
     };
 
     try {
-      const res = await fetch('/api/formulations', {
+      const res = await fetch(`${API_BASE}/api/formulations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -120,33 +122,33 @@ const FormulationLibraryPage = () => {
   };
 
   const handleUnarchive = async (id) => {
-    await fetch(`/api/formulations/${id}/unarchive`, { method: 'PUT' });
+    await fetch(`${API_BASE}/api/formulations/${id}/unarchive`, { method: 'PUT' });
     showToast('Formulation unarchived!');
     fetchFormulations();
   };
 
   const handleUnfinalize = async (id) => {
-    await fetch(`/api/formulations/${id}/unfinalize`, { method: 'PUT' });
+    await fetch(`${API_BASE}/api/formulations/${id}/unfinalize`, { method: 'PUT' });
     showToast('Marked as draft.');
     fetchFormulations();
   };
 
   const handleDelete = async (id) => {
     if (window.confirm("Delete this formulation?")) {
-      await fetch(`/api/formulations/${id}`, { method: 'DELETE' });
+      await fetch(`${API_BASE}/api/formulations/${id}`, { method: 'DELETE' });
       showToast('Deleted!');
       fetchFormulations();
     }
   };
 
   const handleArchive = async (id) => {
-    await fetch(`/api/formulations/${id}/archive`, { method: 'PUT' });
+    await fetch(`${API_BASE}/api/formulations/${id}/archive`, { method: 'PUT' });
     showToast('Archived!');
     fetchFormulations();
   };
 
   const handleFinalize = async (id) => {
-    await fetch(`/api/formulations/${id}/update`, {
+    await fetch(`${API_BASE}/api/formulations/${id}/update`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ finalized: true, status: 'Finalized' })

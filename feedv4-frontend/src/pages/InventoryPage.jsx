@@ -4,6 +4,8 @@ import * as XLSX from 'xlsx';
 import InventoryList from '../components/InventoryList';
 import InventoryForm from '../components/InventoryForm';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const InventoryPage = () => {
   const [inventory, setInventory] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -16,7 +18,7 @@ const InventoryPage = () => {
 
   /* ───────── fetch helpers ───────── */
   const fetchInventory = async () => {
-    const url = showArchived ? '/api/inventory/all' : '/api/inventory';
+    const url = showArchived ? `${API_BASE}/api/inventory/all` : `${API_BASE}/api/inventory`;
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -39,12 +41,12 @@ const InventoryPage = () => {
     const confirmDelete = window.confirm("Are you sure you want to delete this item?");
     if (!confirmDelete) return;
     
-    fetch(`/api/inventory/${id}`, { method: 'DELETE' })
+    fetch(`${API_BASE}/api/inventory/${id}`, { method: 'DELETE' })
     .then(refreshAndClose)
     .catch(err => console.error('❌ Error deleting item:', err));
   };
 
-  const handleArchive = (id) => fetch(`/api/inventory/${id}/toggle-archive`, { method: 'PUT'    }).then(refreshAndClose);
+  const handleArchive = (id) => fetch(`${API_BASE}/api/inventory/${id}/toggle-archive`, { method: 'PUT' })
 
   /* ───────── excel upload ───────── */
   const handleFileChange = (e) => {
@@ -73,7 +75,7 @@ const InventoryPage = () => {
     formData.append('file', excelFile);
 
     try {
-      const res = await fetch('/api/inventory/bulk-upload', {
+      const res = await fetch(`${API_BASE}/api/inventory/bulk-upload`, {
         method: 'POST',
         body: formData
       });
@@ -94,13 +96,13 @@ const InventoryPage = () => {
   };
 
   const handleToggleLock = async (id) => {
-    await fetch(`/api/inventory/${id}/toggle-lock`, { method: 'PUT' });
+    await fetch(`${API_BASE}/api/inventory/${id}/toggle-lock`, { method: 'PUT' });
     fetchInventory();
   };
 
   /* ───────── low‑stock check ───────── */
   const handleLowStockCheck = async () => {
-    const res = await fetch('/api/inventory/low-stock');
+    const res = await fetch(`${API_BASE}/api/inventory/low-stock`);
     setLowStockItems(await res.json());
   };
 

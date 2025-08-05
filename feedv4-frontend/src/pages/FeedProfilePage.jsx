@@ -4,6 +4,8 @@ import FeedProfileList from '../components/FeedProfileList';
 import FeedProfileForm from '../components/FeedProfileForm';
 import CompareProfiles from '../components/CompareProfiles';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const FeedProfilePage = () => {
   const [profiles, setProfiles] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -12,7 +14,7 @@ const FeedProfilePage = () => {
   const [showArchived, setShowArchived] = useState(false);
 
   const fetchProfiles = async () => {
-    const url = showArchived ? '/api/feed-profiles/all' : '/api/feed-profiles';
+    const url = showArchived ? `${API_BASE}/api/feed-profiles/all` : `${API_BASE}/api/feed-profiles`;
     try {
       const res = await fetch(url);
       const data = await res.json();
@@ -43,7 +45,7 @@ const FeedProfilePage = () => {
   const onClone = async (id) => {
     const original = profiles.find(p => p.id === id);
     const { id: _, ...clone } = original;
-    const res = await fetch('/api/feed-profiles', {
+    const res = await fetch(`${API_BASE}/api/feed-profiles`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...clone, feedName: clone.feedName + ' (Copy)' })
@@ -52,19 +54,19 @@ const FeedProfilePage = () => {
   };
 
   const onArchive = async (id) => {
-    await fetch(`/api/feed-profiles/${id}/archive`, { method: 'PUT' });
+    await fetch(`${API_BASE}/api/feed-profiles/${id}/archive`, { method: 'PUT' });
     fetchProfiles();
   };
 
   const onToggleLock = async (id) => {
-    await fetch(`/api/feed-profiles/${id}/toggle-lock`, { method: 'PUT' });
+    await fetch(`${API_BASE}/api/feed-profiles/${id}/toggle-lock`, { method: 'PUT' });
     fetchProfiles();
   };
 
   const onDelete = async (id) => {
     const confirm = window.confirm('Are you sure you want to delete this profile?');
     if (!confirm) return;
-    await fetch(`/api/feed-profiles/${id}`, { method: 'DELETE' });
+    await fetch(`${API_BASE}/api/feed-profiles/${id}`, { method: 'DELETE' });
     fetchProfiles();
   };
 

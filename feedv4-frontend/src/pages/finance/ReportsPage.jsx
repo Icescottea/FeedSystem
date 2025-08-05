@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const ReportsPage = () => {
   const [report, setReport] = useState(null);
 
   useEffect(() => {
-    fetch('/api/finance/reports')
+    fetch(`${API_BASE}/api/reports`)
       .then(res => res.json())
       .then(setReport)
       .catch(err => console.error('Failed to fetch report:', err));

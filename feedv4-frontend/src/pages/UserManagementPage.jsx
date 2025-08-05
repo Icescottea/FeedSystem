@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import UserList from '../components/UserList';
 import UserForm from '../components/UserForm';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const UserManagementPage = () => {
   const [users, setUsers] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
 
   const fetchUsers = () => {
-    fetch('/api/users')
+    fetch(`${API_BASE}/api/users`)
       .then(res => res.json())
       .then(setUsers)
       .catch(console.error);
@@ -17,21 +19,23 @@ const UserManagementPage = () => {
 
   const handleSubmit = async (data) => {
     const method = data.id ? 'PUT' : 'POST';
-    const url = data.id ? `/api/users/${data.id}` : '/api/users/create';
-    
+    const url = data.id 
+      ? `${API_BASE}/api/users/${data.id}` 
+      : `${API_BASE}/api/users/create`;
+
     const payload = { ...data };
-    
+
     // 🔥 Skip blank password on update
     if (data.id && (!data.password || data.password.trim() === '')) {
       delete payload.password;
     }
-  
+
     const res = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-  
+
     if (res.ok) {
       fetchUsers();
       setEditingUser(null);
@@ -39,13 +43,13 @@ const UserManagementPage = () => {
   };
 
   const handleToggle = async (id) => {
-    await fetch(`/api/users/${id}/toggle-active`, { method: 'PUT' });
+    await fetch(`${API_BASE}/api/users/${id}/toggle-active`, { method: 'PUT' });
     fetchUsers();
   };
 
   const handleDelete = async (id) => {
     if (window.confirm('Permanently delete this user?')) {
-      await fetch(`/api/users/${id}`, { method: 'DELETE' });
+      await fetch(`${API_BASE}/api/users/${id}`, { method: 'DELETE' });
       fetchUsers();
     }
   };

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const PelletingBatchForm = () => {
   const [formulations, setFormulations] = useState([]);
   const [operators, setOperators] = useState([]);
@@ -21,7 +23,7 @@ const PelletingBatchForm = () => {
       alert("Fill all fields");
       return;
     }
-    const res = await fetch('/api/pelleting/create', {
+    const res = await fetch(`${API_BASE}/api/pelleting/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ formulationId, targetQuantityKg, machineUsed: machine, operatorId })
@@ -35,11 +37,11 @@ const PelletingBatchForm = () => {
   };
 
   useEffect(() => {
-    fetch('/api/formulations')
+    fetch(`${API_BASE}/api/formulations`)
       .then(res => res.json())
       .then(data => setFormulations(data.filter(f => f.finalized)));
 
-    fetch('/api/users/operators')
+    fetch(`${API_BASE}/api/users/operators`)
       .then(res => res.json())
       .then(data => Array.isArray(data) ? setOperators(data) : setOperators([]))
       .catch(() => setOperators([]));

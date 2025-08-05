@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const defaultProfile = {
   feedName: '', species: 'Poultry', stage: 'Starter',
   protein: 0, energy: 0, calcium: 0, phosphorus: 0,
@@ -49,7 +51,9 @@ const FeedProfileForm = ({ profile, onSuccess, onCancel }) => {
     };
 
     const method = profile ? 'PUT' : 'POST';
-    const url = profile ? `/api/feed-profiles/${profile.id}` : '/api/feed-profiles';
+    const url = profile
+      ? `${API_BASE}/api/feed-profiles/${profile.id}`
+      : `${API_BASE}/api/feed-profiles`;
 
     await fetch(url, {
       method,

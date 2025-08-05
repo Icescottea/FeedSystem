@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const serviceTypes = ['Formulation', 'Pelleting', 'Raw Material Supply', 'Consulting'];
 
 const InvoiceForm = () => {
@@ -32,7 +34,7 @@ const InvoiceForm = () => {
     e.preventDefault();
     console.log('Submitting invoice:', form);
 
-    fetch('/api/invoices', {
+    fetch(`${API_BASE}/api/invoices`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form)

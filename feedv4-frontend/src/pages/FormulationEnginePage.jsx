@@ -5,6 +5,8 @@ import ErrorAlert from '../components/ErrorAlert';
 import FormulationEditor from '../components/FormulationEditor';
 import { showToast } from '../components/toast';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const FormulationEnginePage = () => {
   const [generatedFormulation, setGeneratedFormulation] = useState(null);
   const [error, setError] = useState(null);
@@ -18,7 +20,7 @@ const FormulationEnginePage = () => {
       setFormName(data.name);
       setFactory(data.factory);
 
-      const response = await fetch('/api/formulations/generate', {
+      const response = await fetch(`${API_BASE}/api/formulations/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -44,7 +46,7 @@ const FormulationEnginePage = () => {
 
     setIsSaving(true);
     try {
-      const response = await fetch('/api/formulations', {
+      const response = await fetch(`${API_BASE}/api/formulations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

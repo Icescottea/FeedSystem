@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import PaymentForm from '../../components/Finance/PaymentForm';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const PaymentListPage = () => {
   const [payments, setPayments] = useState([]);
 
   const fetchPayments = () => {
-    fetch('/api/payments')
+    fetch(`${API_BASE}/api/payments`)
       .then(res => res.json())
       .then(data => setPayments(Array.isArray(data) ? data : []))
       .catch(() => setPayments([]));

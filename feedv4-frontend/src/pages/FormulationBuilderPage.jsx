@@ -3,6 +3,8 @@ import IngredientSelector from '../components/IngredientSelector';
 import NutrientGraph from '../components/NutrientGraph';
 import { useParams } from 'react-router-dom';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const FormulationBuilderPage = () => {
   const { formulationId } = useParams();
   const [formulation, setFormulation] = useState(null);
@@ -15,7 +17,7 @@ const FormulationBuilderPage = () => {
 
   useEffect(() => {
     // Load main formulation
-    fetch(`/api/formulations/${formulationId}`)
+    fetch(`${API_BASE}/api/formulations/${formulationId}`)
       .then(res => res.json())
       .then(data => {
         setFormulation(data);

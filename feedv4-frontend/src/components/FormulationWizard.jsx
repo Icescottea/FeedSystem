@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../components/toast';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const FormulationWizard = ({ onFinish }) => {
   const [formulation, setFormulation] = useState({
     name: '',
@@ -15,7 +17,7 @@ const FormulationWizard = ({ onFinish }) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
-    fetch('/api/feed-profiles')
+    fetch(`${API_BASE}/api/feed-profiles`)
       .then(res => res.json())
       .then(setProfiles)
       .catch(err => console.error("Failed to load feed profiles:", err));

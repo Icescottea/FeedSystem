@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const PelletingBatchList = () => {
   const [batches, setBatches] = useState([]);
 
   const fetchBatches = () => {
-    fetch('/api/pelleting')
+    fetch(`${API_BASE}/api/pelleting/batches`)
       .then(res => res.json())
       .then(data => setBatches(Array.isArray(data) ? data : []))
       .catch(() => setBatches([]));
@@ -16,7 +18,7 @@ const PelletingBatchList = () => {
 
     if (!machine || !operatorId) return alert("Required fields missing");
 
-    const res = await fetch(`/api/pelleting/create`, {
+    const res = await fetch(`${API_BASE}/api/pelleting/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -38,7 +40,7 @@ const PelletingBatchList = () => {
     
     if (!actualYieldKg || !wastage) return alert("Yield and wastage required");
     
-    const res = await fetch(`/api/pelleting/${id}/complete`, {
+    const res = await fetch(`${API_BASE}/api/pelleting/${id}/complete`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -53,7 +55,7 @@ const PelletingBatchList = () => {
   };
   
   const handleSendToFinance = async (id) => {
-    const res = await fetch(`/api/pelleting/${id}/send-to-finance`, {
+    const res = await fetch(`${API_BASE}/api/pelleting/${id}/send-to-finance`, {
       method: 'POST'
     });
     const msg = await res.text();

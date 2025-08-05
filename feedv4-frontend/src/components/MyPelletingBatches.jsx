@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import PelletingStatusUpdater from './PelletingStatusUpdater';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const MyPelletingBatches = () => {
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchBatches = () => {
-    fetch('/api/pelleting/my-batches')
+    fetch(`${API_BASE}/api/pelleting/my-batches`)
       .then(res => res.json())
       .then(data => {
         setBatches(Array.isArray(data) ? data : []);

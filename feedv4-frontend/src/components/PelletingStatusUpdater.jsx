@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const PelletingStatusUpdater = ({ batchId, onUpdated }) => {
   const [status, setStatus] = useState('');
   const [yieldKg, setYieldKg] = useState('');
@@ -12,7 +14,7 @@ const PelletingStatusUpdater = ({ batchId, onUpdated }) => {
       operatorComments: comments
     };
 
-    const res = await fetch(`/api/pelleting/${batchId}/update-status`, {
+    const res = await fetch(`${API_BASE}/api/pelleting/${batchId}/update-status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

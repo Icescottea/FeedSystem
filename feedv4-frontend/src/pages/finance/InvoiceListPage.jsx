@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const InvoiceListPage = () => {
   const [invoices, setInvoices] = useState([]);
 
@@ -10,7 +12,7 @@ const InvoiceListPage = () => {
 
   const fetchInvoices = async () => {
     try {
-      const response = await axios.get('/api/invoices');
+      const response = await axios.get(`${API_BASE}/api/invoices`);
       setInvoices(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Error fetching invoices:', error);

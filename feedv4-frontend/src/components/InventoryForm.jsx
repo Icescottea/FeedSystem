@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const InventoryForm = ({ item, onSuccess, onCancel }) => {
   const [form, setForm] = useState({
     id: undefined,
@@ -78,7 +80,9 @@ const InventoryForm = ({ item, onSuccess, onCancel }) => {
     };
 
     const method = item ? 'PUT' : 'POST';
-    const url = item ? `/api/inventory/${item.id}` : '/api/inventory';
+    const url = item
+      ? `${API_BASE}/api/inventory/${item.id}`
+      : `${API_BASE}/api/inventory`;
 
     await fetch(url, {
       method,

@@ -1,5 +1,7 @@
 import React from 'react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const InventoryList = ({ inventory, onEdit, onDelete, onArchive, onToggleLock, showArchived }) => {
   if (!inventory || inventory.length === 0) {
     return (

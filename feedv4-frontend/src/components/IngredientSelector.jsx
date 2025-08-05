@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const IngredientSelector = ({ batchSize, onUpdate }) => {
   const [ingredients, setIngredients] = useState([]);
   const [selected, setSelected] = useState([]);
 
   /* fetch once on mount */
   useEffect(() => {
-    fetch('/api/inventory')
+    fetch(`${API_BASE}/api/inventory`)
       .then((res) => res.json())
       .then(setIngredients)
       .catch(console.error);

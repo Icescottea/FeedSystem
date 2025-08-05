@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const PaymentForm = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     customerName: '',
@@ -13,7 +15,7 @@ const PaymentForm = ({ onSuccess }) => {
   const [customers, setCustomers] = useState([]);
 
   useEffect(() => {
-    fetch('/api/invoices/unpaid-customers')
+    fetch(`${API_BASE}/api/invoices/unpaid-customers`)
       .then(res => res.json())
       .then(setCustomers)
       .catch(err => console.error('Failed to fetch customers:', err));
@@ -30,7 +32,7 @@ const PaymentForm = ({ onSuccess }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    fetch('/api/payments', {
+    fetch(`${API_BASE}/api/payments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(formData)

@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 
+const API_BASE = process.env.REACT_APP_API_BASE_URL;
+
 const FormulationEditForm = ({ formulationId, onClose, onSaved }) => {
   const [formulation, setFormulation] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch(`/api/formulations/${formulationId}`)
+    fetch(`${API_BASE}/api/formulations/${formulationId}`)
       .then(res => res.json())
       .then(setFormulation)
       .catch(() => setError('Could not load formulation.'));
@@ -32,7 +34,7 @@ const FormulationEditForm = ({ formulationId, onClose, onSaved }) => {
         locked: formulation.locked
       };
 
-      const res = await fetch(`/api/formulations/${formulationId}/update`, {
+      const res = await fetch(`${API_BASE}/api/formulations/${formulationId}/update`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
