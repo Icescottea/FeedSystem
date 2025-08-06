@@ -76,4 +76,14 @@ public class PelletingBatchController {
         return ResponseEntity.ok("Batch " + id + " sent to finance module.");
     }
 
+    @GetMapping("/batches")
+    public ResponseEntity<List<PelletingBatch>> getAllBatches() {
+        return ResponseEntity.ok(service.getAll());
+    }
+    
+    @GetMapping("/my-batches")
+    public ResponseEntity<List<PelletingBatch>> getMyBatches(@RequestParam Long operatorId) {
+        return ResponseEntity.ok(service.getByOperator(operatorId));
+    }
+
 }

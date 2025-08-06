@@ -93,4 +93,9 @@ public class PelletingBatchService {
         return pelletingRepo.save(batch);
         
     }
+
+    public List<PelletingBatch> getByOperator(Long operatorId) {
+        return pelletingRepo.findByOperatorId(operatorId);
+    }
+
 }
