@@ -150,18 +150,18 @@ const FormulationLibraryPage = () => {
   const handleFinalize = async (id) => {
     try {
       const res = await fetch(`${API_BASE}/api/formulations/${id}/finalize`, {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' }
       });
-    
+
       if (!res.ok) throw new Error('Failed to finalize');
-    
+
       showToast('Finalized! Redirecting to Pelleting Queue...');
-    
+
       setTimeout(() => {
         navigate('/pelleting');
       }, 2000);
-    
+
     } catch (err) {
       showToast('Error finalizing formulation');
       console.error(err);
