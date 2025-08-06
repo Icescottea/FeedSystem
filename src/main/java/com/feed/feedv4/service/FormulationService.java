@@ -6,11 +6,13 @@ import com.feed.feedv4.model.FeedProfile;
 import com.feed.feedv4.model.Formulation;
 import com.feed.feedv4.model.FormulationIngredient;
 import com.feed.feedv4.model.FormulationLog;
+import com.feed.feedv4.model.PelletingBatch;
 import com.feed.feedv4.model.RawMaterial;
 import com.feed.feedv4.repository.FeedProfileRepository;
 import com.feed.feedv4.repository.FormulationLogRepository;
 import com.feed.feedv4.repository.FormulationRepository;
 import com.feed.feedv4.repository.RawMaterialRepository;
+import com.feed.feedv4.repository.PelletingBatchRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -43,16 +45,19 @@ public class FormulationService {
     private final RawMaterialRepository rawMaterialRepository;
     private final FormulationLogRepository logRepository;
     private final FeedProfileRepository feedProfileRepository;
+    private final PelletingBatchRepository pelletingBatchRepository;
 
     @Autowired
     public FormulationService(FormulationRepository repository, 
                             RawMaterialRepository rawMaterialRepository,
                             FeedProfileRepository feedProfileRepository,
-                            FormulationLogRepository logRepository) {
+                            FormulationLogRepository logRepository, 
+                            PelletingBatchRepository pelletingBatchRepository) {
         this.repository = repository;
         this.rawMaterialRepository = rawMaterialRepository;
         this.feedProfileRepository = feedProfileRepository;
         this.logRepository = logRepository;
+        this.pelletingBatchRepository = pelletingBatchRepository;
     }
 
     // ========================
@@ -598,6 +603,17 @@ public class FormulationService {
         repository.save(f);
         
         logAction(f, "FINALIZED", "Formulation marked as finalized");
+        
+        // 🚀 Auto-create PelletingBatch
+        PelletingBatch pelletingBatch = PelletingBatch.builder()
+            .formulation(f)
+            .targetQuantityKg(f.getBatchSize()) // Replace with actual field if different
+            .status("Not Started")
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
+            .build();
+        
+        pelletingBatchRepository.save(pelletingBatch);
     }
 
 }
