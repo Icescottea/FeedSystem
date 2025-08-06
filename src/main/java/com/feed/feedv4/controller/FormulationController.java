@@ -178,9 +178,9 @@ public class FormulationController {
     }
 
     @PutMapping("/{id}/finalize")
-    public ResponseEntity<?> finalize(@PathVariable Long id) {
+    public ResponseEntity<String> finalize(@PathVariable Long id) {
         service.finalize(id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok("Formulation finalized and sent to pelleting");
     }
 
 }

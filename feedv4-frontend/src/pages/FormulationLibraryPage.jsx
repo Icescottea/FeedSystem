@@ -148,13 +148,24 @@ const FormulationLibraryPage = () => {
   };
 
   const handleFinalize = async (id) => {
-    await fetch(`${API_BASE}/api/formulations/${id}/update`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ finalized: true, status: 'Finalized' })
-    });
-    showToast('Finalized!');
-    fetchFormulations();
+    try {
+      const res = await fetch(`${API_BASE}/api/formulations/${id}/finalize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+    
+      if (!res.ok) throw new Error('Failed to finalize');
+    
+      showToast('Finalized! Redirecting to Pelleting Queue...');
+    
+      setTimeout(() => {
+        navigate('/pelleting');
+      }, 2000);
+    
+    } catch (err) {
+      showToast('Error finalizing formulation');
+      console.error(err);
+    }
   };
 
   return (
@@ -266,7 +277,6 @@ const FormulationLibraryPage = () => {
                       )}
                       {f.finalized && (
                         <>
-                          <button className="text-teal-600 hover:underline px-1">Send to Pelleting</button>
                           <button className="text-pink-600 hover:underline px-1">Send to Invoice</button>
                         </>
                       )}
