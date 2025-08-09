@@ -111,16 +111,6 @@ const PelletingBatchList = () => {
                   <td className="px-3 py-2">{b.endTime?.substring(0,16) || '-'}</td>
                   <td className="px-3 py-2">{b.timeTakenMinutes || '-'}</td>
                   <td className="px-3 py-2 truncate max-w-[150px]">{b.operatorComments || '-'}</td>
-                  <td className="px-3 py-2">
-                    {b.status !== 'COMPLETED' && (
-                      <button
-                        onClick={() => handleComplete(b.id)}
-                        className="text-blue-600 hover:underline text-xs px-1"
-                      >
-                        Mark Complete
-                      </button>
-                    )}
-                  </td>
                   <td className="px-3 py-2 space-x-2">
                     {b.status === 'Not Started' && (
                       <button
@@ -139,12 +129,9 @@ const PelletingBatchList = () => {
                       </button>
                     )}
                     {b.status === 'Completed' && (
-                      <button
-                        onClick={() => handleSendToFinance(b.id)}
-                        className="text-purple-600 hover:underline text-xs"
-                      >
-                        Send to Finance
-                      </button>
+                      <span className="text-gray-500 text-xs select-none cursor-not-allowed">
+                        Ready for Invoicing
+                      </span>
                     )}
                   </td>
                 </tr>
