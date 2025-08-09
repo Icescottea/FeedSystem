@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const navigate = useNavigate();
-
 const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
 const PelletingBatchList = () => {
+  const navigate = useNavigate();
   const [batches, setBatches] = useState([]);
   const FINANCE_ROUTE = '/finance/invoices';
 
@@ -36,7 +35,7 @@ const PelletingBatchList = () => {
   const handleComplete = async (batchId) => {
     const operatorComments = prompt("Enter operator comments (required):");
     if (!operatorComments) return alert("Comments are required");
-    
+
     const res = await fetch(`${API_BASE}/api/pelleting/${batchId}/complete`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -46,10 +45,10 @@ const PelletingBatchList = () => {
       const msg = await res.text().catch(() => '');
       return alert(`Failed to complete batch. ${msg || ''}`);
     }
-  
+
     // Refresh to reflect status change
     fetchBatches();
-  
+
     // Redirect to Finance
     setTimeout(() => navigate(FINANCE_ROUTE), 500);
   };
