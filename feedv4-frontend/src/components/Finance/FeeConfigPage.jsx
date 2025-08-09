@@ -6,7 +6,6 @@ const FeeConfigPage = () => {
   const [configs, setConfigs] = useState([]);
   const [form, setForm] = useState({
     serviceType: '',
-    feeType: '',
     rate: 0,
     percentage: false,
   });
@@ -44,7 +43,7 @@ const FeeConfigPage = () => {
       if (res.ok) {
         alert('Configuration saved');
         await fetchConfigs();
-        setForm({ serviceType: '', feeType: '', rate: 0, percentage: false });
+        setForm({ serviceType: '', rate: 0, percentage: false });
       } else {
         alert('Failed to save configuration');
       }
@@ -83,19 +82,6 @@ const FeeConfigPage = () => {
               id="serviceType"
               name="serviceType"
               value={form.serviceType}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          {/* Fee Type */}
-          <div>
-            <label htmlFor="feeType" className="block text-sm font-medium text-gray-700 mb-1">
-              Fee Type
-            </label>
-            <input
-              id="feeType"
-              name="feeType"
-              value={form.feeType}
               onChange={handleChange}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
             />
@@ -149,7 +135,6 @@ const FeeConfigPage = () => {
             <thead className="bg-gray-100 text-gray-600">
               <tr>
                 <th className="px-3 py-2">Service</th>
-                <th className="px-3 py-2">Fee Type</th>
                 <th className="px-3 py-2">Rate</th>
                 <th className="px-3 py-2">Is %</th>
                 <th className="px-3 py-2">Actions</th>
@@ -159,7 +144,6 @@ const FeeConfigPage = () => {
               {configs.map(cfg => (
                 <tr key={cfg.id} className="hover:bg-gray-50 whitespace-nowrap">
                   <td className="px-3 py-2">{cfg.serviceType}</td>
-                  <td className="px-3 py-2">{cfg.feeType}</td>
                   <td className="px-3 py-2">{cfg.rate}</td>
                   <td className="px-3 py-2">{cfg.percentage ? 'Yes' : 'No'}</td>
                   <td className="px-3 py-2">

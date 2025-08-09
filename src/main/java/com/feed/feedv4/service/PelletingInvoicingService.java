@@ -10,7 +10,6 @@ import com.feed.feedv4.repository.PelletingBatchRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.List;
 
 @Service
 public class PelletingInvoicingService {
@@ -27,62 +26,68 @@ public class PelletingInvoicingService {
         this.invoiceService = invoiceService;
     }
 
+    private static final class Fee {
+        final double rate;      // numeric value
+        final boolean percent;  // true = % of product value; false = ₹/kg
+        Fee(double rate, boolean percent) { this.rate = rate; this.percent = percent; }
+    }
+
+    private Fee resolveFee(Long customerId, String serviceType) {
+        final String normalized = serviceType == null ? "" : serviceType.trim().toUpperCase();
+
+        ChargesConfig cfg = null;
+        if (customerId != null) {
+            cfg = chargesRepo
+                    .findTopByCustomerIdAndServiceTypeOrderByLastUpdatedDesc(customerId, normalized)
+                    .orElse(null);
+        }
+        if (cfg == null) {
+            cfg = chargesRepo
+                    .findTopByServiceTypeOrderByLastUpdatedDesc(normalized)
+                    .orElse(null);
+        }
+        if (cfg == null) return new Fee(0.0, false);
+        return new Fee(cfg.getRate(), cfg.isPercentage());
+    }
+
     public Invoice createInvoiceFromPelleting(Long batchId) {
         PelletingBatch b = pelletingRepo.findById(batchId)
                 .orElseThrow(() -> new RuntimeException("Pelleting batch not found"));
         Formulation f = b.getFormulation();
         if (f == null) throw new RuntimeException("Batch has no formulation");
 
-        // duration
+        // duration (minutes)
         Long durationMin = null;
         if (b.getStartTime() != null && b.getEndTime() != null) {
             durationMin = Duration.between(b.getStartTime(), b.getEndTime()).toMinutes();
         }
 
-        // resolve customer config
-        Long customerId = (b.getCustomerId() != null) ? b.getCustomerId() : f.getCustomerId();
-        ChargesConfig cfg = null;
-        if (customerId != null) {
-            List<ChargesConfig> list = chargesRepo.findByCustomerId(customerId);
-            if (!list.isEmpty()) cfg = list.get(0);
-        }
-        if (cfg == null) {
-            cfg = chargesRepo.findTopByOrderByLastUpdatedDesc(); // fallback so you can test now
-        }
-        if (cfg == null) throw new RuntimeException("No ChargesConfig available");
+        // try batch.customerId only (no dependency on formulation having customerId)
+        Long customerId = b.getCustomerId();
 
         // bases
         double qtyKg = (b.getActualYieldKg() > 0 ? b.getActualYieldKg() : b.getTargetQuantityKg());
-        double pricePerKg = (f.getCostPerKg() > 0 ? f.getCostPerKg() : 0.0); // per your instruction
+        double pricePerKg = (f.getCostPerKg() > 0 ? f.getCostPerKg() : 0.0);
         double productValue = qtyKg * pricePerKg;
 
-        // pelleting fee
-        double pelletingFeeAmt;
-        if ("percentage".equalsIgnoreCase(cfg.getPelletingFeeType())) {
-            pelletingFeeAmt = productValue * (cfg.getPelletingFee() / 100.0);
-        } else {
-            // treat "fixed" as ₹/kg
-            pelletingFeeAmt = qtyKg * cfg.getPelletingFee();
-        }
+        // fees using simplified config (serviceType/rate/percentage)
+        Fee pelleting = resolveFee(customerId, "PELLETING");
+        double pelletingAmt = pelleting.percent
+                ? productValue * (pelleting.rate / 100.0)
+                : qtyKg * pelleting.rate; // ₹/kg
 
-        // system fee
-        double systemFeeAmt = productValue * (cfg.getSystemFeePercent() / 100.0);
+        Fee system = resolveFee(customerId, "SYSTEM");
+        double systemAmt = productValue * (system.rate / 100.0); // treat as percent
 
-        // formulation fee
-        double formulationFeeAmt;
-        if ("per_kg".equalsIgnoreCase(cfg.getFormulationFeeType())) {
-            formulationFeeAmt = qtyKg * cfg.getFormulationFee();
-        } else {
-            // per_batch
-            formulationFeeAmt = cfg.getFormulationFee();
-        }
+        Fee formulation = resolveFee(customerId, "FORMULATION");
+        double formulationAmt = qtyKg * formulation.rate; // per-kg
 
-        double total = pelletingFeeAmt + systemFeeAmt + formulationFeeAmt;
+        double total = pelletingAmt + systemAmt + formulationAmt;
 
-        // build invoice via your existing DTO
+        // build invoice via existing service/DTO
         CreateInvoiceDTO dto = new CreateInvoiceDTO();
         dto.setCustomerId(customerId);
-        dto.setCustomerName(null); // set if you have it
+        dto.setCustomerName(null);
         dto.setBatchId(b.getId());
         dto.setServiceType("Pelleting+Formulation");
         dto.setQuantityKg(qtyKg);
@@ -91,12 +96,12 @@ public class PelletingInvoicingService {
         dto.setTaxRate(0.0);
         dto.setDiscount(0.0);
 
-        StringBuilder note = new StringBuilder();
-        note.append("Pelleting duration: ").append(durationMin == null ? "-" : durationMin + " min")
-            .append(" | PelletingFee=").append(pelletingFeeAmt)
-            .append(" | SystemFee=").append(systemFeeAmt)
-            .append(" | FormulationFee=").append(formulationFeeAmt);
-        dto.setNotes(note.toString());
+        StringBuilder notes = new StringBuilder();
+        notes.append("Pelleting duration: ").append(durationMin == null ? "-" : durationMin + " min")
+             .append(" | Pelleting=").append(pelletingAmt)
+             .append(" | System=").append(systemAmt)
+             .append(" | Formulation=").append(formulationAmt);
+        dto.setNotes(notes.toString());
 
         return invoiceService.createInvoice(dto);
     }
