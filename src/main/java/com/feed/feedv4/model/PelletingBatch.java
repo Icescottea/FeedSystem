@@ -23,6 +23,8 @@ public class PelletingBatch {
 
     private String machineUsed;
 
+    private Long customerId;
+
     @ManyToOne
     private User operator;
 
@@ -47,4 +49,12 @@ public class PelletingBatch {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    public Long getCustomerId() { 
+        return customerId; 
+    }
+    
+    public void setCustomerId(Long customerId) {
+        this.customerId = customerId; 
+    }
 }

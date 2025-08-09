@@ -1,7 +1,9 @@
 package com.feed.feedv4.controller;
 
 import com.feed.feedv4.model.PelletingBatch;
+import com.feed.feedv4.repository.PelletingBatchRepository;
 import com.feed.feedv4.service.PelletingBatchService;
+import com.feed.feedv4.service.PelletingInvoicingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +17,12 @@ public class PelletingBatchController {
 
     @Autowired
     private PelletingBatchService service;
+    
+    @Autowired
+    private PelletingBatchRepository pelletingRepo;
+
+    @Autowired
+    private PelletingInvoicingService pelletingInvoicingService;
 
     @GetMapping
     public List<PelletingBatch> getAll() {

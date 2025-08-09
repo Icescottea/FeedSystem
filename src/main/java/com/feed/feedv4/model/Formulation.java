@@ -26,6 +26,7 @@ public class Formulation {
     private double costPerKg;
     private boolean locked;
     private boolean finalized;
+    private Long customerId;
 
     @ElementCollection
     private List<String> tags;
@@ -55,4 +56,13 @@ public class Formulation {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    public Long getCustomerId() { 
+        return customerId; 
+    }
+
+    public void setCustomerId(Long customerId) { 
+        this.customerId = customerId; 
+    }
+
 }
