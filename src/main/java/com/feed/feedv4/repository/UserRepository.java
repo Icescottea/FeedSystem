@@ -12,6 +12,7 @@ import java.util.List;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
+    boolean existsByIdAndRole(Long id, Role role);
 
     @Query("SELECT u FROM User u WHERE :role MEMBER OF u.roles")
     List<User> findByRolesContains(@Param("role") Role roles);

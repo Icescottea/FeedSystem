@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const navigate = useNavigate();
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
 const PelletingBatchList = () => {
   const [batches, setBatches] = useState([]);
+  const FINANCE_ROUTE = '/finance/invoices';
 
   const fetchBatches = () => {
     fetch(`${API_BASE}/api/pelleting/batches`)
@@ -12,46 +16,42 @@ const PelletingBatchList = () => {
       .catch(() => setBatches([]));
   };
 
-  const handleStart = async (id) => {
-    const machine = prompt("Enter machine used:");
-    const operatorId = prompt("Enter operator ID:");
+  const handleStart = async (batchId) => {
+    const machineUsed = prompt("Enter machine used:");
+    const operatorId = prompt("Enter operator ID (must have OPERATOR role):");
+    if (!machineUsed || !operatorId) return alert("Machine and operator are required");
 
-    if (!machine || !operatorId) return alert("Required fields missing");
-
-    const res = await fetch(`${API_BASE}/api/pelleting/create`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        formulationId: id, // If it's the formulation ID (adjust if needed)
-        targetQuantityKg: 1000, // Or read from batch itself
-        machineUsed: machine,
-        operatorId: operatorId
-      })
-    });
-
-    res.ok ? fetchBatches() : alert("Failed to start batch");
-  };
-
-  const handleComplete = async (id) => {
-    const actualYieldKg = prompt("Enter actual yield (kg):");
-    const comments = prompt("Enter operator comments:");
-    const rawLeftovers = prompt("Enter leftover materials (comma-separated):");
-    const wastage = prompt("Enter total wastage (kg):");
-    
-    if (!actualYieldKg || !wastage) return alert("Yield and wastage required");
-    
-    const res = await fetch(`${API_BASE}/api/pelleting/${id}/complete`, {
+    const res = await fetch(`${API_BASE}/api/pelleting/${batchId}/start`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        actualYieldKg: parseFloat(actualYieldKg),
-        operatorComments: comments,
-        leftoverRawMaterials: rawLeftovers?.split(',').map(x => x.trim()),
-        totalWastageKg: parseFloat(wastage)
-      })
+      body: JSON.stringify({ machineUsed, operatorId: Number(operatorId) })
     });
+    if (!res.ok) {
+      const msg = await res.text().catch(() => '');
+      return alert(`Failed to start batch. ${msg || ''}`);
+    }
+    fetchBatches();
+  };
+
+  const handleComplete = async (batchId) => {
+    const operatorComments = prompt("Enter operator comments (required):");
+    if (!operatorComments) return alert("Comments are required");
+    
+    const res = await fetch(`${API_BASE}/api/pelleting/${batchId}/complete`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ operatorComments })
+    });
+    if (!res.ok) {
+      const msg = await res.text().catch(() => '');
+      return alert(`Failed to complete batch. ${msg || ''}`);
+    }
   
-    res.ok ? fetchBatches() : alert("Failed to mark as complete");
+    // Refresh to reflect status change
+    fetchBatches();
+  
+    // Redirect to Finance
+    setTimeout(() => navigate(FINANCE_ROUTE), 500);
   };
   
   const handleSendToFinance = async (id) => {
@@ -104,7 +104,7 @@ const PelletingBatchList = () => {
                   <td className="px-3 py-2">{b.id}</td>
                   <td className="px-3 py-2">{b.formulation?.name || '-'}</td>
                   <td className="px-3 py-2">{b.machine || '-'}</td>
-                  <td className="px-3 py-2">{b.operator?.name || '-'}</td>
+                  <td className="px-3 py-2">{b.operator?.fullName || b.operator?.name || '-'}</td>
                   <td className="px-3 py-2">{b.status}</td>
                   <td className="px-3 py-2">{b.targetQuantityKg}</td>
                   <td className="px-3 py-2">{b.actualYieldKg ?? '-'}</td>

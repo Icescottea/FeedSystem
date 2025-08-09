@@ -1,6 +1,7 @@
 package com.feed.feedv4.service;
 
 import com.feed.feedv4.model.PelletingBatch;
+import com.feed.feedv4.model.Role;
 import com.feed.feedv4.model.Formulation;
 import com.feed.feedv4.model.User;
 import com.feed.feedv4.repository.PelletingBatchRepository;
@@ -96,6 +97,58 @@ public class PelletingBatchService {
 
     public List<PelletingBatch> getByOperator(Long operatorId) {
         return pelletingRepo.findByOperatorId(operatorId);
+    }
+
+    public PelletingBatch startBatch(Long id, String machineUsed, Long operatorId) {
+        if (machineUsed == null || machineUsed.isBlank()) {
+            throw new IllegalArgumentException("Machine is required");
+        }
+        // Validate operator exists AND role=OPERATOR
+        if (!userRepo.existsByIdAndRole(operatorId, Role.OPERATOR)) {
+            throw new IllegalArgumentException("User is not an OPERATOR");
+        }
+        User operator = userRepo.findById(operatorId)
+            .orElseThrow(() -> new IllegalArgumentException("Operator not found"));
+
+        PelletingBatch batch = get(id);
+        if (!"Not Started".equals(batch.getStatus())) {
+            throw new IllegalStateException("Can only start a 'Not Started' batch");
+        }
+
+        batch.setMachineUsed(machineUsed);
+        batch.setOperator(operator);
+        batch.setStartTime(LocalDateTime.now());
+        batch.setStatus("In Progress");
+        batch.setUpdatedAt(LocalDateTime.now());
+        return pelletingRepo.save(batch);
+    }
+
+    public PelletingBatch completeBatch(Long id, String comments, Double actualYield, List<String> leftovers, Double wastage) {
+        if (comments == null || comments.isBlank()) {
+            throw new IllegalArgumentException("Comments are required");
+        }
+        PelletingBatch batch = get(id);
+        if (!"In Progress".equals(batch.getStatus())) {
+            throw new IllegalStateException("Can only complete an 'In Progress' batch");
+        }
+
+        LocalDateTime end = LocalDateTime.now();
+        batch.setEndTime(end);
+        batch.setOperatorComments(comments);
+        if (actualYield != null) batch.setActualYieldKg(actualYield);
+        if (leftovers != null) batch.setLeftoverRawMaterials(leftovers);
+        if (wastage != null) batch.setTotalWastageKg(wastage);
+
+        if (batch.getStartTime() != null) {
+            long minutes = java.time.Duration.between(batch.getStartTime(), end).toMinutes();
+            batch.setTimeTakenMinutes(minutes); // @Transient—returned in JSON
+        } else {
+            batch.setTimeTakenMinutes(0L);
+        }
+
+        batch.setStatus("Completed");
+        batch.setUpdatedAt(end);
+        return pelletingRepo.save(batch);
     }
 
 }

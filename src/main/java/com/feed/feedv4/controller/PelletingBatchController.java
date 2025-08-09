@@ -55,13 +55,30 @@ public class PelletingBatchController {
     }
 
     @PutMapping("/{id}/complete")
-    public ResponseEntity<PelletingBatch> logCompletion(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        double actualYield = Double.parseDouble(body.get("actualYieldKg").toString());
-        String comments = body.get("operatorComments").toString();
+    public ResponseEntity<PelletingBatch> complete(
+        @PathVariable Long id,
+        @RequestBody Map<String, Object> body
+    ) {
+        // Required
+        String comments = String.valueOf(body.getOrDefault("operatorComments", "")).trim();
+        if (comments.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+    
+        // Optional (backward compatible)
+        Double actualYield = null;
+        Double wastage = null;
+        @SuppressWarnings("unchecked")
         List<String> leftovers = (List<String>) body.get("leftoverRawMaterials");
-        double wastage = Double.parseDouble(body.get("totalWastageKg").toString());
-
-        return ResponseEntity.ok(service.logCompletion(id, actualYield, comments, leftovers, wastage));
+    
+        if (body.containsKey("actualYieldKg")) {
+            actualYield = Double.valueOf(String.valueOf(body.get("actualYieldKg")));
+        }
+        if (body.containsKey("totalWastageKg")) {
+            wastage = Double.valueOf(String.valueOf(body.get("totalWastageKg")));
+        }
+    
+        return ResponseEntity.ok(service.completeBatch(id, comments, actualYield, leftovers, wastage));
     }
 
     @PostMapping("/{id}/send-to-finance")
@@ -84,6 +101,16 @@ public class PelletingBatchController {
     @GetMapping("/my-batches")
     public ResponseEntity<List<PelletingBatch>> getMyBatches(@RequestParam Long operatorId) {
         return ResponseEntity.ok(service.getByOperator(operatorId));
+    }
+
+    @PutMapping("/{id}/start")
+    public ResponseEntity<PelletingBatch> start(
+        @PathVariable Long id,
+        @RequestBody Map<String, Object> body
+    ) {
+        String machineUsed = String.valueOf(body.get("machineUsed"));
+        Long operatorId = Long.valueOf(String.valueOf(body.get("operatorId")));
+        return ResponseEntity.ok(service.startBatch(id, machineUsed, operatorId));
     }
 
 }
