@@ -4,7 +4,6 @@ import com.feed.feedv4.dto.DashboardSummaryDTO;
 import com.feed.feedv4.model.Role;
 import com.feed.feedv4.service.DashboardService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;

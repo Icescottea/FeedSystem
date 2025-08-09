@@ -1,7 +1,6 @@
 package com.feed.feedv4.service;
 
 import com.feed.feedv4.model.PelletingBatch;
-import com.feed.feedv4.model.Role;
 import com.feed.feedv4.model.Formulation;
 import com.feed.feedv4.model.User;
 import com.feed.feedv4.repository.PelletingBatchRepository;
@@ -103,23 +102,33 @@ public class PelletingBatchService {
         if (machineUsed == null || machineUsed.isBlank()) {
             throw new IllegalArgumentException("Machine is required");
         }
-        // Validate operator exists AND role=OPERATOR
-        if (!userRepo.existsByIdAndRole(operatorId, Role.OPERATOR)) {
-            throw new IllegalArgumentException("User is not an OPERATOR");
-        }
+
+        // Fetch operator and validate existence
         User operator = userRepo.findById(operatorId)
             .orElseThrow(() -> new IllegalArgumentException("Operator not found"));
 
+        // Validate the user has OPERATOR role (works for enum or String roles)
+        boolean isOperator = operator.getRoles() != null &&
+                operator.getRoles().stream()
+                    .anyMatch(r -> "OPERATOR".equalsIgnoreCase(String.valueOf(r)));
+
+        if (!isOperator) {
+            throw new IllegalArgumentException("User is not an OPERATOR");
+        }
+
+        // Fetch batch and validate status
         PelletingBatch batch = get(id);
         if (!"Not Started".equals(batch.getStatus())) {
             throw new IllegalStateException("Can only start a 'Not Started' batch");
         }
 
+        // Start batch
         batch.setMachineUsed(machineUsed);
         batch.setOperator(operator);
         batch.setStartTime(LocalDateTime.now());
         batch.setStatus("In Progress");
         batch.setUpdatedAt(LocalDateTime.now());
+
         return pelletingRepo.save(batch);
     }
 

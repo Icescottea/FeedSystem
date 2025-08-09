@@ -1,6 +1,5 @@
 package com.feed.feedv4.controller;
 
-import com.feed.feedv4.model.Role;
 import com.feed.feedv4.model.User;
 import com.feed.feedv4.repository.UserRepository;
 import org.springframework.web.bind.annotation.*;
