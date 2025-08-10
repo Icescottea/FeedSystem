@@ -17,6 +17,8 @@ import PaymentListPage from './pages/finance/PaymentListPage';
 import ReportsPage from './pages/finance/ReportsPage';
 import InvoiceForm from './pages/finance/InvoiceForm';
 import RequireAuth from './RequireAuth';
+import FeeConfigList from './components/Finance/FeeConfigList';
+import FeeConfigForm from './components/Finance/FeeConfigForm';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
