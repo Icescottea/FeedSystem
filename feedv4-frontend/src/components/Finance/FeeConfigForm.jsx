@@ -131,7 +131,7 @@ export default function FeeConfigForm() {
       setOk("Saved.");
       if (!isEdit) {
         const saved = await res.json();
-        navigate(`/finance/fee-configs/${saved.id}/edit`, { replace: true });
+        navigate(`/finance/config/${saved.id}/edit`, { replace: true });
       } else {
         // stay on page; you can also navigate back to list if you prefer
       }
