@@ -21,7 +21,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
-  const [user, setUser] = useState(undefined);
+  const [user, setUser] = useState(undefined); 
 
   const FormulationBuilderWrapper = () => {
     const { formulationId } = useParams();
@@ -36,40 +36,31 @@ const App = () => {
   if (user === undefined) return <div className="p-4 text-gray-500">Loading...</div>;
   if (!user) return <Login setUser={setUser} />;
 
+  <ToastContainer />
+
   return (
-    <>
-      <ToastContainer />
-      <Routes>
-        <Route element={<RequireAuth />}>
-          <Route path="/" element={<MainLayout user={user} />}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
-
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/inventory" element={<InventoryPage />} />
-            <Route path="/feed-profiles" element={<FeedProfilePage />} />
-            <Route path="/formulations" element={<FormulationEnginePage />} />
-            <Route path="/formulation-library" element={<FormulationLibraryPage />} />
-            {/* Keep ONLY the param-based builder route */}
-            <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
-
-            <Route path="/pelleting" element={<PelletingQueuePage />} />
-
-            <Route path="/finance" element={<FinanceDashboard />} />
-            {/* Fee Configs are handled by their own internal router */}
-            <Route path="/finance/fee-configs/*" element={<FeeConfigPage />} />
-            <Route path="/finance/invoices" element={<InvoiceListPage />} />
-            <Route path="/finance/invoices/new" element={<InvoiceForm />} />
-            <Route path="/finance/payments" element={<PaymentListPage />} />
-            <Route path="/finance/reports" element={<ReportsPage />} />
-
-            <Route path="/users" element={<UserManagementPage />} />
-
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Route>
+    <Routes>
+      <Route element={<RequireAuth />}>
+        <Route path="/" element={<MainLayout user={user} />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/feed-profiles" element={<FeedProfilePage />} />
+          <Route path="/formulations" element={<FormulationEnginePage />} />
+          <Route path="/formulation-library" element={<FormulationLibraryPage />} />
+          <Route path="/formulation-builder" element={<FormulationBuilderPage />} />
+          <Route path="/pelleting" element={<PelletingQueuePage />} />
+          <Route path="/finance" element={<FinanceDashboard />} />
+          <Route path="/finance/config" element={<FeeConfigPage />} />
+          <Route path="/finance/invoices" element={<InvoiceListPage />} />
+          <Route path="/finance/invoices/new" element={<InvoiceForm />} />
+          <Route path="/finance/payments" element={<PaymentListPage />} />
+          <Route path="/finance/reports" element={<ReportsPage />} />
+          <Route path="/users" element={<UserManagementPage />} />
+          <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
         </Route>
-      </Routes>
-    </>
+      </Route>
+    </Routes>
   );
 };
 
