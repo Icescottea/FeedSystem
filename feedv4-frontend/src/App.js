@@ -10,7 +10,7 @@ import FormulationLibraryPage from './pages/FormulationLibraryPage';
 import FormulationBuilderPage from './pages/FormulationBuilderPage';
 import PelletingQueuePage from './pages/PelletingQueuePage';
 import FinanceDashboard from './components/Finance/FinanceDashboard';
-import FeeConfigPage from './components/Finance/FeeConfigPage';
+import FeeConfigPage from './pages/finance/FeeConfigPage';
 import InvoiceListPage from './pages/finance/InvoiceListPage';
 import UserManagementPage from './pages/UserManagementPage';
 import PaymentListPage from './pages/finance/PaymentListPage';
