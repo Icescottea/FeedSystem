@@ -105,7 +105,7 @@ export default function FeeConfigList() {
         <h1 className="text-xl font-semibold">Fee Configurations</h1>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate("/finance/fee-configs/new")}
+            onClick={() => navigate("/finance/config/new")}
             className="px-3 py-1 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700"
           >
             New Fee Config
@@ -176,7 +176,7 @@ export default function FeeConfigList() {
                 <td className="px-3 py-2">{r.archived ? "Yes" : "No"}</td>
                 <td className="px-3 py-2">{r.updatedAt ? new Date(r.updatedAt).toLocaleString() : "—"}</td>
                 <td className="px-3 py-2 whitespace-nowrap text-xs">
-                  <button onClick={() => navigate(`/finance/fee-configs/${r.id}/edit`)} className="text-indigo-600 hover:underline mr-2">Edit</button>
+                  <button onClick={() => navigate(`/finance/config/${r.id}/edit`)} className="text-indigo-600 hover:underline mr-2">Edit</button>
                   <button onClick={() => duplicate(r.id)} className="text-pink-600 hover:underline mr-2">Duplicate</button>
                   <button onClick={() => toggleActive(r.id, r.active)} className="text-blue-600 hover:underline mr-2">
                     {r.active ? "Deactivate" : "Activate"}

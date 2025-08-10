@@ -149,7 +149,7 @@ export default function FeeConfigForm() {
       <div className="mb-3 flex items-center justify-between">
         <h1 className="text-xl font-semibold">{isEdit ? "Edit Fee Configuration" : "New Fee Configuration"}</h1>
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate("/finance/fee-configs")} className="px-3 py-1 rounded border text-sm">
+          <button onClick={() => navigate("/finance/config")} className="px-3 py-1 rounded border text-sm">
             Back to List
           </button>
           <button
