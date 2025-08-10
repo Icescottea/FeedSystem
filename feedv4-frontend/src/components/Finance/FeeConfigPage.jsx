@@ -12,7 +12,7 @@ const FeeConfigPage = () => {
 
   const fetchConfigs = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/charges-config`);
+      const res = await fetch(`${API_BASE}/api/fees`);
       const data = await res.json();
       setConfigs(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -35,7 +35,7 @@ const FeeConfigPage = () => {
 
   const handleSubmit = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/charges-config`, {
+      const res = await fetch(`${API_BASE}/api/fees`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -56,7 +56,7 @@ const FeeConfigPage = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this config?')) return;
     try {
-      await fetch(`${API_BASE}/api/charges-config/${id}`, { method: 'DELETE' });
+      await fetch(`${API_BASE}/api/fees/${id}`, { method: 'DELETE' });
       await fetchConfigs();
     } catch (err) {
       console.error("Failed to delete config:", err);
