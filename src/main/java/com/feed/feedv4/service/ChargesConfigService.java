@@ -42,10 +42,8 @@ public class ChargesConfigService {
 
     /** Latest active, non-archived config (useful if you still want an 'effective' default). */
     public Optional<ChargesConfig> getEffective() {
-        // If you added repo.findTopByActiveTrueOrderByLastUpdatedDesc() you can call it here.
-        return repo.findAll().stream()
-                .filter(c -> Boolean.TRUE.equals(c.getActive()) && Boolean.FALSE.equals(c.getArchived()))
-                .max(Comparator.comparing(ChargesConfig::getUpdatedAt, Comparator.nullsFirst(Comparator.naturalOrder())));
+        return repo.findTopByActiveTrueAndArchivedFalseOrderByUpdatedAtDesc()
+                .or(() -> repo.findTopByActiveTrueAndArchivedFalseOrderByCreatedAtDesc());
     }
 
     // ---------- Mutations ----------

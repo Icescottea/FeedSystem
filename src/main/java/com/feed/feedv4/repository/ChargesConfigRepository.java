@@ -7,7 +7,9 @@ import java.util.Optional;
 
 public interface ChargesConfigRepository extends JpaRepository<ChargesConfig, Long> {
 
-    // Find the latest active config
-    Optional<ChargesConfig> findTopByActiveTrueOrderByLastUpdatedDesc();
+    // Latest active, non-archived by UPDATED time
+    Optional<ChargesConfig> findTopByActiveTrueAndArchivedFalseOrderByUpdatedAtDesc();
 
+    // Fallback if updatedAt is null on older rows → order by CREATED time
+    Optional<ChargesConfig> findTopByActiveTrueAndArchivedFalseOrderByCreatedAtDesc();
 }
