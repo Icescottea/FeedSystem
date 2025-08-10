@@ -1,167 +1,370 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
-const FeeConfigPage = () => {
-  const [configs, setConfigs] = useState([]);
-  const [form, setForm] = useState({
-    serviceType: '',
-    rate: 0,
-    percentage: false,
+// Enum options
+const BASIS = [
+  { label: "Per Kg", value: "PER_KG" },
+  { label: "Per Batch (fixed)", value: "PER_BATCH" },
+];
+
+const numberOrZero = (v) => (v === null || v === undefined || v === "" ? 0 : Number(v));
+
+export default function FeeConfigPage() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [ok, setOk] = useState("");
+
+  // The config being edited
+  const [cfg, setCfg] = useState({
+    id: null,
+    pelletingFeeType: "PER_KG",
+    pelletingFee: 0,
+    formulationFeeType: "PER_KG",
+    formulationFee: 0,
+    systemFeePercent: 0,
+    active: true,
+    lastUpdated: null,
   });
 
-  const fetchConfigs = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/fees`);
-      const data = await res.json();
-      setConfigs(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Failed to fetch configs:", err);
-      setConfigs([]);
-    }
-  };
+  // Preview calculator inputs
+  const [preview, setPreview] = useState({
+    quantityKg: 1000,
+    unitPricePerKg: 20,
+  });
 
+  // Derived preview math
+  const breakdown = useMemo(() => {
+    const qty = numberOrZero(preview.quantityKg);
+    const price = numberOrZero(preview.unitPricePerKg);
+
+    const pelleting =
+      cfg.pelletingFeeType === "PER_KG"
+        ? qty * numberOrZero(cfg.pelletingFee)
+        : numberOrZero(cfg.pelletingFee);
+
+    const systemBase = qty * price;
+    const system = (numberOrZero(cfg.systemFeePercent) / 100.0) * systemBase;
+
+    const formulation =
+      cfg.formulationFeeType === "PER_KG"
+        ? qty * numberOrZero(cfg.formulationFee)
+        : numberOrZero(cfg.formulationFee);
+
+    const total = pelleting + system + formulation;
+
+    return { pelleting, system, formulation, total };
+  }, [cfg, preview]);
+
+  // Load effective config
   useEffect(() => {
-    fetchConfigs();
+    let canceled = false;
+    (async () => {
+      setLoading(true);
+      setError("");
+      setOk("");
+      try {
+        // Try effective first
+        let res = await fetch(`${API_BASE}/api/charges-config/effective`);
+        if (res.status === 404) {
+          // No config yet — try list, or fall back to defaults
+          const listRes = await fetch(`${API_BASE}/api/charges-config`);
+          if (listRes.ok) {
+            const list = await listRes.json();
+            if (Array.isArray(list) && list.length) {
+              const latest = list.sort(
+                (a, b) =>
+                  new Date(b.lastUpdated || 0) - new Date(a.lastUpdated || 0)
+              )[0];
+              if (!canceled) setCfg(latest);
+            } else {
+              if (!canceled)
+                setCfg((s) => ({ ...s, id: null })); // brand new
+            }
+          } else {
+            if (!canceled)
+              setCfg((s) => ({ ...s, id: null })); // brand new
+          }
+        } else if (res.ok) {
+          const effective = await res.json();
+          if (!canceled) setCfg(effective);
+        } else {
+          throw new Error(`Failed to load config (${res.status})`);
+        }
+      } catch (e) {
+        if (!canceled) setError("Failed to load fee configuration");
+        // still show defaults so user can create one
+      } finally {
+        if (!canceled) setLoading(false);
+      }
+    })();
+    return () => {
+      canceled = true;
+    };
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+  const handleChange = (key, val) => {
+    setCfg((s) => ({ ...s, [key]: val }));
   };
 
-  const handleSubmit = async () => {
+  const handlePreviewChange = (key, val) => {
+    setPreview((s) => ({ ...s, [key]: val }));
+  };
+
+  const validate = () => {
+    const errs = [];
+    if (cfg.systemFeePercent < 0 || cfg.systemFeePercent > 100)
+      errs.push("System fee percent must be between 0 and 100.");
+    if (cfg.pelletingFee < 0) errs.push("Pelleting fee cannot be negative.");
+    if (cfg.formulationFee < 0) errs.push("Formulation fee cannot be negative.");
+    if (!cfg.pelletingFeeType) errs.push("Select pelleting fee basis.");
+    if (!cfg.formulationFeeType) errs.push("Select formulation fee basis.");
+    return errs;
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setError("");
+    setOk("");
     try {
-      const res = await fetch(`${API_BASE}/api/fees`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      if (res.ok) {
-        alert('Configuration saved');
-        await fetchConfigs();
-        setForm({ serviceType: '', rate: 0, percentage: false });
-      } else {
-        alert('Failed to save configuration');
+      const errs = validate();
+      if (errs.length) {
+        setError(errs.join(" "));
+        return;
       }
-    } catch (err) {
-      console.error("Failed to save config:", err);
-      alert('Failed to save configuration');
+      const method = cfg.id ? "PUT" : "POST";
+      const url = cfg.id
+        ? `${API_BASE}/api/charges-config/${cfg.id}`
+        : `${API_BASE}/api/charges-config`;
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pelletingFeeType: cfg.pelletingFeeType,
+          pelletingFee: numberOrZero(cfg.pelletingFee),
+          formulationFeeType: cfg.formulationFeeType,
+          formulationFee: numberOrZero(cfg.formulationFee),
+          systemFeePercent: numberOrZero(cfg.systemFeePercent),
+          active: !!cfg.active,
+        }),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || "Save failed");
+      }
+
+      const saved = await res.json();
+      setCfg(saved);
+      setOk("Saved.");
+    } catch (e) {
+      setError(e.message || "Save failed");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this config?')) return;
+  const toggleActive = async () => {
+    if (!cfg.id) return;
+    setSaving(true);
+    setError("");
+    setOk("");
     try {
-      await fetch(`${API_BASE}/api/fees/${id}`, { method: 'DELETE' });
-      await fetchConfigs();
-    } catch (err) {
-      console.error("Failed to delete config:", err);
-      alert('Failed to delete configuration');
+      const res = await fetch(
+        `${API_BASE}/api/charges-config/${cfg.id}/active?active=${!cfg.active}`,
+        { method: "PATCH" }
+      );
+      if (!res.ok) throw new Error("Failed to toggle active");
+      const updated = await res.json();
+      setCfg(updated);
+      setOk(updated.active ? "Activated." : "Deactivated.");
+    } catch (e) {
+      setError(e.message || "Toggle failed");
+    } finally {
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="p-4 text-sm text-gray-600">Loading fee configuration…</div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 text-gray-800 space-y-8">
-      {/* Page Title */}
-      <h2 className="text-2xl font-semibold">⚙️ Fee Configuration</h2>
+    <div className="p-4 max-w-3xl">
+      <h1 className="text-xl font-semibold mb-3">Fee Configuration (Global)</h1>
 
-      {/* Form Card */}
-      <div className="bg-white border rounded-md shadow p-6">
-        <h3 className="text-lg font-medium mb-4">Add / Edit Configuration</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Service Type */}
-          <div>
-            <label htmlFor="serviceType" className="block text-sm font-medium text-gray-700 mb-1">
-              Service Type
-            </label>
-            <input
-              id="serviceType"
-              name="serviceType"
-              value={form.serviceType}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          {/* Rate */}
-          <div>
-            <label htmlFor="rate" className="block text-sm font-medium text-gray-700 mb-1">
-              Rate
-            </label>
-            <input
-              id="rate"
-              name="rate"
-              type="number"
-              value={form.rate}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          {/* Percentage */}
-          <div className="flex items-center mt-6 sm:mt-0">
-            <input
-              id="percentage"
-              name="percentage"
-              type="checkbox"
-              checked={form.percentage}
-              onChange={handleChange}
-              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            />
-            <label htmlFor="percentage" className="ml-2 text-sm text-gray-700">
-              Percentage Based
-            </label>
-          </div>
+      {error && (
+        <div className="mb-3 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm p-2">
+          {error}
         </div>
-        <div className="mt-6 text-right">
-          <button
-            onClick={handleSubmit}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-5 py-2 rounded-md shadow-sm"
-          >
-            Save Config
-          </button>
+      )}
+      {ok && (
+        <div className="mb-3 rounded-md bg-green-50 border border-green-200 text-green-700 text-sm p-2">
+          {ok}
         </div>
-      </div>
+      )}
 
-      {/* Existing Configs Table */}
-      <div className="bg-white border rounded-md shadow p-6 overflow-x-auto">
-        <h3 className="text-lg font-medium mb-4">Existing Configurations</h3>
-        {configs.length === 0 ? (
-          <p className="text-sm text-gray-600">No configurations found.</p>
-        ) : (
-          <table className="min-w-[700px] table-auto text-sm text-left w-full">
-            <thead className="bg-gray-100 text-gray-600">
-              <tr>
-                <th className="px-3 py-2">Service</th>
-                <th className="px-3 py-2">Rate</th>
-                <th className="px-3 py-2">Is %</th>
-                <th className="px-3 py-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {configs.map(cfg => (
-                <tr key={cfg.id} className="hover:bg-gray-50 whitespace-nowrap">
-                  <td className="px-3 py-2">{cfg.serviceType}</td>
-                  <td className="px-3 py-2">{cfg.rate}</td>
-                  <td className="px-3 py-2">{cfg.percentage ? 'Yes' : 'No'}</td>
-                  <td className="px-3 py-2">
-                    <button
-                      onClick={() => handleDelete(cfg.id)}
-                      className="text-red-600 hover:underline text-sm px-1"
-                    >
-                      🗑️ Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      <div className="grid gap-4">
+        <section className="border rounded-lg p-4">
+          <h2 className="font-medium mb-2">Pelleting Fee</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Basis</label>
+              <select
+                value={cfg.pelletingFeeType}
+                onChange={(e) => handleChange("pelletingFeeType", e.target.value)}
+                className="w-full border rounded px-2 py-1 text-sm"
+              >
+                {BASIS.map((b) => (
+                  <option key={b.value} value={b.value}>
+                    {b.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs text-gray-600 mb-1">Value</label>
+              <input
+                type="number"
+                step="0.01"
+                value={cfg.pelletingFee}
+                onChange={(e) =>
+                  handleChange("pelletingFee", e.target.valueAsNumber)
+                }
+                className="w-full border rounded px-2 py-1 text-sm"
+                placeholder={cfg.pelletingFeeType === "PER_KG" ? "₹ per kg" : "₹ per batch"}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="border rounded-lg p-4">
+          <h2 className="font-medium mb-2">System Fee</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-1">
+              <label className="block text-xs text-gray-600 mb-1">Basis</label>
+              <input
+                disabled
+                className="w-full border rounded px-2 py-1 text-sm bg-gray-50"
+                value="% of product value"
+                readOnly
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs text-gray-600 mb-1">Percent (%)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={cfg.systemFeePercent}
+                onChange={(e) =>
+                  handleChange("systemFeePercent", e.target.valueAsNumber)
+                }
+                className="w-full border rounded px-2 py-1 text-sm"
+                placeholder="0 - 100"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="border rounded-lg p-4">
+          <h2 className="font-medium mb-2">Formulation Fee</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Basis</label>
+              <select
+                value={cfg.formulationFeeType}
+                onChange={(e) =>
+                  handleChange("formulationFeeType", e.target.value)
+                }
+                className="w-full border rounded px-2 py-1 text-sm"
+              >
+                {BASIS.map((b) => (
+                  <option key={b.value} value={b.value}>
+                    {b.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs text-gray-600 mb-1">Value</label>
+              <input
+                type="number"
+                step="0.01"
+                value={cfg.formulationFee}
+                onChange={(e) =>
+                  handleChange("formulationFee", e.target.valueAsNumber)
+                }
+                className="w-full border rounded px-2 py-1 text-sm"
+                placeholder={cfg.formulationFeeType === "PER_KG" ? "₹ per kg" : "₹ per batch"}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="border rounded-lg p-4">
+          <h2 className="font-medium mb-2">Preview Calculator</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Quantity (kg)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={preview.quantityKg}
+                onChange={(e) =>
+                  handlePreviewChange("quantityKg", e.target.valueAsNumber)
+                }
+                className="w-full border rounded px-2 py-1 text-sm"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs text-gray-600 mb-1">Unit Price (₹/kg)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={preview.unitPricePerKg}
+                onChange={(e) =>
+                  handlePreviewChange("unitPricePerKg", e.target.valueAsNumber)
+                }
+                className="w-full border rounded px-2 py-1 text-sm"
+              />
+            </div>
+          </div>
+
+          <div className="text-sm grid gap-1">
+            <div>Pelleting Fee: ₹ {breakdown.pelleting.toFixed(2)}</div>
+            <div>System Fee: ₹ {breakdown.system.toFixed(2)}</div>
+            <div>Formulation Fee: ₹ {breakdown.formulation.toFixed(2)}</div>
+            <div className="font-semibold">Total: ₹ {breakdown.total.toFixed(2)}</div>
+          </div>
+        </section>
+
+        <section className="border rounded-lg p-4 flex items-center justify-between">
+          <div className="text-xs text-gray-600">
+            Last updated: {cfg.lastUpdated ? new Date(cfg.lastUpdated).toLocaleString() : "—"}
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={!!cfg.active}
+                onChange={toggleActive}
+              />
+              Active
+            </label>
+            <button
+              disabled={saving}
+              onClick={save}
+              className="px-3 py-1 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-60"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </section>
       </div>
     </div>
   );
-};
-
-export default FeeConfigPage;
+}

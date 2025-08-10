@@ -8,15 +8,12 @@ import com.feed.feedv4.repository.FormulationRepository;
 import com.feed.feedv4.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.feed.feedv4.service.PelletingInvoicingService;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 public class PelletingBatchService {
-
-    private final PelletingInvoicingService pelletingInvoicingService;
 
     @Autowired
     private PelletingBatchRepository pelletingRepo;
@@ -41,12 +38,10 @@ public class PelletingBatchService {
 
     public PelletingBatchService(PelletingBatchRepository pelletingRepo,
                                  FormulationRepository formulationRepo,
-                                 UserRepository userRepo,
-                                 PelletingInvoicingService pelletingInvoicingService) {
+                                 UserRepository userRepo) {
         this.pelletingRepo = pelletingRepo;
         this.formulationRepo = formulationRepo;
         this.userRepo = userRepo;
-        this.pelletingInvoicingService = pelletingInvoicingService;
     }
 
     /* ---------- create / read ---------- */

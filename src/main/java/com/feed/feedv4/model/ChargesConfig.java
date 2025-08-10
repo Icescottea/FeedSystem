@@ -4,72 +4,69 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "charges_config")
 public class ChargesConfig {
+
+    public enum FeeBasis {
+        PER_KG, PER_BATCH
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long customerId;
-
-    @Column(name = "formulation_fee_type")  // "per_batch" or "per_kg"
-    private String formulationFeeType;
-
-    @Column(name = "formulation_fee", nullable = false)
-    private Double formulationFee = 0.0;
-
-    @Column(name = "pelleting_fee_type")    // "fixed", "per_kg", or "percentage"
-    private String pelletingFeeType;
+    // ---- Fees ----
+    @Enumerated(EnumType.STRING)
+    @Column(name = "pelleting_fee_type", nullable = false, length = 20)
+    private FeeBasis pelletingFeeType = FeeBasis.PER_KG;
 
     @Column(name = "pelleting_fee", nullable = false)
-    private Double pelletingFee = 0.0;
+    private Double pelletingFee = 0.0;            // ₹/kg or ₹ per batch
 
-    @Column(name = "rm_markup_percent", nullable = false)
-    private Double rmMarkupPercent = 0.0;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "formulation_fee_type", nullable = false, length = 20)
+    private FeeBasis formulationFeeType = FeeBasis.PER_KG;
+
+    @Column(name = "formulation_fee", nullable = false)
+    private Double formulationFee = 0.0;          // ₹/kg or ₹ per batch
 
     @Column(name = "system_fee_percent", nullable = false)
-    private Double systemFeePercent = 0.0;
+    private Double systemFeePercent = 0.0;        // 0..100
 
+    // ---- Meta ----
+    @Column(name = "active", nullable = false)
     private Boolean active = true;
 
+    @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
-
-    @Column(name = "service_type")
-    private String serviceType;
-
-    @Column(name = "percentage")
-    private Double percentage = 0.0;
-
-    @Column(name = "rate")
-    private Double rate = 0.0;
 
     @PrePersist
     @PreUpdate
-    public void updateTimestamp() {
-        lastUpdated = LocalDateTime.now();
+    public void touchTimestamp() {
+        this.lastUpdated = LocalDateTime.now();
+        if (pelletingFee == null) pelletingFee = 0.0;
+        if (formulationFee == null) formulationFee = 0.0;
+        if (systemFeePercent == null) systemFeePercent = 0.0;
+        if (pelletingFeeType == null) pelletingFeeType = FeeBasis.PER_KG;
+        if (formulationFeeType == null) formulationFeeType = FeeBasis.PER_KG;
+        if (active == null) active = true;
     }
 
-    // Getters & Setters
+    // ---- Getters / Setters ----
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
-    public Long getCustomerId() { return customerId; }
-    public void setCustomerId(Long customerId) { this.customerId = customerId; }
-
-    public String getFormulationFeeType() { return formulationFeeType; }
-    public void setFormulationFeeType(String formulationFeeType) { this.formulationFeeType = formulationFeeType; }
-
-    public Double getFormulationFee() { return formulationFee; }
-    public void setFormulationFee(Double formulationFee) { this.formulationFee = formulationFee; }
-
-    public String getPelletingFeeType() { return pelletingFeeType; }
-    public void setPelletingFeeType(String pelletingFeeType) { this.pelletingFeeType = pelletingFeeType; }
+    public FeeBasis getPelletingFeeType() { return pelletingFeeType; }
+    public void setPelletingFeeType(FeeBasis pelletingFeeType) { this.pelletingFeeType = pelletingFeeType; }
 
     public Double getPelletingFee() { return pelletingFee; }
     public void setPelletingFee(Double pelletingFee) { this.pelletingFee = pelletingFee; }
 
-    public Double getRmMarkupPercent() { return rmMarkupPercent; }
-    public void setRmMarkupPercent(Double rmMarkupPercent) { this.rmMarkupPercent = rmMarkupPercent; }
+    public FeeBasis getFormulationFeeType() { return formulationFeeType; }
+    public void setFormulationFeeType(FeeBasis formulationFeeType) { this.formulationFeeType = formulationFeeType; }
+
+    public Double getFormulationFee() { return formulationFee; }
+    public void setFormulationFee(Double formulationFee) { this.formulationFee = formulationFee; }
 
     public Double getSystemFeePercent() { return systemFeePercent; }
     public void setSystemFeePercent(Double systemFeePercent) { this.systemFeePercent = systemFeePercent; }
@@ -79,13 +76,4 @@ public class ChargesConfig {
 
     public LocalDateTime getLastUpdated() { return lastUpdated; }
     public void setLastUpdated(LocalDateTime lastUpdated) { this.lastUpdated = lastUpdated; }
-
-    public String getServiceType() { return serviceType; }
-    public void setServiceType(String serviceType) { this.serviceType = serviceType; }
-
-    public Double getPercentage() { return percentage; }
-    public void setPercentage(Double percentage) { this.percentage = percentage; }
-
-    public Double getRate() { return rate; }
-    public void setRate(Double rate) { this.rate = rate; }
 }

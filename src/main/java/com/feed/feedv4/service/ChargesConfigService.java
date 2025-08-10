@@ -16,77 +16,68 @@ public class ChargesConfigService {
         this.repo = repo;
     }
 
-    // ===== CRUD used by your controller =====
+    // -------- Read --------
 
-    public List<ChargesConfig> getAll() {
+    public List<ChargesConfig> listAll() {
         return repo.findAll();
     }
 
-    public ChargesConfig getConfigById(Long id) {
-        return repo.findById(id).orElseThrow(() -> new RuntimeException("Config not found"));
+    public ChargesConfig getById(Long id) {
+        return repo.findById(id).orElseThrow(() -> new IllegalArgumentException("ChargesConfig not found: " + id));
     }
 
-    public ChargesConfig createOrUpdate(ChargesConfig config) {
-        // Normalize serviceType
-        if (config.getServiceType() != null) {
-            config.setServiceType(config.getServiceType().trim().toUpperCase());
-        }
-
-        // Set default values for required numeric fields to avoid null constraint violations
-        if (config.getFormulationFee() == null) config.setFormulationFee(0.0);
-        if (config.getPelletingFee() == null) config.setPelletingFee(0.0);
-        if (config.getRmMarkupPercent() == null) config.setRmMarkupPercent(0.0);
-        if (config.getSystemFeePercent() == null) config.setSystemFeePercent(0.0);
-        if (config.getRate() == null) config.setRate(0.0);
-        if (config.getPercentage() == null) config.setPercentage(0.0);
-        if (config.getActive() == null) config.setActive(true);
-
-        // OPTIONAL: Upsert by (customerId, serviceType)
-        if (config.getId() == null && config.getServiceType() != null) {
-            Long customerId = config.getCustomerId();
-            Optional<ChargesConfig> existing =
-                    (customerId != null)
-                            ? repo.findTopByCustomerIdAndServiceTypeOrderByLastUpdatedDesc(customerId, config.getServiceType())
-                            : repo.findTopByServiceTypeOrderByLastUpdatedDesc(config.getServiceType());
-
-            if (existing.isPresent()) {
-                config.setId(existing.get().getId()); // update existing row
-            }
-        }
-
-        return repo.save(config);
+    /** Latest active configuration used for invoicing. */
+    public Optional<ChargesConfig> getEffective() {
+        return repo.findTopByActiveTrueOrderByLastUpdatedDesc();
     }
 
-    public void deleteConfig(Long id) {
+    // -------- Write --------
+
+    public ChargesConfig create(ChargesConfig in) {
+        sanitize(in);
+        validate(in);
+        return repo.save(in);
+    }
+
+    public ChargesConfig update(Long id, ChargesConfig in) {
+        ChargesConfig ex = getById(id);
+        ex.setPelletingFeeType(in.getPelletingFeeType());
+        ex.setPelletingFee(in.getPelletingFee());
+        ex.setFormulationFeeType(in.getFormulationFeeType());
+        ex.setFormulationFee(in.getFormulationFee());
+        ex.setSystemFeePercent(in.getSystemFeePercent());
+        ex.setActive(in.getActive());
+        sanitize(ex);
+        validate(ex);
+        return repo.save(ex);
+    }
+
+    public ChargesConfig toggleActive(Long id, boolean active) {
+        ChargesConfig cfg = getById(id);
+        cfg.setActive(active);
+        return repo.save(cfg);
+    }
+
+    public void delete(Long id) {
+        if (!repo.existsById(id)) return;
         repo.deleteById(id);
     }
 
-    // ===== Fee lookup used elsewhere =====
+    // -------- Helpers --------
 
-    public static class Fee {
-        public final double rate;      // numeric value
-        public final boolean percent;  // true = % of product value; false = per unit
-        public Fee(double rate, boolean percent) {
-            this.rate = rate;
-            this.percent = percent;
-        }
+    private void sanitize(ChargesConfig c) {
+        if (c.getPelletingFee() == null) c.setPelletingFee(0.0);
+        if (c.getFormulationFee() == null) c.setFormulationFee(0.0);
+        if (c.getSystemFeePercent() == null) c.setSystemFeePercent(0.0);
+        if (c.getPelletingFeeType() == null) c.setPelletingFeeType(ChargesConfig.FeeBasis.PER_KG);
+        if (c.getFormulationFeeType() == null) c.setFormulationFeeType(ChargesConfig.FeeBasis.PER_KG);
+        if (c.getActive() == null) c.setActive(true);
     }
 
-    /** Try customer-specific first; fallback to global (no customer) latest */
-    public Fee get(Long customerId, String serviceType) {
-        String normalizedType = (serviceType == null ? "" : serviceType.trim().toUpperCase());
-
-        Optional<ChargesConfig> opt =
-                (customerId != null)
-                        ? repo.findTopByCustomerIdAndServiceTypeOrderByLastUpdatedDesc(customerId, normalizedType)
-                        : Optional.empty();
-
-        ChargesConfig cfg = opt.orElseGet(() ->
-                repo.findTopByServiceTypeOrderByLastUpdatedDesc(normalizedType).orElse(null)
-        );
-
-        if (cfg == null) return new Fee(0.0, false);
-
-        return new Fee(cfg.getRate(), cfg.getPercentage() != null && cfg.getPercentage() > 0);
+    private void validate(ChargesConfig c) {
+        if (c.getPelletingFee() < 0) throw new IllegalArgumentException("Pelleting fee cannot be negative");
+        if (c.getFormulationFee() < 0) throw new IllegalArgumentException("Formulation fee cannot be negative");
+        if (c.getSystemFeePercent() < 0 || c.getSystemFeePercent() > 100)
+            throw new IllegalArgumentException("System fee percent must be between 0 and 100");
     }
 }
