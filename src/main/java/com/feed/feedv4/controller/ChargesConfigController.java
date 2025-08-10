@@ -1,103 +1,144 @@
 package com.feed.feedv4.controller;
 
 import com.feed.feedv4.model.ChargesConfig;
-import com.feed.feedv4.repository.ChargesConfigRepository;
+import com.feed.feedv4.service.ChargesConfigService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Comparator;
 import java.util.List;
 
+/**
+ * Multi-record fee configuration:
+ * - List with filters
+ * - Create / Update
+ * - Activate / Archive / Delete
+ * - Duplicate
+ * - Lightweight "options" for dropdowns
+ */
 @RestController
 @RequestMapping("/api/charges-config")
 public class ChargesConfigController {
 
-    private final ChargesConfigRepository repo;
+    private final ChargesConfigService service;
 
-    public ChargesConfigController(ChargesConfigRepository repo) {
-        this.repo = repo;
+    public ChargesConfigController(ChargesConfigService service) {
+        this.service = service;
     }
 
-    // ---- Read ----
+    // ----- List / Read -----
 
-    // List all (admin)
-    @GetMapping
-    public List<ChargesConfig> listAll() {
-        return repo.findAll();
+    /**
+     * List configs with optional filters.
+     * @param q optional search text (name/description)
+     * @param active optional filter by active (true/false)
+     * @param archived optional filter by archived (true/false)
+     */
+    @GetMapping("/list")
+    public List<ChargesConfig> list(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Boolean archived
+    ) {
+        return service.list(q, active, archived);
     }
 
-    // Get by id
     @GetMapping("/{id}")
     public ResponseEntity<ChargesConfig> getById(@PathVariable Long id) {
-        return repo.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        try {
+            return ResponseEntity.ok(service.getById(id));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
-    // Get effective config (latest active) – used by invoicing
+    /** Optional: latest active non-archived (if you still want a default). */
     @GetMapping("/effective")
-    public ResponseEntity<ChargesConfig> getEffective() {
-        return repo.findAll().stream()
-                .filter(c -> Boolean.TRUE.equals(c.getActive()))
-                .max(Comparator.comparing(ChargesConfig::getLastUpdated, Comparator.nullsFirst(Comparator.naturalOrder())))
+    public ResponseEntity<ChargesConfig> effective() {
+        return service.getEffective()
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build()); // no active config
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // ---- Write ----
+    /**
+     * Lightweight options for dropdowns (id + name).
+     * Supports filters similar to list.
+     */
+    @GetMapping("/options")
+    public List<Option> options(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Boolean archived
+    ) {
+        return service.list(q, active, archived).stream()
+                .map(c -> new Option(c.getId(), c.getName()))
+                .toList();
+    }
 
-    // Create new config (global)
+    // ----- Create / Update -----
+
     @PostMapping
-    public ResponseEntity<ChargesConfig> create(@RequestBody ChargesConfig in) {
-        sanitize(in);
-        ChargesConfig saved = repo.save(in);
-        return ResponseEntity.ok(saved);
+    public ResponseEntity<?> create(@RequestBody ChargesConfig in) {
+        try {
+            return ResponseEntity.ok(service.create(in));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError().body("Create failed");
+        }
     }
 
-    // Update existing config
     @PutMapping("/{id}")
-    public ResponseEntity<ChargesConfig> update(@PathVariable Long id, @RequestBody ChargesConfig in) {
-        return repo.findById(id)
-                .map(ex -> {
-                    // full replace of fee fields + active
-                    ex.setPelletingFeeType(in.getPelletingFeeType());
-                    ex.setPelletingFee(in.getPelletingFee());
-                    ex.setFormulationFeeType(in.getFormulationFeeType());
-                    ex.setFormulationFee(in.getFormulationFee());
-                    ex.setSystemFeePercent(in.getSystemFeePercent());
-                    ex.setActive(in.getActive());
-                    sanitize(ex);
-                    return ResponseEntity.ok(repo.save(ex));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody ChargesConfig in) {
+        try {
+            return ResponseEntity.ok(service.update(id, in));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError().body("Update failed");
+        }
     }
 
-    // Toggle active (enable/disable)
+    // ----- Status toggles -----
+
     @PatchMapping("/{id}/active")
-    public ResponseEntity<ChargesConfig> toggleActive(@PathVariable Long id, @RequestParam boolean active) {
-        return repo.findById(id)
-                .map(cfg -> {
-                    cfg.setActive(active);
-                    return ResponseEntity.ok(repo.save(cfg));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<?> setActive(@PathVariable Long id, @RequestParam boolean active) {
+        try {
+            return ResponseEntity.ok(service.toggleActive(id, active));
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError().body("Toggle active failed");
+        }
     }
 
-    // Delete (use sparingly; usually prefer toggling active)
+    @PatchMapping("/{id}/archive")
+    public ResponseEntity<?> setArchived(@PathVariable Long id, @RequestParam boolean archived) {
+        try {
+            return ResponseEntity.ok(service.setArchived(id, archived));
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError().body("Archive toggle failed");
+        }
+    }
+
+    // ----- Duplicate / Delete -----
+
+    @PostMapping("/{id}/duplicate")
+    public ResponseEntity<?> duplicate(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(service.duplicate(id));
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError().body("Duplicate failed");
+        }
+    }
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!repo.existsById(id)) return ResponseEntity.notFound().build();
-        repo.deleteById(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> delete(@PathVariable Long id) {
+        try {
+            service.delete(id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError().body("Delete failed");
+        }
     }
 
-    // ---- helpers ----
-    private void sanitize(ChargesConfig c) {
-        if (c.getPelletingFee() == null) c.setPelletingFee(0.0);
-        if (c.getFormulationFee() == null) c.setFormulationFee(0.0);
-        if (c.getSystemFeePercent() == null) c.setSystemFeePercent(0.0);
-        if (c.getPelletingFeeType() == null) c.setPelletingFeeType(ChargesConfig.FeeBasis.PER_KG);
-        if (c.getFormulationFeeType() == null) c.setFormulationFeeType(ChargesConfig.FeeBasis.PER_KG);
-        if (c.getActive() == null) c.setActive(true);
-    }
+    // ----- DTO -----
+    public record Option(Long id, String name) {}
 }

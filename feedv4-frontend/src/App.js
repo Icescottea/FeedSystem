@@ -51,13 +51,16 @@ const App = () => {
           <Route path="/formulation-builder" element={<FormulationBuilderPage />} />
           <Route path="/pelleting" element={<PelletingQueuePage />} />
           <Route path="/finance" element={<FinanceDashboard />} />
-          <Route path="/finance/config" element={<FeeConfigPage />} />
+          <Route path="/finance/fee-configs/*" element={<FeeConfigPage />} />
           <Route path="/finance/invoices" element={<InvoiceListPage />} />
           <Route path="/finance/invoices/new" element={<InvoiceForm />} />
           <Route path="/finance/payments" element={<PaymentListPage />} />
           <Route path="/finance/reports" element={<ReportsPage />} />
           <Route path="/users" element={<UserManagementPage />} />
           <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
+          <Route path="/finance/fee-configs" element={<FeeConfigList />} />
+          <Route path="/finance/fee-configs/:id/edit" element={<FeeConfigForm />} />
+          <Route path="/finance/fee-configs/new" element={<FeeConfigForm />} />
         </Route>
       </Route>
     </Routes>
