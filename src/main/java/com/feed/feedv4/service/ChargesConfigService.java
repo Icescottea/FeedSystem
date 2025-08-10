@@ -27,21 +27,30 @@ public class ChargesConfigService {
     }
 
     public ChargesConfig createOrUpdate(ChargesConfig config) {
-        // normalize serviceType to uppercase and trim
+        // Normalize serviceType
         if (config.getServiceType() != null) {
             config.setServiceType(config.getServiceType().trim().toUpperCase());
         }
 
-        // OPTIONAL: upsert by (customerId, serviceType) to avoid duplicates
+        // Set default values for required numeric fields to avoid null constraint violations
+        if (config.getFormulationFee() == null) config.setFormulationFee(0.0);
+        if (config.getPelletingFee() == null) config.setPelletingFee(0.0);
+        if (config.getRmMarkupPercent() == null) config.setRmMarkupPercent(0.0);
+        if (config.getSystemFeePercent() == null) config.setSystemFeePercent(0.0);
+        if (config.getRate() == null) config.setRate(0.0);
+        if (config.getPercentage() == null) config.setPercentage(0.0);
+        if (config.getActive() == null) config.setActive(true);
+
+        // OPTIONAL: Upsert by (customerId, serviceType)
         if (config.getId() == null && config.getServiceType() != null) {
             Long customerId = config.getCustomerId();
             Optional<ChargesConfig> existing =
                     (customerId != null)
                             ? repo.findTopByCustomerIdAndServiceTypeOrderByLastUpdatedDesc(customerId, config.getServiceType())
                             : repo.findTopByServiceTypeOrderByLastUpdatedDesc(config.getServiceType());
+
             if (existing.isPresent()) {
-                // keep the same row; update values
-                config.setId(existing.get().getId());
+                config.setId(existing.get().getId()); // update existing row
             }
         }
 
@@ -52,12 +61,15 @@ public class ChargesConfigService {
         repo.deleteById(id);
     }
 
-    // ===== Fee lookup used elsewhere (kept from your version) =====
+    // ===== Fee lookup used elsewhere =====
 
     public static class Fee {
         public final double rate;      // numeric value
-        public final boolean percent;  // true = % of product value; false = ₹/kg
-        public Fee(double rate, boolean percent) { this.rate = rate; this.percent = percent; }
+        public final boolean percent;  // true = % of product value; false = per unit
+        public Fee(double rate, boolean percent) {
+            this.rate = rate;
+            this.percent = percent;
+        }
     }
 
     /** Try customer-specific first; fallback to global (no customer) latest */
@@ -73,8 +85,8 @@ public class ChargesConfigService {
                 repo.findTopByServiceTypeOrderByLastUpdatedDesc(normalizedType).orElse(null)
         );
 
-        if (cfg == null) return new Fee(0.0, false); // safe default
+        if (cfg == null) return new Fee(0.0, false);
 
-        return new Fee(cfg.getRate(), cfg.isPercentage());
+        return new Fee(cfg.getRate(), cfg.getPercentage() != null && cfg.getPercentage() > 0);
     }
 }

@@ -28,8 +28,8 @@ public class PelletingInvoicingService {
 
     private static final class Fee {
         final double rate;      // numeric value
-        final boolean percent;  // true = % of product value; false = ₹/kg
-        Fee(double rate, boolean percent) { this.rate = rate; this.percent = percent; }
+        final double percent;  // true = % of product value; false = ₹/kg
+        Fee(double rate, Double percent) { this.rate = rate; this.percent = percent; }
     }
 
     private Fee resolveFee(Long customerId, String serviceType) {
@@ -46,8 +46,8 @@ public class PelletingInvoicingService {
                     .findTopByServiceTypeOrderByLastUpdatedDesc(normalized)
                     .orElse(null);
         }
-        if (cfg == null) return new Fee(0.0, false);
-        return new Fee(cfg.getRate(), cfg.isPercentage());
+        if (cfg == null) return new Fee(0.0, 0.0);
+        return new Fee(cfg.getRate(), cfg.getPercentage());
     }
 
     public Invoice createInvoiceFromPelleting(Long batchId) {
@@ -72,7 +72,7 @@ public class PelletingInvoicingService {
 
         // fees using simplified config (serviceType/rate/percentage)
         Fee pelleting = resolveFee(customerId, "PELLETING");
-        double pelletingAmt = pelleting.percent
+        double pelletingAmt = pelleting.percent > 0
                 ? productValue * (pelleting.rate / 100.0)
                 : qtyKg * pelleting.rate; // ₹/kg
 

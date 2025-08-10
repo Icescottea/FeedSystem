@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/fees")
+@RequestMapping("/api/charges-config") // ✅ Match your frontend POST URL
 public class ChargesConfigController {
 
     @Autowired
@@ -22,12 +22,12 @@ public class ChargesConfigController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ChargesConfig> getConfig(@PathVariable Long id) {
-        ChargesConfig config = feeConfigService.getConfigById(id);
-        return ResponseEntity.ok(config);
+        return ResponseEntity.ok(feeConfigService.getConfigById(id));
     }
 
     @PostMapping
     public ResponseEntity<ChargesConfig> create(@RequestBody ChargesConfig config) {
+        // Let service handle defaults & upsert logic
         ChargesConfig saved = feeConfigService.createOrUpdate(config);
         return ResponseEntity.ok(saved);
     }
@@ -40,8 +40,8 @@ public class ChargesConfigController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
         feeConfigService.deleteConfig(id);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }
