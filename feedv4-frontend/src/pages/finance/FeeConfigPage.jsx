@@ -5,6 +5,9 @@ import FeeConfigForm from "../../components/Finance/FeeConfigForm";
 
 export default function FeeConfigPage() {
   return (
+    <div className="w-full max-w-full mx-auto p-4 text-xs text-gray-800 overflow-x-hidden"
+    style={{maxWidth: 'calc(100vw - 258px)'
+      }}>
     <Routes>
       {/* default -> list */}
       <Route index element={<FeeConfigList />} />
@@ -15,5 +18,6 @@ export default function FeeConfigPage() {
       {/* anything else -> list */}
       <Route path="*" element={<Navigate to="." replace />} />
     </Routes>
+    </div>
   );
 }
