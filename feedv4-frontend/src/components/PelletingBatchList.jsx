@@ -6,7 +6,7 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL;
 const PelletingBatchList = () => {
   const navigate = useNavigate();
   const [batches, setBatches] = useState([]);
-  const INVOICE_NEW_ROUTE = '/invoices/new';
+  const INVOICE_NEW_ROUTE = '/finance/invoices/new';
 
   const fetchBatches = () => {
     fetch(`${API_BASE}/api/pelleting/batches`)

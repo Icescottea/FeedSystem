@@ -28,7 +28,7 @@ const InvoiceForm = () => {
 
   // load dropdown + batch
   useEffect(() => {
-    fetch(`${API_BASE}/api/charges-config/options`)
+    fetch(`${API_BASE}/api/charges-config/options?active=true&archived=false`)
       .then(r => r.json())
       .then(setOptions)
       .catch(() => setOptions([]));
@@ -45,6 +45,13 @@ const InvoiceForm = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialBatchId]);
+
+  useEffect(() => {
+   if (selectedCfg && batch) {
+     const next = computeTotal(selectedCfg, batch);
+     setForm(prev => ({ ...prev, amount: next }));
+   }
+  }, [selectedCfg, batch]);
 
   const computeTotal = (cfg, b) => {
     if (!cfg || !b) return 0;
@@ -156,7 +163,7 @@ const InvoiceForm = () => {
 
         <div>
           <label className="block text-sm font-medium mb-1">Amount (LKR)</label>
-          <input name="amount" type="number" value={form.amount ?? 0} onChange={handleChange}
+          <input name="amount" type="number" step="0.01" min="0" value={form.amount ?? 0} onChange={handleChange}
                  className="w-full border rounded-md px-3 py-2 text-sm" placeholder="0.00" required />
         </div>
       </div>
