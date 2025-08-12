@@ -38,14 +38,14 @@ public class ChargesConfig {
     private FeeBasis pelletingFeeType = FeeBasis.PER_KG;
 
     @Column(name = "pelleting_fee", nullable = false)
-    private Double pelletingFee = 0.0;        // ₹/kg or ₹ per batch
+    private Double pelletingFee = 0.0;        // Rs. /kg or Rs.  per batch
 
     @Enumerated(EnumType.STRING)
     @Column(name = "formulation_fee_type", nullable = false, length = 20)
     private FeeBasis formulationFeeType = FeeBasis.PER_KG;
 
     @Column(name = "formulation_fee", nullable = false)
-    private Double formulationFee = 0.0;      // ₹/kg or ₹ per batch
+    private Double formulationFee = 0.0;      // Rs. /kg or Rs.  per batch
 
     @Column(name = "system_fee_percent", nullable = false)
     private Double systemFeePercent = 0.0;    // 0..100

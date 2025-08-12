@@ -145,63 +145,65 @@ export default function FeeConfigForm() {
   if (loading) return <div className="p-4 text-sm text-gray-600">Loading…</div>;
 
   return (
-    <div className="p-4 max-w-3xl">
-      <div className="mb-3 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{isEdit ? "Edit Fee Configuration" : "New Fee Configuration"}</h1>
+    <div className="p-4 sm:p-6 max-w-3xl mx-auto">
+      <div className="mb-4 sm:mb-6 flex items-center justify-between">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">{isEdit ? "Edit Fee Configuration" : "New Fee Configuration"}</h1>
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate("/finance/config")} className="px-3 py-1 rounded border text-sm">
+          <button onClick={() => navigate("/finance/config")} className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
             Back to List
           </button>
           <button
             onClick={save}
             disabled={saving}
-            className="px-3 py-1 rounded bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
           >
             {saving ? "Saving…" : "Save"}
           </button>
         </div>
       </div>
 
-      {err && <div className="mb-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">{err}</div>}
-      {ok && <div className="mb-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded p-2">{ok}</div>}
+      {err && <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{err}</div>}
+      {ok && <div className="mb-3 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">{ok}</div>}
 
       <div className="grid gap-4">
-        <section className="border rounded-lg p-4">
-          <h2 className="font-medium mb-2">Details</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <section className="rounded-xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Details</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Name *</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Name *</label>
               <input
                 value={form.name}
                 onChange={(e) => change("name", e.target.value)}
-                className="w-full border rounded px-2 py-1 text-sm"
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="e.g. Default 2025"
               />
             </div>
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-6 pt-6 sm:pt-0">
+              <label className="inline-flex items-center gap-2 text-sm text-gray-800">
                 <input
                   type="checkbox"
                   checked={!!form.active}
                   onChange={() => change("active", !form.active)}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500"
                 />
                 Active
               </label>
-              <label className="flex items-center gap-2 text-sm">
+              <label className="inline-flex items-center gap-2 text-sm text-gray-800">
                 <input
                   type="checkbox"
                   checked={!!form.archived}
                   onChange={() => change("archived", !form.archived)}
+                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500"
                 />
                 Archived
               </label>
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs text-gray-600 mb-1">Description</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
               <textarea
                 value={form.description}
                 onChange={(e) => change("description", e.target.value)}
-                className="w-full border rounded px-2 py-1 text-sm"
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 rows={2}
                 placeholder="Notes…"
               />
@@ -209,110 +211,122 @@ export default function FeeConfigForm() {
           </div>
         </section>
 
-        <section className="border rounded-lg p-4">
-          <h2 className="font-medium mb-2">Pelleting Fee</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <section className="rounded-xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Pelleting Fee</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Basis</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Basis</label>
               <select
                 value={form.pelletingFeeType}
                 onChange={(e) => change("pelletingFeeType", e.target.value)}
-                className="w-full border rounded px-2 py-1 text-sm"
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
                 {BASIS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs text-gray-600 mb-1">Value</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Value</label>
               <input
                 type="number"
                 step="0.01"
                 value={form.pelletingFee}
                 onChange={(e) => change("pelletingFee", e.target.valueAsNumber)}
-                className="w-full border rounded px-2 py-1 text-sm"
-                placeholder={form.pelletingFeeType === "PER_KG" ? "₹ per kg" : "₹ per batch"}
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder={form.pelletingFeeType === "PER_KG" ? "Rs.  per kg" : "Rs.  per batch"}
               />
             </div>
           </div>
         </section>
 
-        <section className="border rounded-lg p-4">
-          <h2 className="font-medium mb-2">System Fee</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <section className="rounded-xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">System Fee</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="sm:col-span-1">
-              <label className="block text-xs text-gray-600 mb-1">Basis</label>
-              <input value="% of product value" readOnly className="w-full border rounded px-2 py-1 text-sm bg-gray-50" />
+              <label className="block text-xs font-medium text-gray-600 mb-1">Basis</label>
+              <input value="% of product value" readOnly className="block w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm" />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs text-gray-600 mb-1">Percent (%)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Percent (%)</label>
               <input
                 type="number"
                 step="0.01"
                 value={form.systemFeePercent}
                 onChange={(e) => change("systemFeePercent", e.target.valueAsNumber)}
-                className="w-full border rounded px-2 py-1 text-sm"
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="0 - 100"
               />
             </div>
           </div>
         </section>
 
-        <section className="border rounded-lg p-4">
-          <h2 className="font-medium mb-2">Formulation Fee</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <section className="rounded-xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Formulation Fee</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Basis</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Basis</label>
               <select
                 value={form.formulationFeeType}
                 onChange={(e) => change("formulationFeeType", e.target.value)}
-                className="w-full border rounded px-2 py-1 text-sm"
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               >
                 {BASIS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs text-gray-600 mb-1">Value</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Value</label>
               <input
                 type="number"
                 step="0.01"
                 value={form.formulationFee}
                 onChange={(e) => change("formulationFee", e.target.valueAsNumber)}
-                className="w-full border rounded px-2 py-1 text-sm"
-                placeholder={form.formulationFeeType === "PER_KG" ? "₹ per kg" : "₹ per batch"}
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder={form.formulationFeeType === "PER_KG" ? "Rs.  per kg" : "Rs.  per batch"}
               />
             </div>
           </div>
         </section>
 
-        <section className="border rounded-lg p-4">
-          <h2 className="font-medium mb-2">Preview Calculator</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-2">
+        <section className="rounded-xl border border-gray-200 bg-white shadow-sm p-4 sm:p-5">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Preview Calculator</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Quantity (kg)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Quantity (kg)</label>
               <input
                 type="number"
                 step="0.01"
                 value={preview.quantityKg}
                 onChange={(e) => setPreview((s) => ({ ...s, quantityKg: e.target.valueAsNumber }))}
-                className="w-full border rounded px-2 py-1 text-sm"
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-xs text-gray-600 mb-1">Unit Price (₹/kg)</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Unit Price (Rs. /kg)</label>
               <input
                 type="number"
                 step="0.01"
                 value={preview.unitPricePerKg}
                 onChange={(e) => setPreview((s) => ({ ...s, unitPricePerKg: e.target.valueAsNumber }))}
-                className="w-full border rounded px-2 py-1 text-sm"
+                className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
           </div>
           <div className="text-sm grid gap-1">
-            <div>Pelleting Fee: ₹ {breakdown.pelleting.toFixed(2)}</div>
-            <div>System Fee: ₹ {breakdown.system.toFixed(2)}</div>
-            <div>Formulation Fee: ₹ {breakdown.formulation.toFixed(2)}</div>
-            <div className="font-semibold">Total: ₹ {breakdown.total.toFixed(2)}</div>
+            <div className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
+              <span className="text-gray-600">Pelleting Fee</span>
+              <span className="font-medium">Rs.  {breakdown.pelleting.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
+              <span className="text-gray-600">System Fee</span>
+              <span className="font-medium">Rs.  {breakdown.system.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-gray-200 px-3 py-2">
+              <span className="text-gray-600">Formulation Fee</span>
+              <span className="font-medium">Rs.  {breakdown.formulation.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-md border border-gray-300 bg-gray-50 px-3 py-2">
+              <span className="font-semibold text-gray-900">Total</span>
+              <span className="font-semibold text-gray-900">Rs.  {breakdown.total.toFixed(2)}</span>
+            </div>
           </div>
         </section>
       </div>
