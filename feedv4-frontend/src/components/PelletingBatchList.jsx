@@ -6,7 +6,7 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL;
 const PelletingBatchList = () => {
   const navigate = useNavigate();
   const [batches, setBatches] = useState([]);
-  const FINANCE_ROUTE = '/finance/invoices';
+  const INVOICE_NEW_ROUTE = '/invoices/new';
 
   const fetchBatches = () => {
     fetch(`${API_BASE}/api/pelleting/batches`)
@@ -48,9 +48,8 @@ const PelletingBatchList = () => {
 
     // Refresh to reflect status change
     fetchBatches();
-
-    // Redirect to Finance
-    setTimeout(() => navigate(FINANCE_ROUTE), 500);
+    
+    setTimeout(() => navigate(`${INVOICE_NEW_ROUTE}?batchId=${batchId}`), 1000);
   };
   
   const handleSendToFinance = async (id) => {
