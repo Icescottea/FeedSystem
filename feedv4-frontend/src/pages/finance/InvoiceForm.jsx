@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL;
 const round2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
 
 const InvoiceForm = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const qp = new URLSearchParams(location.search);
   const initialBatchId = qp.get('batchId') ? Number(qp.get('batchId')) : '';
 
@@ -126,6 +127,9 @@ const InvoiceForm = () => {
           unitRate: 0,
           referenceId: null
         });
+
+        alert('Invoice created successfully!');
+        navigate('/finance/invoices'); // redirect to invoice list
       })
       .catch(err => console.error('Error creating invoice:', err));
   };

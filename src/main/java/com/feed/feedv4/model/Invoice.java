@@ -25,6 +25,21 @@ public class Invoice {
     private LocalDateTime paymentDate;
     private LocalDateTime updatedAt;
 
+
+    @PrePersist
+    public void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        if (this.dateIssued == null) this.dateIssued = now;
+        this.updatedAt = now;
+        if (this.status == null || this.status.isBlank()) this.status = "Draft"; // or "Unpaid"
+        if (this.amountPaid == 0 && this.paid) this.paid = false; // sanity
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
     // 🔽 Setters
     public void setCustomerId(Long customerId) {
         this.customerId = customerId;
