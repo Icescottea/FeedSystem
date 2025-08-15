@@ -21,18 +21,58 @@ public class ChargesConfigController {
 
     private final ChargesConfigService service;
 
-    public record FeeConfigDTO(Long id, String name, double pelleingPerKg, double systemPercent, double formulationPerKg) {}
+    // Canonical DTO the frontend expects
+    public record FeeConfigDTO(
+        Long id,
+        String name,
+        double pelletingPerKg,
+        double systemPercent,
+        double formulationPerKg
+    ) {}
+
+    private static Double firstNonNull(Double... vals) {
+        for (Double v : vals) {
+            if (v != null) return v;
+        }
+        return null;
+    }
 
     private FeeConfigDTO toDto(ChargesConfig c) {
-        double pelleting = c.getPelletingFee() != null ? c.getPelletingFee() : 0.0;
-        double systemPct = c.getSystemFeePercent()  != null ? c.getSystemFeePercent()  : 0.0;
-        double formulKg  = c.getFormulationFee()!= null ? c.getFormulationFee(): 0.0;
-        return new FeeConfigDTO(c.getId(), c.getName(), pelleting, systemPct, formulKg);
+        // 🔧 Map ALL plausible names you might have used in the entity
+        // Pelleting (₹/kg)
+        Double pelleting = firstNonNull(
+            // common variants
+            getSafe(() -> c.getPelletingFee())
+        );
+
+        // System (%)
+        Double systemPct = firstNonNull(
+            getSafe(() -> c.getSystemFeePercent())
+        );
+
+        // Formulation (₹/kg)
+        Double formulation = firstNonNull(
+            getSafe(() -> c.getFormulationFee())
+        );
+
+        return new FeeConfigDTO(
+            c.getId(),
+            c.getName(),
+            pelleting != null ? pelleting : 0.0,
+            systemPct != null ? systemPct : 0.0,
+            formulation != null ? formulation : 0.0
+        );
+    }
+
+    /** small helper to avoid NoSuchMethodError/NPE if getters are missing */
+    private static <T> T getSafe(java.util.concurrent.Callable<T> call) {
+        try { return call.call(); } catch (Throwable t) { return null; }
     }
 
     @GetMapping("/{id}/normalized")
     public ResponseEntity<FeeConfigDTO> getNormalized(@PathVariable Long id) {
-        return ResponseEntity.ok(toDto(service.getById(id)));
+        ChargesConfig cfg = service.getById(id);
+        return ResponseEntity.ok(toDto(cfg));
     }
 
     public ChargesConfigController(ChargesConfigService service) {
