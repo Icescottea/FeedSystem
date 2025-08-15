@@ -21,6 +21,20 @@ public class ChargesConfigController {
 
     private final ChargesConfigService service;
 
+    public record FeeConfigDTO(Long id, String name, double pelleingPerKg, double systemPercent, double formulationPerKg) {}
+
+    private FeeConfigDTO toDto(ChargesConfig c) {
+        double pelleting = c.getPelletingFee() != null ? c.getPelletingFee() : 0.0;
+        double systemPct = c.getSystemFeePercent()  != null ? c.getSystemFeePercent()  : 0.0;
+        double formulKg  = c.getFormulationFee()!= null ? c.getFormulationFee(): 0.0;
+        return new FeeConfigDTO(c.getId(), c.getName(), pelleting, systemPct, formulKg);
+    }
+
+    @GetMapping("/{id}/normalized")
+    public ResponseEntity<FeeConfigDTO> getNormalized(@PathVariable Long id) {
+        return ResponseEntity.ok(toDto(service.getById(id)));
+    }
+
     public ChargesConfigController(ChargesConfigService service) {
         this.service = service;
     }

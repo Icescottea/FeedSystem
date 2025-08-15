@@ -60,9 +60,7 @@ const InvoiceForm = () => {
     const costPerKg = b.formulation?.costPerKg || 0;
 
     // adapt these property names to your ChargesConfig model if different
-    const pelletingPerKg   = cfg.pelletingPerKg   ?? cfg.pelletingFeePerKg   ?? 0;
-    const systemPercent    = cfg.systemPercent    ?? cfg.systemFeePercent    ?? 0;
-    const formulationPerKg = cfg.formulationPerKg ?? cfg.formulationFeePerKg ?? 0;
+    const { pelletingPerKg = 0, systemPercent = 0, formulationPerKg = 0 } = cfg;
 
     const pelleting   = qty * pelletingPerKg;
     const formulation = qty * formulationPerKg;
@@ -84,7 +82,7 @@ const InvoiceForm = () => {
     setForm(prev => ({ ...prev, feeType: opt?.name || '', feeConfigId: cfgId }));
 
     try {
-      const full = await fetch(`${API_BASE}/api/charges-config/${cfgId}`).then(r => r.json());
+      const full = await fetch(`${API_BASE}/api/charges-config/${cfgId}/normalized`).then(r => r.json());
       setSelectedCfg(full);
       const nextAmount = computeTotal(full, batch);
       setForm(prev => ({ ...prev, amount: nextAmount }));

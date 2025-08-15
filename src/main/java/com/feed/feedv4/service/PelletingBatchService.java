@@ -76,8 +76,8 @@ public class PelletingBatchService {
     }
 
     public PelletingBatch get(Long id) {
-        PelletingBatch b = pelletingRepo.findById(id).orElseThrow();
-        calculateTimeTaken(b);
+        PelletingBatch b = pelletingRepo.findWithFormulationById(id).orElseThrow();
+        calculateTimeTaken(b);          // keep your existing helper
         return b;
     }
 
