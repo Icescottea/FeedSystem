@@ -5,12 +5,11 @@ import java.time.LocalDateTime;
 public class CreatePaymentDTO {
     private Long invoiceId;
     private double amountPaid;
-    private String method;
-    private String paidBy;
-    private String referenceNote;
     private LocalDateTime paymentDate;
     private String paymentMethod;
     private String notes;
+    private Double taxRate;       // percentage
+    private Double discountAmount; // absolute Rs.
 
     public CreatePaymentDTO() {}
 
@@ -22,36 +21,28 @@ public class CreatePaymentDTO {
         this.invoiceId = invoiceId;
     }
 
+    public Double getTaxRate() {
+        return taxRate;
+    }
+
+    public void setTaxRate(Double taxRate) {
+        this.taxRate = taxRate;
+    }
+
+    public Double getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(Double discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+
     public double getAmountPaid() {
         return amountPaid;
     }
 
     public void setAmountPaid(double amountPaid) {
         this.amountPaid = amountPaid;
-    }
-
-    public String getMethod() {
-        return method;
-    }
-
-    public void setMethod(String method) {
-        this.method = method;
-    }
-
-    public String getPaidBy() {
-        return paidBy;
-    }
-
-    public void setPaidBy(String paidBy) {
-        this.paidBy = paidBy;
-    }
-
-    public String getReferenceNote() {
-        return referenceNote;
-    }
-
-    public void setReferenceNote(String referenceNote) {
-        this.referenceNote = referenceNote;
     }
 
     public LocalDateTime getPaymentDate() {

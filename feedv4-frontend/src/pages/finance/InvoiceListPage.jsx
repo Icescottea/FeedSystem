@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
 const InvoiceListPage = () => {
   const [invoices, setInvoices] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchInvoices();
@@ -51,7 +53,7 @@ const InvoiceListPage = () => {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold">Invoices</h2>
         <button
-          onClick={() => (window.location.href = '/finance/invoices/new')}
+          onClick={() => navigate('/finance/invoices/new')}
           className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-md shadow-sm"
         >
           + Create New Invoice
@@ -96,8 +98,13 @@ const InvoiceListPage = () => {
                     {formatDate(inv.dateIssued)}
                   </td>
                   <td className="px-3 py-2">
-                    <div className="flex gap-2 text-xs">
-                      {/* ❌ Removed View button */}
+                    <div className="flex gap-3 text-xs items-center">
+                      <button
+                        onClick={() => navigate(`/finance/payments/new?invoiceId=${inv.id}`)}
+                        className="text-indigo-600 hover:underline"
+                      >
+                        Pay
+                      </button>
                       <button
                         onClick={() => handleDelete(inv.id)}
                         className="text-red-600 hover:underline"

@@ -13,10 +13,11 @@ public class Payment {
     @ManyToOne
     private Invoice invoice;
 
-    private String method; 
     private double amountPaid;
     private String paymentMethod;
     private String notes;
+    private Double taxRate;       // percentage
+    private Double discountAmount; // absolute Rs.
 
     private LocalDateTime paidAt;
     private LocalDateTime paymentDate;
@@ -27,6 +28,21 @@ public class Payment {
     }
 
     // Getters and Setters
+
+    public void setTaxRate(Double taxRate) {
+        this.taxRate = taxRate;
+    }
+    public Double getTaxRate() {
+        return taxRate;
+    }
+    
+    public void setDiscountAmount(Double discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+
+    public Double getDiscountAmount() {
+        return discountAmount;
+    }
 
     public void setInvoice(Invoice invoice) {
         this.invoice = invoice;
