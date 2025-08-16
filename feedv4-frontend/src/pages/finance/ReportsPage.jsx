@@ -6,7 +6,7 @@ const ReportsPage = () => {
   const [report, setReport] = useState(null);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/reports`)
+    fetch(`${API_BASE}/api/finance/reports`)
       .then(res => res.json())
       .then(setReport)
       .catch(err => console.error('Failed to fetch report:', err));
@@ -28,9 +28,9 @@ const ReportsPage = () => {
       <div className="bg-white border rounded-md shadow p-6">
         <h3 className="text-lg font-medium mb-4">Revenue by Service</h3>
         <ul className="list-disc pl-5 space-y-1 text-sm">
-          {Object.entries(report.revenueByService || {}).map(([service, amount]) => (
+          {Object.entries(report?.revenueByService ?? {}).map(([service, amount]) => (
             <li key={service}>
-              {service}: <span className="font-medium">Rs. {amount.toFixed(2)}</span>
+              {service}: <span className="font-medium">Rs. {(Number(amount ?? 0)).toFixed(2)}</span>
             </li>
           ))}
         </ul>
@@ -40,7 +40,7 @@ const ReportsPage = () => {
       <div className="bg-white border rounded-md shadow p-6">
         <h3 className="text-lg font-medium mb-4">Top Paying Clients</h3>
         <ol className="list-decimal pl-5 space-y-1 text-sm">
-          {(report.topPayingClients || []).map(client => (
+          {(report?.topPayingClients ?? []).map(client => (
             <li key={client}>{client}</li>
           ))}
         </ol>
@@ -50,18 +50,18 @@ const ReportsPage = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="bg-white border rounded-md shadow p-6">
           <h4 className="text-sm font-medium mb-2">Average Cost / kg</h4>
-          <p className="text-xl font-semibold">Rs. {report.avgCostPerKg.toFixed(2)}</p>
+          <p className="text-xl font-semibold">Rs. {(Number(report?.avgCostPerKg ?? 0)).toFixed(2)}</p>
         </div>
         <div className="bg-white border rounded-md shadow p-6">
           <h4 className="text-sm font-medium mb-2">Average Charge / kg</h4>
-          <p className="text-xl font-semibold">Rs. {report.avgChargePerKg.toFixed(2)}</p>
+          <p className="text-xl font-semibold">Rs. {(Number(report?.avgChargePerKg ?? 0)).toFixed(2)}</p>
         </div>
       </div>
 
       {/* Receivables */}
       <div className="bg-white border rounded-md shadow p-6">
         <h4 className="text-sm font-medium mb-2">Total Outstanding Receivables</h4>
-        <p className="text-xl font-semibold">Rs. {report.totalReceivables.toFixed(2)}</p>
+        <p className="text-xl font-semibold">Rs. {(Number(report?.totalReceivables ?? 0)).toFixed(2)}</p>
       </div>
 
       {/* Monthly Profitability Snapshot */}
@@ -78,13 +78,13 @@ const ReportsPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {(report.monthlyProfitability || []).map((m, i) => (
+              {(report?.monthlyProfitability ?? []).map((m, i) => (
                 <tr key={i} className="hover:bg-gray-50">
                   <td className="px-3 py-2 border">{m.month}</td>
-                  <td className="px-3 py-2 border">Rs. {m.revenue.toFixed(2)}</td>
-                  <td className="px-3 py-2 border">Rs. {m.cost.toFixed(2)}</td>
+                  <td className="px-3 py-2 border">Rs. {(Number(m?.revenue ?? 0)).toFixed(2)}</td>
+                  <td className="px-3 py-2 border">Rs. {(Number(m?.cost ?? 0)).toFixed(2)}</td>
                   <td className="px-3 py-2 border text-green-700 font-semibold">
-                    Rs. {m.profit.toFixed(2)}
+                    Rs. {(Number(m?.profit ?? 0)).toFixed(2)}
                   </td>
                 </tr>
               ))}

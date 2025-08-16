@@ -59,7 +59,7 @@ const App = () => {
             <Route path="/finance/payments" element={<PaymentListPage />} />
             <Route path="/finance/reports" element={<ReportsPage />} />
             <Route path="/users" element={<UserManagementPage />} />
-             <Route path="/finance/payments/new" element={<NewPaymentPage />} />
+            <Route path="/finance/payments/new" element={<NewPaymentPage />} />
             <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
           </Route>
         </Route>
