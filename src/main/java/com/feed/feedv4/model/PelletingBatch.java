@@ -25,6 +25,8 @@ public class PelletingBatch {
 
     private Long customerId;
 
+    private boolean archived = false;
+
     @ManyToOne
     private User operator;
 

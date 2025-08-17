@@ -58,8 +58,14 @@ public class FormulationController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
-        service.delete(id);
-        return ResponseEntity.ok().build();
+        try {
+            service.delete(id);
+            return ResponseEntity.ok().build();
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(409).body(ex.getMessage()); // 409 Conflict
+        } catch (Exception ex) {
+            return ResponseEntity.internalServerError().body("Delete failed");
+        }
     }
 
     @PutMapping("/{id}/archive")

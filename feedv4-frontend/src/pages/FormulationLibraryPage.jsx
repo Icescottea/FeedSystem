@@ -275,11 +275,6 @@ const FormulationLibraryPage = () => {
                       {f.finalized && (
                         <button onClick={() => handleUnfinalize(f.id)} className="text-indigo-600 hover:underline px-1">Unfinalize</button>
                       )}
-                      {f.finalized && (
-                        <>
-                          <button className="text-pink-600 hover:underline px-1">Send to Invoice</button>
-                        </>
-                      )}
                     </div>
                   </td>
                 </tr>

@@ -22,7 +22,7 @@ public class PelletingBatchController {
 
     @GetMapping
     public List<PelletingBatch> getAll() {
-        return service.getAll();
+        return service.getAll(null, null);
     }
 
     @GetMapping("/{id}")
@@ -98,8 +98,16 @@ public class PelletingBatchController {
     }
 
     @GetMapping("/batches")
-    public ResponseEntity<List<PelletingBatch>> getAllBatches() {
-        return ResponseEntity.ok(service.getAll());
+    public List<PelletingBatch> listBatches(
+        @RequestParam(required = false) String status,
+        @RequestParam(required = false) Boolean archived
+    ) {
+        return service.getAll(status, archived);
+    }
+
+    @PatchMapping("/{id}/archive")
+    public ResponseEntity<PelletingBatch> archive(@PathVariable Long id, @RequestParam boolean archived) {
+        return ResponseEntity.ok(service.setArchived(id, archived));
     }
     
     @GetMapping("/my-batches")

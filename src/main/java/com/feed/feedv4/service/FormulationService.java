@@ -414,6 +414,9 @@ public class FormulationService {
     }
 
     public void delete(Long id) {
+        if(pelletingBatchRepository.existsById(id)) {
+            throw new IllegalStateException("Cannot delete formulation with active pelleting batches. Archive instead.");
+        }
         repository.deleteById(id);
     }
 

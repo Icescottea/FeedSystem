@@ -11,6 +11,8 @@ import java.util.Optional;
 public interface PelletingBatchRepository extends JpaRepository<PelletingBatch, Long> {
     List<PelletingBatch> findByOperatorId(Long operatorId);
     List<PelletingBatch> findByStatus(String status);
+    List<PelletingBatch> findByArchivedFalse();
+    List<PelletingBatch> findByStatusAndArchivedFalse(String status);
     int countByStatus(String status);
     @Query("select b from PelletingBatch b join fetch b.formulation f where b.id = :id")
     Optional<PelletingBatch> findWithFormulationById(@Param("id") Long id);

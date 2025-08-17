@@ -7,9 +7,14 @@ const PelletingBatchList = () => {
   const navigate = useNavigate();
   const [batches, setBatches] = useState([]);
   const INVOICE_NEW_ROUTE = '/finance/invoices/new';
+  const [statusFilter, setStatusFilter] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
 
   const fetchBatches = () => {
-    fetch(`${API_BASE}/api/pelleting/batches`)
+    const params = new URLSearchParams();
+    if (statusFilter) params.set('status', statusFilter);
+    params.set('archived', String(showArchived));
+    fetch(`${API_BASE}/api/pelleting/batches?` + params.toString())
       .then(res => res.json())
       .then(data => setBatches(Array.isArray(data) ? data : []))
       .catch(() => setBatches([]));
@@ -62,7 +67,7 @@ const PelletingBatchList = () => {
 
   useEffect(() => {
     fetchBatches();
-  }, []);
+  }, [statusFilter, showArchived]);
 
   return (
     <div className="bg-white rounded-lg shadow-md border p-4 overflow-hidden mb-6"
@@ -76,6 +81,28 @@ const PelletingBatchList = () => {
         maxWidth: 'calc(100vw - 298px)'
       }}>
       <h2 className="text-xl font-semibold mb-4">📦 Pelleting Queue</h2>
+
+      <div className="flex items-center gap-3 mb-3">
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          className="border rounded px-2 py-1 text-sm"
+        >
+          <option value="">All statuses</option>
+          <option value="Not Started">Not Started</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+        </select>
+
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={e => setShowArchived(e.target.checked)}
+          />
+          Show archived
+        </label>
+      </div>
 
       <div className="bg-white border rounded-lg shadow-md p-4 overflow-hidden">
         <div className="overflow-x-auto">
@@ -132,6 +159,16 @@ const PelletingBatchList = () => {
                         Ready for Invoicing
                       </span>
                     )}
+                    <button
+                      onClick={async () => {
+                        const res = await fetch(`${API_BASE}/api/pelleting/${b.id}/archive?archived=${!b.archived}`, { method: 'PATCH' });
+                        if (!res.ok) return alert('Failed to toggle archive');
+                        fetchBatches();
+                      }}
+                      className="text-yellow-700 hover:underline text-xs"
+                    >
+                      {b.archived ? 'Unarchive' : 'Archive'}
+                    </button>
                   </td>
                 </tr>
               ))}

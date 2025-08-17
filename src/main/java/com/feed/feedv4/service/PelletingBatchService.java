@@ -69,10 +69,26 @@ public class PelletingBatchService {
         return saved;
     }
 
-    public List<PelletingBatch> getAll() {
-        List<PelletingBatch> list = pelletingRepo.findAll();
-        list.forEach(this::calculateTimeTaken);
-        return list;
+    public List<PelletingBatch> getAll(String status, Boolean archived) {
+        if (archived != null) {
+            if (status != null && !status.isBlank()) {
+                return pelletingRepo.findByStatus(status)
+                        .stream().filter(b -> b.isArchived() == archived).toList();
+            }
+            return pelletingRepo.findAll()
+                    .stream().filter(b -> b.isArchived() == archived).toList();
+        }
+        if (status != null && !status.isBlank()) {
+            return pelletingRepo.findByStatusAndArchivedFalse(status);
+        }
+        return pelletingRepo.findByArchivedFalse();
+    }
+
+    public PelletingBatch setArchived(Long id, boolean archived) {
+        PelletingBatch b = get(id);
+        b.setArchived(archived);
+        b.setUpdatedAt(LocalDateTime.now());
+        return pelletingRepo.save(b);
     }
 
     public PelletingBatch get(Long id) {
