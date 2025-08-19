@@ -55,7 +55,7 @@ const Sidebar = ({ roles }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-hidden">
+      <nav className="flex-1 p-1 space-y-1 overflow-hidden">
         <NavLink to="/dashboard" icon={LayoutDashboard}>
           Dashboard
         </NavLink>
