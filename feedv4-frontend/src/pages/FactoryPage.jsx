@@ -302,7 +302,6 @@ const FactoryPage = () => {
                 <th className="px-3 py-2 text-left">Reg. No</th>
                 <th className="px-3 py-2 text-left">Contact</th>
                 <th className="px-3 py-2 text-left">Email</th>
-                <th className="px-3 py-2 text-left">Updated</th>
                 <th className="px-3 py-2 text-left">Actions</th>
               </tr>
             </thead>
@@ -338,10 +337,6 @@ const FactoryPage = () => {
                   <td className="px-3 py-2">{row.registrationNumber || '—'}</td>
                   <td className="px-3 py-2">{row.contactNumber || '—'}</td>
                   <td className="px-3 py-2">{row.email || '—'}</td>
-                  <td className="px-3 py-2">
-                    {/* if your API returns updatedAt, show it; else omit */}
-                    <span className="text-xs text-gray-500">—</span>
-                  </td>
                   <td className="px-3 py-2">
                     <div className="flex gap-3 text-xs">
                       <button
