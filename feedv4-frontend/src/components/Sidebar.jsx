@@ -109,6 +109,15 @@ const Sidebar = ({ roles }) => {
             User Management
           </NavLink></>
         )}
+
+        {(roles.includes('ADMIN')) && (
+          <>
+            <SectionHeader>Factory</SectionHeader>
+            <NavLink to="/factories" icon={Factory}>
+              Factories
+            </NavLink>
+          </>
+        )}
       </nav>
     </div>
   );

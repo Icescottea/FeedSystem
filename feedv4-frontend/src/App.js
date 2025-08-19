@@ -18,6 +18,7 @@ import ReportsPage from './pages/finance/ReportsPage';
 import InvoiceForm from './pages/finance/InvoiceForm';
 import RequireAuth from './RequireAuth';
 import NewPaymentPage from './pages/finance/NewPaymentPage';
+import FactoryPage from "./pages/FactoryPage";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -60,6 +61,7 @@ const App = () => {
             <Route path="/finance/reports" element={<ReportsPage />} />
             <Route path="/users" element={<UserManagementPage />} />
             <Route path="/finance/payments/new" element={<NewPaymentPage />} />
+            <Route path="/factories" element={<FactoryPage />} />
             <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
           </Route>
         </Route>
