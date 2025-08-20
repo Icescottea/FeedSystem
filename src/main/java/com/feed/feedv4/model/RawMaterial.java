@@ -1,6 +1,8 @@
 package com.feed.feedv4.model;
 
 import jakarta.persistence.*;
+import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDate;
 
 @Entity
@@ -28,8 +30,20 @@ public class RawMaterial {
     private boolean archived;
 
     // WACM fields
-    private Double weightedAvgCost = 0.0;
-    private Double totalValue = 0.0;
+    private Double weightedAvgCost;
+    private Double totalValue;
+
+    @PrePersist
+    public void prePersist() {
+        if (weightedAvgCost == null) weightedAvgCost = 0.0;
+        if (totalValue == null) totalValue = 0.0;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        if (weightedAvgCost == null) weightedAvgCost = 0.0;
+        if (totalValue == null) totalValue = 0.0;
+    }
 
     // === Getters and Setters ===
 
@@ -84,10 +98,10 @@ public class RawMaterial {
     public boolean isArchived() { return archived; }
     public void setArchived(boolean archived) { this.archived = archived; }
 
-    public double getWeightedAvgCost() { return weightedAvgCost; } 
+    public double getWeightedAvgCost() { return weightedAvgCost == null ? 0.0 : weightedAvgCost; } 
     public void setWeightedAvgCost(Double weightedAvgCost) { this.weightedAvgCost = weightedAvgCost; }
 
-    public double getTotalValue() { return totalValue; }
+    public double getTotalValue() { return totalValue == null ? 0.0 : totalValue; }
     public void setTotalValue(Double totalValue) { this.totalValue = totalValue; }
     
 }
