@@ -14,6 +14,7 @@ import com.feed.feedv4.repository.FormulationRepository;
 import com.feed.feedv4.repository.RawMaterialRepository;
 import com.feed.feedv4.repository.PelletingBatchRepository;
 
+import com.lowagie.*;
 import com.lowagie.text.Chunk;
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;

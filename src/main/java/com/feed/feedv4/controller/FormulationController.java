@@ -19,6 +19,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+
 @RestController
 @RequestMapping("/api/formulations")
 public class FormulationController {
@@ -113,10 +117,18 @@ public class FormulationController {
 
     @GetMapping("/{id}/export/pdf")
     public ResponseEntity<byte[]> exportPDF(@PathVariable Long id) {
-        byte[] file = service.exportToPDF(id);
-        return ResponseEntity.ok()
-            .header("Content-Disposition", "attachment; filename=formulation.pdf")
-            .body(file);
+        byte[] bytes = service.exportToPDF(id); // throws if it fails
+    
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(
+            ContentDisposition.attachment()
+                .filename(("formulation-" + id + ".pdf"))
+                .build()
+        );
+        headers.setContentLength(bytes.length);
+    
+        return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
     }
 
     @PutMapping("/{id}/unarchive")

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
 import FormulationEditForm from '../components/FormulationEditForm';
 import { showToast } from '../components/toast';
@@ -102,27 +101,23 @@ const FormulationLibraryPage = () => {
   };
 
   const handleExportPDF = async (f) => {
-    try {
-      const response = await fetch(`/api/formulations/${f.id}/export/pdf`, {
-        method: "GET",
-        headers: {
-          "Accept": "application/pdf",
-        },
-      });
-    
-      if (!response.ok) throw new Error("Failed to download PDF");
-    
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(new Blob([blob]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `${f.name}_v${f.version}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode.removeChild(link);
-    } catch (error) {
-      console.error("Export failed", error);
+    const res = await fetch(`${API_BASE}/api/formulations/${f.id}/export/pdf`, {
+      method: 'GET'
+    });
+    if (!res.ok) {
+      const msg = await res.text().catch(() => '');
+      alert(`PDF export failed. ${msg}`);
+      return;
     }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${f.name || 'formulation'}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   const handleExportExcel = (f) => {
