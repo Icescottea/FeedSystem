@@ -32,8 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.ss.usermodel.Row;
-
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -56,6 +54,23 @@ public class FormulationService {
     private final FormulationLogRepository logRepository;
     private final FeedProfileRepository feedProfileRepository;
     private final PelletingBatchRepository pelletingBatchRepository;
+
+    private double computeCostPerKg(Formulation f) {
+        if (f.getIngredients() == null || f.getIngredients().isEmpty() || f.getBatchSize() <= 0) return 0.0;
+        double totalCost = 0.0;
+        for (FormulationIngredient fi : f.getIngredients()) {
+            Double pct = fi.getPercentage();
+            double kg = (fi.getQuantityKg() != 0) ? fi.getQuantityKg()
+                     : (pct != null ? (pct / 100.0) * f.getBatchSize() : 0.0);
+
+            double rmCost = (fi.getCostPerKg() > 0) ? fi.getCostPerKg()
+                           : (fi.getRawMaterial() != null && fi.getRawMaterial().getCostPerKg() != null)
+                             ? fi.getRawMaterial().getCostPerKg() : 0.0;
+
+            totalCost += kg * rmCost;
+        }
+        return totalCost / f.getBatchSize();
+    }
 
     @Autowired
     public FormulationService(FormulationRepository repository, 
@@ -555,7 +570,7 @@ public class FormulationService {
     }
 
     public byte[] exportToPDF(Long id) {
-        Formulation f = getById(id);
+        Formulation f = getFullById(id);
         DecimalFormat n2 = new DecimalFormat("#,##0.00");
 
         // --- helpers ---
@@ -572,7 +587,7 @@ public class FormulationService {
             c.setPadding(5f);
             return c;
         };
-
+        
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Document doc = new Document(PageSize.A4, 36, 36, 36, 36);
             PdfWriter.getInstance(doc, out);
@@ -750,6 +765,7 @@ public class FormulationService {
         f.setFinalized(true);
         f.setStatus("Finalized");
         f.setUpdatedAt(LocalDateTime.now());
+        f.setCostPerKg(computeCostPerKg(getFullById(id)));
         repository.save(f);
         
         logAction(f, "FINALIZED", "Formulation marked as finalized");
@@ -764,6 +780,12 @@ public class FormulationService {
             .build();
         
         pelletingBatchRepository.save(pelletingBatch);
+    }
+
+    @Transactional(readOnly = true)
+    public Formulation getFullById(Long id) {
+        return repository.findFullById(id)
+            .orElseThrow(() -> new RuntimeException("Formulation not found"));
     }
 
 }
