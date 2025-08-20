@@ -14,6 +14,18 @@ import com.feed.feedv4.repository.FormulationRepository;
 import com.feed.feedv4.repository.RawMaterialRepository;
 import com.feed.feedv4.repository.PelletingBatchRepository;
 
+import com.lowagie.text.Chunk;
+import com.lowagie.text.Document;
+import com.lowagie.text.Element;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.FontFactory;
+import java.awt.Color;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,8 +35,6 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.ss.usermodel.Row;
 
 import com.lowagie.text.*;
-import com.lowagie.text.pdf.*;
-
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -37,6 +47,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.io.ByteArrayOutputStream;
+import java.text.DecimalFormat;
 
 @Service
 public class FormulationService {
@@ -546,31 +557,168 @@ public class FormulationService {
 
     public byte[] exportToPDF(Long id) {
         Formulation f = getById(id);
+        DecimalFormat n2 = new DecimalFormat("#,##0.00");
+
+        // --- helpers ---
+        java.util.function.Function<Double, String> fmt = v -> n2.format(v == null ? 0.0 : v);
+        java.util.function.Function<String, PdfPCell> hcell = (text) -> {
+            PdfPCell c = new PdfPCell(new Phrase(text, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10)));
+            c.setHorizontalAlignment(Element.ALIGN_CENTER);
+            c.setBackgroundColor(new Color(245, 245, 245));
+            c.setPadding(6f);
+            return c;
+        };
+        java.util.function.Function<String, PdfPCell> ccell = (text) -> {
+            PdfPCell c = new PdfPCell(new Phrase(text == null ? "-" : text, FontFactory.getFont(FontFactory.HELVETICA, 9)));
+            c.setPadding(5f);
+            return c;
+        };
+
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Document doc = new Document();
+            Document doc = new Document(PageSize.A4, 36, 36, 36, 36);
             PdfWriter.getInstance(doc, out);
             doc.open();
 
-            doc.add(new Paragraph("Formulation: " + f.getName()));
-            doc.add(new Paragraph("Batch Size: " + f.getBatchSize()));
-            doc.add(new Paragraph(" "));
+            // ---------- Title ----------
+            Paragraph title = new Paragraph("FeedV4 – Formulation Report",
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14));
+            title.setAlignment(Element.ALIGN_CENTER);
+            doc.add(title);
+            doc.add(Chunk.NEWLINE);
 
-            PdfPTable table = new PdfPTable(4);
-            table.addCell("Ingredient");
-            table.addCell("Percentage");
-            table.addCell("Cost Per Kg");
-            table.addCell("Contribution (kg)");
+            // ---------- Header / Summary ----------
+            PdfPTable summary = new PdfPTable(new float[]{30f, 70f});
+            summary.setWidthPercentage(100);
 
-            for (FormulationIngredient fi : f.getIngredients()) {
-                table.addCell(fi.getRawMaterial().getName());
-                table.addCell(String.valueOf(fi.getPercentage()));
-                table.addCell(String.valueOf(fi.getRawMaterial().getCostPerKg()));
-                table.addCell(String.format("%.2f", (fi.getPercentage() * f.getBatchSize()) / 100.0));
+            summary.addCell(hcell.apply("Formulation Name"));
+            summary.addCell(ccell.apply(f.getName()));
+
+            summary.addCell(hcell.apply("Version"));
+            summary.addCell(ccell.apply(f.getVersion() != null ? f.getVersion() : "-"));
+
+            summary.addCell(hcell.apply("Status"));
+            summary.addCell(ccell.apply(f.getStatus() != null ? f.getStatus() : "-"));
+
+            summary.addCell(hcell.apply("Batch Size (kg)"));
+            summary.addCell(ccell.apply(fmt.apply(f.getBatchSize())));
+
+            summary.addCell(hcell.apply("Cost / kg (formulation)"));
+            summary.addCell(ccell.apply("LKR " + fmt.apply(f.getCostPerKg())));
+
+            if (f.getStrategy() != null && !f.getStrategy().isBlank()) {
+                summary.addCell(hcell.apply("Strategy"));
+                summary.addCell(ccell.apply(f.getStrategy()));
+            }
+            if (f.getNotes() != null && !f.getNotes().isBlank()) {
+                summary.addCell(hcell.apply("Notes"));
+                summary.addCell(ccell.apply(f.getNotes()));
             }
 
-            doc.add(table);
-            doc.close();
+            doc.add(summary);
+            doc.add(Chunk.NEWLINE);
 
+            // ---------- Recipe Table ----------
+            PdfPTable table = new PdfPTable(new float[]{34f, 12f, 16f, 18f, 20f});
+            table.setWidthPercentage(100);
+
+            table.addCell(hcell.apply("Ingredient"));
+            table.addCell(hcell.apply("% Incl."));
+            table.addCell(hcell.apply("Kg (batch)"));
+            table.addCell(hcell.apply("Cost / kg (LKR)"));
+            table.addCell(hcell.apply("Total Cost (LKR)"));
+
+            double totalKg = 0.0;
+            double totalCost = 0.0;
+
+            if (f.getIngredients() != null) {
+                for (FormulationIngredient fi : f.getIngredients()) {
+                    // Resolve display name
+                    String ingName =
+                        (fi.getRawMaterial() != null && fi.getRawMaterial().getName() != null)
+                            ? fi.getRawMaterial().getName()
+                            : (fi.getRawMaterialName() != null ? fi.getRawMaterialName() : "—");
+
+                    // Percentage (prefer explicit percentage, else derive from quantity)
+                    Double pct = fi.getPercentage();
+                    if (pct == null && f.getBatchSize() > 0 && fi.getQuantityKg() > 0) {
+                        pct = (fi.getQuantityKg() / f.getBatchSize()) * 100.0;
+                    }
+                    if (pct == null) pct = 0.0;
+
+                    // Kg contribution (prefer quantityKg; else compute from %)
+                    double kg = (fi.getQuantityKg() > 0)
+                            ? fi.getQuantityKg()
+                            : ((pct * f.getBatchSize()) / 100.0);
+
+                    // Cost per kg (prefer ingredient override; else from raw material; else 0)
+                    double costPerKg = 0.0;
+                    if (fi.getCostPerKg() > 0) {
+                        costPerKg = fi.getCostPerKg();
+                    } else if (fi.getRawMaterial() != null && fi.getRawMaterial().getCostPerKg() != null) {
+                        costPerKg = fi.getRawMaterial().getCostPerKg();
+                    }
+
+                    double lineCost = kg * costPerKg;
+
+                    totalKg += kg;
+                    totalCost += lineCost;
+
+                    table.addCell(ccell.apply(ingName));
+                    table.addCell(ccell.apply(fmt.apply(pct)));
+                    table.addCell(ccell.apply(fmt.apply(kg)));
+                    table.addCell(ccell.apply(fmt.apply(costPerKg)));
+                    table.addCell(ccell.apply(fmt.apply(lineCost)));
+                }
+            }
+
+            // Totals row
+            PdfPCell totLabel = new PdfPCell(new Phrase("Totals",
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10)));
+            totLabel.setColspan(2);
+            totLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            totLabel.setBackgroundColor(new Color(245, 245, 245));
+            totLabel.setPadding(6f);
+            table.addCell(totLabel);
+
+            PdfPCell totKg = new PdfPCell(new Phrase(fmt.apply(totalKg),
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10)));
+            totKg.setHorizontalAlignment(Element.ALIGN_LEFT);
+            totKg.setBackgroundColor(new Color(245, 245, 245));
+            totKg.setPadding(6f);
+            table.addCell(totKg);
+
+            // empty cell under Cost/kg column in totals
+            PdfPCell blank = new PdfPCell(new Phrase(" "));
+            blank.setBackgroundColor(new Color(245, 245, 245));
+            blank.setPadding(6f);
+            table.addCell(blank);
+
+            PdfPCell totCost = new PdfPCell(new Phrase(fmt.apply(totalCost),
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10)));
+            totCost.setHorizontalAlignment(Element.ALIGN_LEFT);
+            totCost.setBackgroundColor(new Color(245, 245, 245));
+            totCost.setPadding(6f);
+            table.addCell(totCost);
+
+            doc.add(table);
+            doc.add(Chunk.NEWLINE);
+
+            // ---------- Cost Summary (computed) ----------
+            PdfPTable cs = new PdfPTable(new float[]{50f, 50f});
+            cs.setWidthPercentage(60);
+            cs.setHorizontalAlignment(Element.ALIGN_LEFT);
+
+            double computedCostPerKg = (f.getBatchSize() > 0) ? (totalCost / f.getBatchSize()) : 0.0;
+
+            cs.addCell(hcell.apply("Computed Cost / kg"));
+            cs.addCell(ccell.apply("LKR " + fmt.apply(computedCostPerKg)));
+
+            cs.addCell(hcell.apply("Total Batch Cost"));
+            cs.addCell(ccell.apply("LKR " + fmt.apply(totalCost)));
+
+            doc.add(cs);
+
+            doc.close();
             return out.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException("PDF export failed", e);

@@ -101,13 +101,28 @@ const FormulationLibraryPage = () => {
     }
   };
 
-  const handleExportPDF = (f) => {
-    const doc = new jsPDF();
-    doc.text(`Formulation: ${f.name}`, 10, 10);
-    doc.text(`Status: ${f.status}`, 10, 20);
-    doc.text(`Version: ${f.version}`, 10, 30);
-    doc.text(`Cost/kg: ${f.costPerKg || 'N/A'}`, 10, 40);
-    doc.save(`${f.name}.pdf`);
+  const handleExportPDF = async (f) => {
+    try {
+      const response = await fetch(`/api/formulations/${f.id}/export/pdf`, {
+        method: "GET",
+        headers: {
+          "Accept": "application/pdf",
+        },
+      });
+    
+      if (!response.ok) throw new Error("Failed to download PDF");
+    
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `${f.name}_v${f.version}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      console.error("Export failed", error);
+    }
   };
 
   const handleExportExcel = (f) => {
