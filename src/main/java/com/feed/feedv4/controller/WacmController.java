@@ -33,7 +33,8 @@ public class WacmController {
         RawMaterial updated = wacmService.receiveStock(
                 req.rawMaterialId(),
                 req.quantity(),
-                req.unitCost()
+                req.unitCost(),
+                req.reference()   // optional
         );
         return ResponseEntity.ok(updated);
     }
@@ -46,7 +47,8 @@ public class WacmController {
         }
         RawMaterial updated = wacmService.issueStock(
                 req.rawMaterialId(),
-                req.quantity()
+                req.quantity(),
+                req.reference()   // optional
         );
         return ResponseEntity.ok(updated);
     }
