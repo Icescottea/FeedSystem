@@ -27,6 +27,10 @@ public class RawMaterial {
     private Double ash;
     private boolean archived;
 
+    // WACM fields
+    private Double weightedAvgCost = 0.0;
+    private Double totalValue = 0.0;
+
     // === Getters and Setters ===
 
     public Long getId() { return id; }
@@ -79,4 +83,11 @@ public class RawMaterial {
 
     public boolean isArchived() { return archived; }
     public void setArchived(boolean archived) { this.archived = archived; }
+
+    public double getWeightedAvgCost() { return weightedAvgCost; } 
+    public void setWeightedAvgCost(Double weightedAvgCost) { this.weightedAvgCost = weightedAvgCost; }
+
+    public double getTotalValue() { return totalValue; }
+    public void setTotalValue(Double totalValue) { this.totalValue = totalValue; }
+    
 }

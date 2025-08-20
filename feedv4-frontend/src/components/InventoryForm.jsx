@@ -21,11 +21,13 @@ const InventoryForm = ({ item, onSuccess, onCancel }) => {
     ash: '',
     locked: false,
     archived: false,
+    // read-only WACM display (if backend provides)
+    weightedAvgCost: '',
+    totalValue: '',
   });
 
   useEffect(() => {
     if (item) {
-      // Spread to avoid mutating incoming object
       setForm({
         id: item.id,
         name: item.name ?? '',
@@ -44,6 +46,8 @@ const InventoryForm = ({ item, onSuccess, onCancel }) => {
         ash: item.ash ?? '',
         locked: !!item.locked,
         archived: !!item.archived,
+        weightedAvgCost: item.weightedAvgCost ?? '',
+        totalValue: item.totalValue ?? '',
       });
     }
   }, [item]);
@@ -93,16 +97,15 @@ const InventoryForm = ({ item, onSuccess, onCancel }) => {
     onSuccess();
   };
 
-  /* Field meta: [name, label, inputType] */
   const FIELDS = [
     ['name', 'Name', 'text'],
-    ['type', 'Type', 'text'],              // replace w/ <select> later if you want strict categories
-    ['costPerKg', 'Cost per Kg', 'number'],
+    ['type', 'Type', 'text'],
+    ['costPerKg', 'Cost per Kg (initial/base)', 'number'],
     ['inStockKg', 'Stock (Kg)', 'number'],
     ['expiryDate', 'Expiry Date', 'date'],
     ['supplier', 'Supplier', 'text'],
     ['batchId', 'Batch ID', 'text'],
-    ['qualityGrade', 'Quality Grade', 'text'], // could be select A/B/C
+    ['qualityGrade', 'Quality Grade', 'text'],
     ['cp', 'CP', 'number'],
     ['me', 'ME', 'number'],
     ['calcium', 'Calcium', 'number'],
@@ -120,14 +123,10 @@ const InventoryForm = ({ item, onSuccess, onCancel }) => {
         {item ? 'Edit Raw Material' : 'Add Raw Material'}
       </h2>
 
-      {/* Responsive dense grid; wraps instead of widening layout */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 text-xs sm:text-sm">
         {FIELDS.map(([name, label, type]) => (
           <div key={name} className="flex flex-col">
-            <label
-              htmlFor={name}
-              className="block text-gray-600 mb-1 whitespace-nowrap"
-            >
+            <label htmlFor={name} className="block text-gray-600 mb-1 whitespace-nowrap">
               {label}
             </label>
             <input
@@ -143,6 +142,30 @@ const InventoryForm = ({ item, onSuccess, onCancel }) => {
             />
           </div>
         ))}
+
+        {/* Read-only WACM display when editing */}
+        {item && (
+          <>
+            <div className="flex flex-col">
+              <label className="block text-gray-600 mb-1 whitespace-nowrap">Weighted Avg Cost (WAC)</label>
+              <input
+                type="number"
+                value={form.weightedAvgCost || 0}
+                readOnly
+                className="w-full border border-gray-200 bg-gray-50 rounded px-2 py-1.5 text-gray-600"
+              />
+            </div>
+            <div className="flex flex-col">
+              <label className="block text-gray-600 mb-1 whitespace-nowrap">Total Value</label>
+              <input
+                type="number"
+                value={form.totalValue || 0}
+                readOnly
+                className="w-full border border-gray-200 bg-gray-50 rounded px-2 py-1.5 text-gray-600"
+              />
+            </div>
+          </>
+        )}
       </div>
 
       <div className="flex items-center mt-4 gap-4 text-xs sm:text-sm">

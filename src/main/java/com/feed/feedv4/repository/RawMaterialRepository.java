@@ -2,8 +2,13 @@ package com.feed.feedv4.repository;
 import java.util.Optional;
 
 import com.feed.feedv4.model.RawMaterial;
+
+import jakarta.persistence.LockModeType;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -21,5 +26,10 @@ public interface RawMaterialRepository extends JpaRepository<RawMaterial, Long> 
 
     @Query("SELECT r FROM RawMaterial r WHERE r.inStockKg > :minStock AND r.archived = false")
     List<RawMaterial> findByInStockKgGreaterThanAndArchivedFalse(double minStock);
+
+    List<RawMaterial> findByNameContainingIgnoreCase(String q);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM RawMaterial r WHERE r.id = :id")
+    Optional<RawMaterial> findByIdForUpdate(@Param("id") Long id);
     
 }
