@@ -107,13 +107,6 @@ const InventoryList = ({
                       >
                         Receive
                       </button>
-                      <button
-                        onClick={() => onIssue?.(item)}
-                        className="text-pink-700 hover:underline px-1"
-                        title="Issue stock (uses current WAC)"
-                      >
-                        Issue
-                      </button>
                     </div>
                   )}
                 </td>
