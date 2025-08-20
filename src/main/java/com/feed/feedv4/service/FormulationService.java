@@ -55,21 +55,36 @@ public class FormulationService {
     private final FeedProfileRepository feedProfileRepository;
     private final PelletingBatchRepository pelletingBatchRepository;
 
+    private Formulation getFullById(Long id) {
+        return repository.findFullById(id)
+            .orElseThrow(() -> new RuntimeException("Formulation not found: " + id));
+    }
+
     private double computeCostPerKg(Formulation f) {
-        if (f.getIngredients() == null || f.getIngredients().isEmpty() || f.getBatchSize() <= 0) return 0.0;
+        if (f.getIngredients() == null || f.getIngredients().isEmpty()) return 0.0;
+
         double totalCost = 0.0;
-        for (FormulationIngredient fi : f.getIngredients()) {
+        double batchSize = f.getBatchSize() > 0 ? f.getBatchSize() : 0.0;
+
+        for (var fi : f.getIngredients()) {
+            // % → kg fallback
             Double pct = fi.getPercentage();
-            double kg = (fi.getQuantityKg() != 0) ? fi.getQuantityKg()
-                     : (pct != null ? (pct / 100.0) * f.getBatchSize() : 0.0);
+            double kg = (fi.getQuantityKg() != 0)
+                    ? fi.getQuantityKg()
+                    : (pct != null && batchSize > 0 ? (pct * batchSize) / 100.0 : 0.0);
 
-            double rmCost = (fi.getCostPerKg() > 0) ? fi.getCostPerKg()
-                           : (fi.getRawMaterial() != null && fi.getRawMaterial().getCostPerKg() != null)
-                             ? fi.getRawMaterial().getCostPerKg() : 0.0;
+            // cost/kg precedence: fi.costPerKg → rawMaterial.costPerKg → 0
+            double cpk = 0.0;
+            if (fi.getCostPerKg() > 0) {
+                cpk = fi.getCostPerKg();
+            } else if (fi.getRawMaterial() != null && fi.getRawMaterial().getCostPerKg() != null) {
+                cpk = fi.getRawMaterial().getCostPerKg();
+            }
 
-            totalCost += kg * rmCost;
+            totalCost += kg * cpk;
         }
-        return totalCost / f.getBatchSize();
+
+        return (batchSize > 0) ? (totalCost / batchSize) : 0.0;
     }
 
     @Autowired
@@ -761,11 +776,15 @@ public class FormulationService {
     }
 
     public void finalize(Long id) {
-        Formulation f = getById(id);
+        Formulation f = getFullById(id); // <-- FULL
         f.setFinalized(true);
         f.setStatus("Finalized");
         f.setUpdatedAt(LocalDateTime.now());
-        f.setCostPerKg(computeCostPerKg(getFullById(id)));
+        
+        // recompute and store
+        double cpk = computeCostPerKg(f);
+        f.setCostPerKg(cpk);
+        
         repository.save(f);
         
         logAction(f, "FINALIZED", "Formulation marked as finalized");
@@ -780,12 +799,6 @@ public class FormulationService {
             .build();
         
         pelletingBatchRepository.save(pelletingBatch);
-    }
-
-    @Transactional(readOnly = true)
-    public Formulation getFullById(Long id) {
-        return repository.findFullById(id)
-            .orElseThrow(() -> new RuntimeException("Formulation not found"));
     }
 
 }
