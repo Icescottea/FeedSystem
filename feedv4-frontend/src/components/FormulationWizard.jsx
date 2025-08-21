@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { showToast } from '../components/toast';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
@@ -15,7 +13,7 @@ const FormulationWizard = ({ onFinish }) => {
   const [profiles, setProfiles] = useState([]);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [factory, setFactories] = useState('');
+  const [factories, setFactories] = useState([]);   // ← list of factories
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -26,19 +24,18 @@ const FormulationWizard = ({ onFinish }) => {
   }, []);
 
   useEffect(() => {
-  const fetchFactories = async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/factories`);
-      if (!response.ok) throw new Error("Failed to fetch factories");
-      const data = await response.json();
-      setFactories(data);
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  fetchFactories();
-}, []);
+    const fetchFactories = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/factories`);
+        if (!res.ok) throw new Error("Failed to fetch factories");
+        const data = await res.json();
+        setFactories(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+    fetchFactories();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -47,8 +44,8 @@ const FormulationWizard = ({ onFinish }) => {
 
   const handleProfileChange = (e) => {
     const profileId = e.target.value;
-    const profile = profiles.find(p => p.id == profileId);
-    setSelectedProfile(profile);
+    const profile = profiles.find(p => String(p.id) === String(profileId));
+    setSelectedProfile(profile || null);
     handleChange(e);
   };
 
@@ -57,19 +54,26 @@ const FormulationWizard = ({ onFinish }) => {
       alert("Formulation name and feed profile are required.");
       return;
     }
-
     setIsGenerating(true);
-    onFinish({
-      name: formulation.name,
-      factory: formulation.factory,
-      profileId: Number(formulation.profileId),
-      batchSize: Number(formulation.batchSize)
-    }).finally(() => setIsGenerating(false));
+    Promise.resolve(
+      onFinish({
+        name: formulation.name,
+        factory: formulation.factory,
+        profileId: Number(formulation.profileId),
+        batchSize: Number(formulation.batchSize)
+      })
+    ).finally(() => setIsGenerating(false));
   };
 
   return (
     <div className="space-y-6 text-sm text-gray-800">
       <h2 className="text-lg font-semibold mb-2">Formulation Generator</h2>
+
+      {error && (
+        <div className="p-2 rounded bg-red-50 text-red-700 text-xs">
+          {error}
+        </div>
+      )}
 
       <div className="space-y-4">
         <div>
@@ -85,18 +89,17 @@ const FormulationWizard = ({ onFinish }) => {
 
         <div>
           <label className="block text-sm font-medium mb-1">Factory</label>
-            <select
-              value={factory}
-              onChange={(e) => setFactory(e.target.value)}
-              className="border rounded px-3 py-2 w-full"
-            >
-              <option value="">Select a factory</option>
-              {factories.map(f => (
-                <option key={f.id} value={f.name}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
+          <select
+            name="factory"
+            value={formulation.factory}
+            onChange={handleChange}
+            className="border rounded px-3 py-2 w-full"
+          >
+            <option value="">Select a factory</option>
+            {factories.map(f => (
+              <option key={f.id} value={f.name}>{f.name}</option>
+            ))}
+          </select>
         </div>
 
         <div>
