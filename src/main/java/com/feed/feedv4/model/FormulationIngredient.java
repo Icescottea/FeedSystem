@@ -1,6 +1,7 @@
 package com.feed.feedv4.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
 @Entity
@@ -23,6 +24,7 @@ public class FormulationIngredient {
 
     @ManyToOne
     @JoinColumn(name = "formulation_id")
+    @JsonIgnore // Prevent circular reference in JSON serialization
     private Formulation formulation;
 
     @ManyToOne
