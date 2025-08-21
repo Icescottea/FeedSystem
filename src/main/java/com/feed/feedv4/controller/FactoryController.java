@@ -1,6 +1,7 @@
 package com.feed.feedv4.controller;
 
 import com.feed.feedv4.dto.FactoryDTO;
+import com.feed.feedv4.model.Factory;
 import com.feed.feedv4.service.FactoryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -47,4 +48,10 @@ public class FactoryController {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/factories")
+    public ResponseEntity<List<Factory>> getAllFactories() {
+        return ResponseEntity.ok(service.getAllFactories());
+    }
+
 }

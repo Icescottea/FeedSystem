@@ -100,4 +100,8 @@ public class FactoryService {
     private String nullSafe(String s) {
         return (s == null) ? null : s.trim();
     }
+
+    public List<Factory> getAllFactories() {
+        return repo.findAll();
+    }
 }

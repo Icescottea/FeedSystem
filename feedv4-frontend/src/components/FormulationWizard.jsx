@@ -15,6 +15,7 @@ const FormulationWizard = ({ onFinish }) => {
   const [profiles, setProfiles] = useState([]);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [factories, setFactories] = useState([]);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/feed-profiles`)
@@ -22,6 +23,21 @@ const FormulationWizard = ({ onFinish }) => {
       .then(setProfiles)
       .catch(err => console.error("Failed to load feed profiles:", err));
   }, []);
+
+  useEffect(() => {
+  const fetchFactories = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/factories`);
+      if (!response.ok) throw new Error("Failed to fetch factories");
+      const data = await response.json();
+      setFactories(data);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  fetchFactories();
+}, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -67,14 +83,19 @@ const FormulationWizard = ({ onFinish }) => {
         </div>
 
         <div>
-          <label className="block font-medium mb-1">Factory Name:</label>
-          <input
-            type="text"
-            name="factory"
-            value={formulation.factory}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-          />
+          <label className="block text-sm font-medium mb-1">Factory</label>
+            <select
+              value={factory}
+              onChange={(e) => setFactory(e.target.value)}
+              className="border rounded px-3 py-2 w-full"
+            >
+              <option value="">Select a factory</option>
+              {factories.map(f => (
+                <option key={f.id} value={f.name}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
         </div>
 
         <div>
