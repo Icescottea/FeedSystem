@@ -1,5 +1,6 @@
 package com.feed.feedv4.controller;
 
+import com.feed.feedv4.dto.IngredientViewDTO;
 import com.feed.feedv4.model.PelletingBatch;
 import com.feed.feedv4.repository.PelletingBatchRepository;
 import com.feed.feedv4.service.PelletingBatchService;
@@ -123,6 +124,11 @@ public class PelletingBatchController {
         String machineUsed = String.valueOf(body.get("machineUsed"));
         Long operatorId = Long.valueOf(String.valueOf(body.get("operatorId")));
         return ResponseEntity.ok(service.startBatch(id, machineUsed, operatorId));
+    }
+
+    @GetMapping("/{id}/ingredients")
+    public ResponseEntity<List<IngredientViewDTO>> getBatchIngredients(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getIngredientsForBatch(id));
     }
 
 }

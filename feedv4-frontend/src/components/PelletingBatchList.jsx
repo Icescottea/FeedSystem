@@ -6,6 +6,10 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL;
 const PelletingBatchList = () => {
   const navigate = useNavigate();
   const [batches, setBatches] = useState([]);
+  const [showView, setShowView] = useState(false);
+  const [viewRows, setViewRows] = useState([]);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewError, setViewError] = useState('');
   const INVOICE_NEW_ROUTE = '/finance/invoices/new';
   const [statusFilter, setStatusFilter] = useState('');
   const [showArchived, setShowArchived] = useState(false);
@@ -18,6 +22,23 @@ const PelletingBatchList = () => {
       .then(res => res.json())
       .then(data => setBatches(Array.isArray(data) ? data : []))
       .catch(() => setBatches([]));
+  };
+
+  const handleView = async (batchId) => {
+    setShowView(true);
+    setViewLoading(true);
+    setViewError('');
+    setViewRows([]);
+    try {
+      const res = await fetch(`${API_BASE}/api/pelleting/${batchId}/ingredients`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setViewRows(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setViewError('Failed to load ingredients');
+    } finally {
+      setViewLoading(false);
+    }
   };
 
   const handleStart = async (batchId) => {
@@ -159,6 +180,14 @@ const PelletingBatchList = () => {
                         Ready for Invoicing
                       </span>
                     )}
+                    {b.status && (
+                      <button
+                        onClick={() => handleView(b.id)}
+                        className="text-indigo-600 hover:underline text-xs"
+                      >
+                        View
+                      </button>
+                    )}
                     <button
                       onClick={async () => {
                         const res = await fetch(`${API_BASE}/api/pelleting/${b.id}/archive?archived=${!b.archived}`, { method: 'PATCH' });
@@ -176,6 +205,65 @@ const PelletingBatchList = () => {
           </table>
         </div>
       </div>
+
+      {showView && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg w-[640px] max-w-[95vw] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Formulation Ingredients</h3>
+              <button
+                onClick={() => setShowView(false)}
+                className="text-sm text-gray-600 hover:text-gray-800"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {viewLoading && <div className="text-sm text-gray-600">Loading…</div>}
+            {viewError && <div className="text-sm text-red-600">{viewError}</div>}
+            
+            {!viewLoading && !viewError && (
+              <div className="overflow-x-auto">
+                <table className="min-w-[520px] table-auto text-sm w-full">
+                  <thead className="bg-gray-100 text-gray-600">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Ingredient</th>
+                      <th className="px-3 py-2 text-right">% Incl.</th>
+                      <th className="px-3 py-2 text-right">Kg (batch)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {viewRows.map((r, idx) => (
+                      <tr key={idx}>
+                        <td className="px-3 py-2">{r.name}</td>
+                        <td className="px-3 py-2 text-right">{Number(r.percentage ?? 0).toFixed(2)}</td>
+                        <td className="px-3 py-2 text-right">{Number(r.quantityKg ?? 0).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                    {viewRows.length === 0 && (
+                      <tr>
+                        <td colSpan="3" className="px-3 py-3 text-center text-gray-500">
+                          No ingredients found.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+      
+            <div className="mt-4 text-right">
+              <button
+                onClick={() => setShowView(false)}
+                className="px-4 py-1.5 rounded bg-gray-200 hover:bg-gray-300 text-gray-900 text-sm"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

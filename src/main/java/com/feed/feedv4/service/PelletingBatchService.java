@@ -2,15 +2,18 @@ package com.feed.feedv4.service;
 
 import com.feed.feedv4.model.PelletingBatch;
 import com.feed.feedv4.model.Formulation;
+import com.feed.feedv4.model.FormulationIngredient;
 import com.feed.feedv4.model.User;
 import com.feed.feedv4.repository.PelletingBatchRepository;
 import com.feed.feedv4.repository.FormulationRepository;
 import com.feed.feedv4.repository.UserRepository;
+import com.feed.feedv4.dto.IngredientViewDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 
 @Service
 public class PelletingBatchService {
@@ -184,4 +187,40 @@ public class PelletingBatchService {
         calculateTimeTaken(saved);
         return saved;
     }
+
+    public List<IngredientViewDTO> getIngredientsForBatch(Long batchId) {
+        PelletingBatch batch = pelletingRepo.findById(batchId)
+                .orElseThrow(() -> new RuntimeException("Batch not found"));
+
+        // Load formulation with ingredients + raw materials
+        Formulation f = formulationRepo.findFullById(batch.getFormulation().getId())
+                .orElseThrow(() -> new RuntimeException("Formulation not found"));
+
+        double batchSize = f.getBatchSize();
+        List<IngredientViewDTO> rows = new ArrayList<>();
+
+        if (f.getIngredients() != null) {
+            for (FormulationIngredient fi : f.getIngredients()) {
+                String name =
+                    (fi.getRawMaterial() != null && fi.getRawMaterial().getName() != null)
+                        ? fi.getRawMaterial().getName()
+                        : (fi.getRawMaterialName() != null ? fi.getRawMaterialName() : "-");
+
+                Double pct = fi.getPercentage();
+                if (pct == null && batchSize > 0 && fi.getQuantityKg() > 0) {
+                    pct = (fi.getQuantityKg() / batchSize) * 100.0;
+                }
+                if (pct == null) pct = 0.0;
+
+                double qtyKg = (fi.getQuantityKg() > 0)
+                        ? fi.getQuantityKg()
+                        : ((pct * batchSize) / 100.0);
+
+                rows.add(new IngredientViewDTO(name, pct, qtyKg));
+            }
+        }
+
+        return rows;
+    }
+
 }
