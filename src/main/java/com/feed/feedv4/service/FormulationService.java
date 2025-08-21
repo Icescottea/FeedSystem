@@ -13,6 +13,7 @@ import com.feed.feedv4.repository.FormulationLogRepository;
 import com.feed.feedv4.repository.FormulationRepository;
 import com.feed.feedv4.repository.RawMaterialRepository;
 import com.feed.feedv4.repository.PelletingBatchRepository;
+import com.feed.feedv4.dto.FormulationSaveRequest;
 
 import com.lowagie.text.Chunk;
 import com.lowagie.text.Document;
@@ -799,6 +800,92 @@ public class FormulationService {
             .build();
         
         pelletingBatchRepository.save(pelletingBatch);
+    }
+
+    @Transactional
+    public Formulation createFromEngine(FormulationSaveRequest req) {
+        if (req == null) throw new IllegalArgumentException("Request is null");
+        if (req.batchSize <= 0) throw new IllegalArgumentException("Batch size must be > 0");
+
+        Formulation f = new Formulation();
+        f.setName(req.name);
+        f.setFactory(req.factory);
+        f.setBatchSize(req.batchSize);
+        f.setStatus("Draft");
+        f.setVersion("v1");
+        f.setLocked(false);
+        f.setFinalized(false);
+        f.setCreatedAt(LocalDateTime.now());
+        f.setUpdatedAt(LocalDateTime.now());
+
+        if (req.profileId != null && feedProfileRepository != null) {
+            feedProfileRepository.findById(req.profileId).ifPresent(f::setFeedProfile);
+        }
+
+        var items = new ArrayList<FormulationIngredient>();
+        double totalCost = 0.0;
+
+        if (req.ingredients != null) {
+            for (var in : req.ingredients) {
+                if ((in.percentage == null || in.percentage < 0) &&
+                    (in.quantityKg == null || in.quantityKg < 0)) {
+                    // ignore fully empty rows
+                    continue;
+                }
+
+                var fi = new FormulationIngredient();
+                fi.setFormulation(f);
+
+                // Resolve raw material (if provided)
+                RawMaterial rm = null;
+                if (in.materialId != null) {
+                    rm = rawMaterialRepository.findById(in.materialId)
+                            .orElse(null); // allow missing gracefully
+                }
+                fi.setRawMaterial(rm);
+                fi.setRawMaterialName(in.name != null ? in.name
+                        : (rm != null ? rm.getName() : null));
+
+                // Determine percentage & kg (fill whichever is missing)
+                Double pct = in.percentage;
+                Double kg  = in.quantityKg;
+
+                if (pct == null && kg != null) {
+                    pct = (kg / req.batchSize) * 100.0;
+                } else if (kg == null && pct != null) {
+                    kg = (pct / 100.0) * req.batchSize;
+                }
+                if (pct == null) pct = 0.0;
+                if (kg  == null)  kg = 0.0;
+
+                fi.setPercentage(pct);
+                fi.setContributionPercent(pct);
+                fi.setQuantityKg(kg);
+
+                // Determine cost/kg (priority: DTO override -> RawMaterial.weightedAvgCost -> RawMaterial.costPerKg -> 0)
+                double costPerKg = 0.0;
+                if (in.costPerKg != null && in.costPerKg > 0) {
+                    costPerKg = in.costPerKg;
+                } else if (rm != null && rm.getWeightedAvgCost() != -1 && rm.getWeightedAvgCost() > 0) {
+                    costPerKg = rm.getWeightedAvgCost();
+                } else if (rm != null && rm.getCostPerKg() != null && rm.getCostPerKg() > 0) {
+                    costPerKg = rm.getCostPerKg();
+                }
+                fi.setCostPerKg(costPerKg);
+
+                totalCost += kg * costPerKg;
+                items.add(fi);
+            }
+        }
+
+        f.setIngredients(items);
+
+        // store formulation cost/kg (computed)
+        double costPerKg = totalCost > 0 ? (totalCost / req.batchSize) : 0.0;
+        f.setCostPerKg(costPerKg);
+
+        // cascade saves ingredients
+        return repository.save(f);
     }
 
 }

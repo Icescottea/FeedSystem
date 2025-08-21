@@ -9,6 +9,8 @@ import com.feed.feedv4.repository.FeedProfileRepository;
 import com.feed.feedv4.repository.FormulationLogRepository;
 import com.feed.feedv4.repository.FormulationRepository;
 import com.feed.feedv4.service.FormulationService;
+import com.feed.feedv4.dto.FormulationSaveRequest;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -199,6 +201,11 @@ public class FormulationController {
     public ResponseEntity<String> finalize(@PathVariable Long id) {
         service.finalize(id);
         return ResponseEntity.ok("Formulation finalized and sent to pelleting");
+    }
+
+    @PostMapping
+    public ResponseEntity<Formulation> create(@RequestBody FormulationSaveRequest req) {
+        return ResponseEntity.ok(service.createFromEngine(req));
     }
 
 }

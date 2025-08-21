@@ -28,6 +28,7 @@ public class RawMaterial {
     private boolean archived;
 
     // WACM fields
+    @Column(nullable = true)
     private Double weightedAvgCost;
     private Double totalValue;
 
