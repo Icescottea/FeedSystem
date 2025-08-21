@@ -151,7 +151,7 @@ public class FormulationController {
     }
 
     @PostMapping
-    public ResponseEntity<Formulation> createFormulation(@RequestBody FormulationGenerationRequest request) {
+    public ResponseEntity<Formulation> createSeed(@RequestBody FormulationGenerationRequest request) {
         FeedProfile profile = feedProfileRepository.findById(request.getProfileId())
             .orElseThrow(() -> new RuntimeException("Feed Profile not found"));
 
