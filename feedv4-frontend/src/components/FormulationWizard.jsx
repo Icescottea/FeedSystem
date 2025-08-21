@@ -15,7 +15,8 @@ const FormulationWizard = ({ onFinish }) => {
   const [profiles, setProfiles] = useState([]);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [factories, setFactories] = useState([]);
+  const [factory, setFactories] = useState('');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/feed-profiles`)
