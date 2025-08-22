@@ -111,6 +111,12 @@ const InvoiceListPage = () => {
                       >
                         Delete
                       </button>
+                      <button
+                        onClick={() => window.open(`${API_BASE}/api/invoices/${inv.id}/export/pdf`, '_blank')}
+                        className="text-red-600 hover:underline"
+                      >
+                        PDF
+                      </button>
                     </div>
                   </td>
                 </tr>

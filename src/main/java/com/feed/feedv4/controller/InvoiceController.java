@@ -3,6 +3,7 @@ package com.feed.feedv4.controller;
 import com.feed.feedv4.dto.CreateInvoiceDTO;
 import com.feed.feedv4.model.Invoice;
 import com.feed.feedv4.service.InvoiceService;
+import com.feed.feedv4.service.InvoicePdfService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,9 +14,11 @@ import java.util.List;
 public class InvoiceController {
 
     private final InvoiceService invoiceService;
+    private final InvoicePdfService invoicePdfService;
 
-    public InvoiceController(InvoiceService invoiceService) {
+    public InvoiceController(InvoiceService invoiceService, InvoicePdfService invoicePdfService) {
         this.invoiceService = invoiceService;
+        this.invoicePdfService = invoicePdfService;
     }
 
     // ===== List / Read =====
@@ -104,4 +107,14 @@ public class InvoiceController {
         if (fallback != null) return fallback;
         return 0d;
     }
+
+    @GetMapping("/{id}/export/pdf")
+    public ResponseEntity<byte[]> exportInvoicePdf(@PathVariable Long id) {
+        byte[] file = invoicePdfService.exportInvoicePdf(id);
+        return ResponseEntity.ok()
+                .header("Content-Type", "application/pdf")
+                .header("Content-Disposition", "attachment; filename=invoice-" + id + ".pdf")
+                .body(file);
+    }
+
 }
