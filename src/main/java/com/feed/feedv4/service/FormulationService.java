@@ -56,6 +56,9 @@ public class FormulationService {
     private final FeedProfileRepository feedProfileRepository;
     private final PelletingBatchRepository pelletingBatchRepository;
 
+    @Autowired
+    private WacmService wacmService;
+
     private Formulation getFullById(Long id) {
         return repository.findFullById(id)
             .orElseThrow(() -> new RuntimeException("Formulation not found: " + id));
@@ -776,29 +779,62 @@ public class FormulationService {
         logRepository.save(log);
     }
 
+    @Transactional
     public void finalize(Long id) {
-        Formulation f = getFullById(id); // <-- FULL
+        // Load with ingredients + raw materials
+        Formulation f = getFullById(id);
+    
+        // Mark final + recompute CPK
         f.setFinalized(true);
         f.setStatus("Finalized");
         f.setUpdatedAt(LocalDateTime.now());
-        
-        // recompute and store
         double cpk = computeCostPerKg(f);
         f.setCostPerKg(cpk);
-        
         repository.save(f);
+    
+        // === WACM auto-deduct for the FULL batch ===
+        if (f.getIngredients() != null && !f.getIngredients().isEmpty()) {
+            final double batchKg = f.getBatchSize() > 0 ? f.getBatchSize() : 0.0;
         
-        logAction(f, "FINALIZED", "Formulation marked as finalized");
-        
-        // 🚀 Auto-create PelletingBatch
+            for (FormulationIngredient fi : f.getIngredients()) {
+                if (fi == null) continue;
+                if (fi.getRawMaterial() == null || fi.getRawMaterial().getId() == null) {
+                    // Skip lines without a bound raw material (or throw if you prefer strictness)
+                    continue;
+                }
+            
+                // Prefer explicit %; if null, derive from quantityKg
+                Double pct = fi.getPercentage();
+                if ((pct == null || pct <= 0) && batchKg > 0 && fi.getQuantityKg() > 0) {
+                    pct = (fi.getQuantityKg() / batchKg) * 100.0;
+                }
+                if (pct == null) pct = 0.0;
+            
+                // Quantity to issue for this finalization = full batch contribution
+                double issueKg = (fi.getQuantityKg() != 0.0)
+                        ? fi.getQuantityKg()
+                        : (pct / 100.0) * batchKg;
+            
+                if (issueKg <= 0) continue;
+            
+                // Will throw if insufficient stock → transaction rolls back
+                String ref = "FORMULATION_FINALIZE #" + f.getId();
+                wacmService.issueStock(fi.getRawMaterial().getId(), issueKg, ref);
+            }
+        }
+    
+        // Log AFTER successful deductions
+        logAction(f, "FINALIZED", "Formulation marked as finalized and stock deducted");
+    
+        // Auto-create PelletingBatch (Not Started)
         PelletingBatch pelletingBatch = PelletingBatch.builder()
             .formulation(f)
-            .targetQuantityKg(f.getBatchSize()) // Replace with actual field if different
+            .targetQuantityKg(f.getBatchSize())
             .status("Not Started")
             .createdAt(LocalDateTime.now())
             .updatedAt(LocalDateTime.now())
             .build();
-        
+    
         pelletingBatchRepository.save(pelletingBatch);
     }
 

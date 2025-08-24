@@ -48,8 +48,8 @@ const Sidebar = ({ roles }) => {
             <Target size={14} className="text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold">FeedV4</h1>
-            <p className="text-[10px] text-gray-400">Production System</p>
+            <h1 className="text-lg font-bold">Feed</h1>
+            <p className="text-[10px] text-gray-400">Management System</p>
           </div>
         </div>
       </div>
