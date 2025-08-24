@@ -55,7 +55,7 @@ const Sidebar = ({ roles }) => {
       </div>
 
       {/* Navigation - Fixed with scrolling */}
-      <nav className="flex-1 p-1 space-y-1 overflow-y-auto scroll-smooth 
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto scroll-smooth 
                       [&::-webkit-scrollbar]:w-1
                       [&::-webkit-scrollbar-thumb]:bg-gray-600
                       [&::-webkit-scrollbar-thumb]:rounded-full
