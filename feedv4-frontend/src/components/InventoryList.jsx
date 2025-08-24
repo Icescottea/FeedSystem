@@ -60,7 +60,7 @@ const InventoryList = ({
                 {/* Base cost (legacy field) */}
                 <td className="px-3 py-2">{item.costPerKg}</td>
 
-                <td className="px-3 py-2">{item.inStockKg}</td>
+                <td className="px-3 py-2">{item.inStockKg?.toFixed(2) || 'N/A'}</td>
 
                 {/* NEW: Total Value */}
                 <td className="px-3 py-2">{item.totalValue ?? (item.inStockKg && item.weightedAvgCost ? (item.inStockKg * item.weightedAvgCost).toFixed(2) : '-')}</td>
