@@ -13,7 +13,7 @@ const InvoiceForm = () => {
   const [form, setForm] = useState({
     customerName: '',
     batchId: initialBatchId,
-    feeType: '',      // renamed from serviceType
+    feeType: '',
     feeConfigId: null,
     amount: 0,
     discount: 0,
@@ -23,9 +23,9 @@ const InvoiceForm = () => {
     referenceId: null
   });
 
-  const [options, setOptions] = useState([]); // [{id, name}]
-  const [batch, setBatch] = useState(null);   // { actualYieldKg, targetQuantityKg, formulation:{ costPerKg } }
-  const [selectedCfg, setSelectedCfg] = useState(null); // full config
+  const [options, setOptions] = useState([]);
+  const [batch, setBatch] = useState(null);
+  const [selectedCfg, setSelectedCfg] = useState(null);
 
   // load dropdown + batch
   useEffect(() => {
@@ -44,33 +44,37 @@ const InvoiceForm = () => {
         })
         .catch(() => setBatch(null));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialBatchId]);
 
+  // recalc total when cfg/batch/discount/tax changes
   useEffect(() => {
     if (selectedCfg && batch) {
-      const next = computeTotal(selectedCfg, batch);
-      setForm(prev => ({ ...prev, amount: next }));
+      const basePlusFees = computeBasePlusFees(selectedCfg, batch);
+      const adjusted = applyDiscountAndTax(basePlusFees, form.discount, form.taxRate);
+      setForm(prev => ({ ...prev, amount: adjusted }));
     }
-  }, [selectedCfg, batch]);
+  }, [selectedCfg, batch, form.discount, form.taxRate]);
 
-  const computeTotal = (cfg, b) => {
-    if (!cfg || !b) return 0;
+  const computeBasePlusFees = (cfg, b) => {
     const qty = (b.actualYieldKg && b.actualYieldKg > 0) ? b.actualYieldKg : (b.targetQuantityKg || 0);
     const costPerKg = Number(b.formulation?.costPerKg) || 0;
 
-    // fees – adapt property names to your backend fields
-    const pelletingPerKg   = (cfg.pelletingPerKg   ?? cfg.pelletingFeePerKg   ?? cfg.pelletingFee   ?? 0) * 1;
-    const systemPercent    = (cfg.systemPercent    ?? cfg.systemFeePercent    ?? 0) * 1;
-    const formulationPerKg = (cfg.formulationPerKg ?? cfg.formulationFeePerKg ?? cfg.formulationFee ?? 0) * 1;
+    const pelletingPerKg   = (cfg.pelletingPerKg   ?? cfg.pelletingFee   ?? 0);
+    const systemPercent    = (cfg.systemPercent    ?? cfg.systemFeePercent ?? 0);
+    const formulationPerKg = (cfg.formulationPerKg ?? cfg.formulationFee ?? 0);
 
-    const base        = qty * costPerKg;                  // actual formulation cost
+    const base        = qty * costPerKg;
     const pelleting   = qty * pelletingPerKg;
     const formulation = qty * formulationPerKg;
     const system      = base * (systemPercent / 100);
 
-    // ✅ correct sum + round
     return round2(base + pelleting + formulation + system);
+  };
+
+  const applyDiscountAndTax = (base, discount, taxRate) => {
+    const afterDiscount = base - (Number(discount) || 0);
+    const afterTax = afterDiscount + afterDiscount * ((Number(taxRate) || 0) / 100);
+    return round2(Math.max(afterTax, 0));
   };
 
   const handleChange = e => {
@@ -88,8 +92,6 @@ const InvoiceForm = () => {
     try {
       const full = await fetch(`${API_BASE}/api/charges-config/${cfgId}/normalized`).then(r => r.json());
       setSelectedCfg(full);
-      const nextAmount = computeTotal(full, batch);
-      setForm(prev => ({ ...prev, amount: nextAmount }));
     } catch {
       setSelectedCfg(null);
     }
@@ -100,7 +102,7 @@ const InvoiceForm = () => {
     const payload = {
       customerName: form.customerName,
       batchId: form.batchId || null,
-      serviceType: form.feeType,   // keep backend compat; or rename to feeType there
+      serviceType: form.feeType,
       feeConfigId: form.feeConfigId,
       amount: form.amount,
       discount: form.discount,
@@ -117,21 +119,8 @@ const InvoiceForm = () => {
     })
       .then(res => { if (!res.ok) throw new Error('Failed to create invoice'); return res.json(); })
       .then(() => {
-        setForm({
-          customerName: '',
-          batchId: '',
-          feeType: '',
-          feeConfigId: null,
-          amount: 0,
-          discount: 0,
-          taxRate: 0,
-          quantityKg: 0,
-          unitRate: 0,
-          referenceId: null
-        });
-
         alert('Invoice created successfully!');
-        navigate('/finance/invoices'); // redirect to invoice list
+        navigate('/finance/invoices');
       })
       .catch(err => console.error('Error creating invoice:', err));
   };
@@ -160,17 +149,25 @@ const InvoiceForm = () => {
             <option value="">Select fee configuration</option>
             {options.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
-          {form.feeType && batch && (
-            <p className="text-[11px] text-gray-500 mt-1">
-              Qty: {form.quantityKg} kg · Cost/kg: {batch?.formulation?.costPerKg ?? 0}
-            </p>
-          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Discount (Rs.)</label>
+            <input name="discount" type="number" step="0.01" min="0" value={form.discount ?? 0} onChange={handleChange}
+                   className="w-full border rounded-md px-3 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Tax (%)</label>
+            <input name="taxRate" type="number" step="0.01" min="0" value={form.taxRate ?? 0} onChange={handleChange}
+                   className="w-full border rounded-md px-3 py-2 text-sm" />
+          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Amount (LKR)</label>
-          <input name="amount" type="number" step="0.01" min="0" value={form.amount ?? 0} onChange={handleChange}
-                 className="w-full border rounded-md px-3 py-2 text-sm" placeholder="0.00" required />
+          <label className="block text-sm font-medium mb-1">Final Amount (LKR)</label>
+          <input name="amount" type="number" step="0.01" min="0" value={form.amount ?? 0} readOnly
+                 className="w-full border rounded-md px-3 py-2 text-sm bg-gray-100" />
         </div>
       </div>
 

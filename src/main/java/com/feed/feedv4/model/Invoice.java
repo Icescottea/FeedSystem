@@ -24,6 +24,8 @@ public class Invoice {
     private double amountPaid;
     private LocalDateTime paymentDate;
     private LocalDateTime updatedAt;
+    private Double taxRate;       // percentage
+    private Double discount;
 
 
     @PrePersist
@@ -141,5 +143,20 @@ public class Invoice {
 
     public double getTotalAmount() {
         return this.amount;
+    }
+
+    public void setTaxRate(Double taxRate) {
+        this.taxRate = taxRate;
+    }
+    public Double getTaxRate() {
+        return taxRate;
+    }
+    
+    public void setDiscount(Double discount) {
+        this.discount = discount;
+    }
+
+    public Double getDiscount() {
+        return discount;
     }
 }
