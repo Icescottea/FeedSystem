@@ -64,29 +64,46 @@ public class InvoiceService {
 
         final double baseCost = round2(qtyKg * costPerKg); // manufacturing cost
 
-        // --- 2) Add fees from ChargesConfig (looked up by NAME) ---
-        double pelletingFeeTotal   = 0.0;
-        double formulationFeeTotal = 0.0;
-        double systemFeeTotal      = 0.0;
-        String feeTypeDisplayName  = dto.getServiceType(); // this is the config NAME per your payload
+        ChargesConfig cfg = null;
+        String feeTypeDisplayName = dto.getServiceType();
+        if (feeTypeDisplayName != null) feeTypeDisplayName = feeTypeDisplayName.trim();
 
-        if (feeTypeDisplayName != null && !feeTypeDisplayName.isBlank()) {
-            ChargesConfig cfg = chargesRepo.findByNameIgnoreCase(feeTypeDisplayName)
-                    .orElseThrow(() -> new RuntimeException("ChargesConfig not found by name: " + feeTypeDisplayName));
+        if (feeTypeDisplayName != null && !feeTypeDisplayName.isEmpty()) {
+            // 1) try by name (your UI sends names like "standard")
+            cfg = chargesRepo.findByNameIgnoreCase(feeTypeDisplayName).orElse(null);
+        
+            // 2) if not found, and looks numeric, try by id
+            if (cfg == null) {
+                try {
+                    Long cfgId = Long.valueOf(feeTypeDisplayName);
+                    cfg = chargesRepo.findById(cfgId).orElse(null);
+                } catch (NumberFormatException ignore) { /* not an ID */ }
+            }
+        }
 
-            // per-kg portions
-            double pelletingPerKg   = safe(cfg.getPelletingFeeType()   == ChargesConfig.FeeBasis.PER_KG   ? cfg.getPelletingFee()   : 0.0);
-            double formulationPerKg = safe(cfg.getFormulationFeeType() == ChargesConfig.FeeBasis.PER_KG   ? cfg.getFormulationFee() : 0.0);
+        // 3) final fallback to latest active config (so fees won’t be zero silently)
+        if (cfg == null) {
+            cfg = chargesRepo.findTopByActiveTrueAndArchivedFalseOrderByUpdatedAtDesc()
+                    .orElseGet(() -> chargesRepo.findTopByActiveTrueAndArchivedFalseOrderByCreatedAtDesc()
+                            .orElse(null));
+        }
 
-            // per-batch portions
-            double pelletingPerBatch   = safe(cfg.getPelletingFeeType()   == ChargesConfig.FeeBasis.PER_BATCH ? cfg.getPelletingFee()   : 0.0);
-            double formulationPerBatch = safe(cfg.getFormulationFeeType() == ChargesConfig.FeeBasis.PER_BATCH ? cfg.getFormulationFee() : 0.0);
-
+        // compute fees only if we resolved a config
+        double pelletingFeeTotal = 0, formulationFeeTotal = 0, systemFeeTotal = 0;
+        if (cfg != null) {
+            if (feeTypeDisplayName == null || feeTypeDisplayName.isBlank()) {
+                feeTypeDisplayName = cfg.getName();
+            }
+        
+            double pelletingPerKg   = (cfg.getPelletingFeeType()   == ChargesConfig.FeeBasis.PER_KG)   ? safe(cfg.getPelletingFee())   : 0.0;
+            double formulationPerKg = (cfg.getFormulationFeeType() == ChargesConfig.FeeBasis.PER_KG)   ? safe(cfg.getFormulationFee()) : 0.0;
+            double pelletingPerBatch   = (cfg.getPelletingFeeType()   == ChargesConfig.FeeBasis.PER_BATCH) ? safe(cfg.getPelletingFee())   : 0.0;
+            double formulationPerBatch = (cfg.getFormulationFeeType() == ChargesConfig.FeeBasis.PER_BATCH) ? safe(cfg.getFormulationFee()) : 0.0;
             double systemPercent = safe(cfg.getSystemFeePercent());
-
+        
             pelletingFeeTotal   = round2(qtyKg * pelletingPerKg) + pelletingPerBatch;
             formulationFeeTotal = round2(qtyKg * formulationPerKg) + formulationPerBatch;
-            systemFeeTotal      = round2(baseCost * (systemPercent / 100.0)); // % of actual manufacturing cost
+            systemFeeTotal      = round2(baseCost * (systemPercent / 100.0));
         }
 
         final double grandTotal = round2(baseCost + pelletingFeeTotal + formulationFeeTotal + systemFeeTotal);
