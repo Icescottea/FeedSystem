@@ -12,4 +12,6 @@ public interface ChargesConfigRepository extends JpaRepository<ChargesConfig, Lo
 
     // Fallback if updatedAt is null on older rows → order by CREATED time
     Optional<ChargesConfig> findTopByActiveTrueAndArchivedFalseOrderByCreatedAtDesc();
+
+    Optional<ChargesConfig> findByNameIgnoreCase(String name);
 }
