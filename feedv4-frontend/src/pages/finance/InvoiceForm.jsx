@@ -48,29 +48,29 @@ const InvoiceForm = () => {
   }, [initialBatchId]);
 
   useEffect(() => {
-   if (selectedCfg && batch) {
-     const next = computeTotal(selectedCfg, batch);
-     setForm(prev => ({ ...prev, amount: next }));
-   }
+    if (selectedCfg && batch) {
+      const next = computeTotal(selectedCfg, batch);
+      setForm(prev => ({ ...prev, amount: next }));
+    }
   }, [selectedCfg, batch]);
 
   const computeTotal = (cfg, b) => {
     if (!cfg || !b) return 0;
     const qty = (b.actualYieldKg && b.actualYieldKg > 0) ? b.actualYieldKg : (b.targetQuantityKg || 0);
-    const costPerKg = b.formulation?.costPerKg || 0;
+    const costPerKg = Number(b.formulation?.costPerKg) || 0;
 
     // fees – adapt property names to your backend fields
-    const pelletingPerKg   = cfg.pelletingPerKg   ?? cfg.pelletingFeePerKg   ?? 0;
-    const systemPercent    = cfg.systemPercent    ?? cfg.systemFeePercent    ?? 0;
-    const formulationPerKg = cfg.formulationPerKg ?? cfg.formulationFeePerKg ?? 0;
+    const pelletingPerKg   = (cfg.pelletingPerKg   ?? cfg.pelletingFeePerKg   ?? cfg.pelletingFee   ?? 0) * 1;
+    const systemPercent    = (cfg.systemPercent    ?? cfg.systemFeePercent    ?? 0) * 1;
+    const formulationPerKg = (cfg.formulationPerKg ?? cfg.formulationFeePerKg ?? cfg.formulationFee ?? 0) * 1;
 
-    const base = qty * costPerKg; // actual formulation cost
-
+    const base        = qty * costPerKg;                  // actual formulation cost
     const pelleting   = qty * pelletingPerKg;
     const formulation = qty * formulationPerKg;
-    const system      = (qty * costPerKg) * (systemPercent / 100);
+    const system      = base * (systemPercent / 100);
 
-    return round2(base, pelleting + formulation + system);
+    // ✅ correct sum + round
+    return round2(base + pelleting + formulation + system);
   };
 
   const handleChange = e => {
