@@ -84,4 +84,7 @@ public class Payment {
         this.notes = notes;
     }
 
+    public Long getId() {
+        return id;
+    }
 }

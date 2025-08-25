@@ -13,6 +13,18 @@ const PaymentListPage = () => {
       .catch(() => setPayments([]));
   };
 
+  const exportReceipt = async (id) => {
+    const res = await fetch(`${API_BASE}/api/payments/${id}/export/pdf`);
+    if (!res.ok) return alert('Failed to export receipt');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `receipt-${id}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   useEffect(fetchPayments, []);
 
   return (
@@ -35,6 +47,7 @@ const PaymentListPage = () => {
                 <th className="px-3 py-2 text-left">Method</th>
                 <th className="px-3 py-2 text-left">Date</th>
                 <th className="px-3 py-2 text-left">Notes</th>
+                <th className="px-3 py-2 text-left">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -47,6 +60,13 @@ const PaymentListPage = () => {
                     {new Date(p.paidAt || p.paymentDate || '').toLocaleString() || '-'}
                   </td>
                   <td className="px-3 py-2 truncate max-w-[200px]">{p.notes || '-'}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex gap-3 text-xs items-center">
+                      <button onClick={() => exportReceipt(payment.id)} className="text-red-600 hover:underline px-1">
+                        PDF
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

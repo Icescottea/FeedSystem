@@ -2,6 +2,7 @@ package com.feed.feedv4.controller;
 
 import com.feed.feedv4.dto.CreatePaymentDTO;
 import com.feed.feedv4.model.Payment;
+import com.feed.feedv4.service.PaymentPdfService;
 import com.feed.feedv4.service.PaymentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,9 +14,11 @@ import java.util.List;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final PaymentPdfService paymentPdfService;
 
-    public PaymentController(PaymentService paymentService) {
+    public PaymentController(PaymentService paymentService, PaymentPdfService paymentPdfService) {
         this.paymentService = paymentService;
+        this.paymentPdfService = paymentPdfService;
     }
 
     // List all payments
@@ -48,4 +51,14 @@ public class PaymentController {
         paymentService.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/{id}/export/pdf")
+    public ResponseEntity<byte[]> exportPaymentPdf(@PathVariable Long id) {
+        byte[] file = paymentPdfService.exportPaymentReceiptPdf(id);
+        return ResponseEntity.ok()
+                .header("Content-Type", "application/pdf")
+                .header("Content-Disposition", "attachment; filename=receipt-" + id + ".pdf")
+                .body(file);
+    }
+
 }
