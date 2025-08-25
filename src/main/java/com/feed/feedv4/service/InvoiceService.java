@@ -41,61 +41,64 @@ public class InvoiceService {
     /* -------------------- CREATE -------------------- */
     @Transactional
     public Invoice createInvoice(CreateInvoiceDTO dto) {
-        // 1) Resolve batch (optional)
+        // --- 1) Resolve batch & base cost (manufacturing cost) ---
         PelletingBatch batch = null;
-        double qtyKg = n(dto.getQuantityKg()); // allow override from DTO, else derive from batch
+        double qtyKg = 0.0;
         double costPerKg = 0.0;
 
         if (dto.getBatchId() != null) {
             batch = batchRepo.findWithFormulationById(dto.getBatchId())
                     .orElseThrow(() -> new RuntimeException("Batch not found: " + dto.getBatchId()));
 
-            if (qtyKg <= 0) {
-                qtyKg = (batch.getActualYieldKg() > 0 ? batch.getActualYieldKg()
-                        : (batch.getTargetQuantityKg() > 0 ? batch.getTargetQuantityKg() : 0));
-            }
+            qtyKg = (batch.getActualYieldKg() > 0 ? batch.getActualYieldKg()
+                    : (batch.getTargetQuantityKg() > 0 ? batch.getTargetQuantityKg() : 0));
 
             if (batch.getFormulation() != null) {
-                costPerKg = n(batch.getFormulation().getCostPerKg());
+                costPerKg = safe(batch.getFormulation().getCostPerKg());
                 if (costPerKg <= 0) {
+                    // fallback: compute from ingredients we just join-fetched
                     costPerKg = computeCostPerKgFromIngredients(batch.getFormulation());
                 }
             }
         }
 
-        // 2) Base (manufacturing) cost from formulation
-        final double baseCost = round2(qtyKg * costPerKg);
+        final double baseCost = round2(qtyKg * costPerKg); // manufacturing cost
 
-        // 3) Load charges config (serviceType is a NAME in your system)
-        String feeTypeDisplayName = dto.getServiceType();
-        double pelletingPerKg = 0, formulationPerKg = 0, systemPercent = 0;
+        // --- 2) Add fees from ChargesConfig (looked up by NAME) ---
+        double pelletingFeeTotal   = 0.0;
+        double formulationFeeTotal = 0.0;
+        double systemFeeTotal      = 0.0;
+        String feeTypeDisplayName  = dto.getServiceType(); // this is the config NAME per your payload
 
-        ChargesConfig cfg = resolveChargesConfig(dto.getServiceType());
-        if (cfg != null) {
-            pelletingPerKg   = n(cfg.getPelletingFee());        // adapt to your field names if different
-            formulationPerKg = n(cfg.getFormulationFee());      // adapt to your field names if different
-            systemPercent    = n(cfg.getSystemFeePercent());    // adapt to your field names if different
+        if (feeTypeDisplayName != null && !feeTypeDisplayName.isBlank()) {
+            ChargesConfig cfg = chargesRepo.findByNameIgnoreCase(feeTypeDisplayName)
+                    .orElseThrow(() -> new RuntimeException("ChargesConfig not found by name: " + feeTypeDisplayName));
 
-            if (feeTypeDisplayName == null || feeTypeDisplayName.isBlank()) {
-                feeTypeDisplayName = cfg.getName();
-            }
+            // per-kg portions
+            double pelletingPerKg   = safe(cfg.getPelletingFeeType()   == ChargesConfig.FeeBasis.PER_KG   ? cfg.getPelletingFee()   : 0.0);
+            double formulationPerKg = safe(cfg.getFormulationFeeType() == ChargesConfig.FeeBasis.PER_KG   ? cfg.getFormulationFee() : 0.0);
+
+            // per-batch portions
+            double pelletingPerBatch   = safe(cfg.getPelletingFeeType()   == ChargesConfig.FeeBasis.PER_BATCH ? cfg.getPelletingFee()   : 0.0);
+            double formulationPerBatch = safe(cfg.getFormulationFeeType() == ChargesConfig.FeeBasis.PER_BATCH ? cfg.getFormulationFee() : 0.0);
+
+            double systemPercent = safe(cfg.getSystemFeePercent());
+
+            pelletingFeeTotal   = round2(qtyKg * pelletingPerKg) + pelletingPerBatch;
+            formulationFeeTotal = round2(qtyKg * formulationPerKg) + formulationPerBatch;
+            systemFeeTotal      = round2(baseCost * (systemPercent / 100.0)); // % of actual manufacturing cost
         }
 
-        // 4) Fees based on config
-        final double pelletingFee   = round2(qtyKg * pelletingPerKg);
-        final double formulationFee = round2(qtyKg * formulationPerKg);
-        final double systemFee      = round2(baseCost * (systemPercent / 100.0));
+        final double grandTotal = round2(baseCost + pelletingFeeTotal + formulationFeeTotal + systemFeeTotal);
 
-        // 5) GRAND TOTAL = base manufacturing cost + all fees
-        final double grandTotal = round2(baseCost + pelletingFee + formulationFee + systemFee);
-
-        // 6) Build + save invoice
+        // --- 3) Build & save invoice ---
         Invoice inv = new Invoice();
         inv.setCustomerId(dto.getCustomerId());
         inv.setCustomerName(dto.getCustomerName());
-        inv.setServiceType(feeTypeDisplayName); // storing config name as before
+        inv.setServiceType(feeTypeDisplayName); // store the config name as you do now
         inv.setBatchId(dto.getBatchId());
-        inv.setAmount(grandTotal);              // server-authoritative total
+
+        inv.setAmount(grandTotal);          // authoritative total
         inv.setStatus("Unpaid");
         inv.setDateIssued(LocalDateTime.now());
         inv.setPaid(false);
@@ -162,7 +165,7 @@ public class InvoiceService {
         return chargesRepo.findByNameIgnoreCase(key).orElse(null);
     }
 
-    private double n(Double v) {
+    private double safe(Double v) {
         return v == null ? 0.0 : v;
     }
 

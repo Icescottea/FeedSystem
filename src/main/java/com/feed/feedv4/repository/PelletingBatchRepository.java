@@ -14,6 +14,13 @@ public interface PelletingBatchRepository extends JpaRepository<PelletingBatch, 
     List<PelletingBatch> findByArchivedFalse();
     List<PelletingBatch> findByStatusAndArchivedFalse(String status);
     int countByStatus(String status);
-    @Query("select b from PelletingBatch b join fetch b.formulation f where b.id = :id")
+    @Query("""
+      select b
+      from PelletingBatch b
+      join fetch b.formulation f
+      left join fetch f.ingredients i
+      left join fetch i.rawMaterial rm
+      where b.id = :id
+    """)
     Optional<PelletingBatch> findWithFormulationById(@Param("id") Long id);
 }
