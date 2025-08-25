@@ -62,7 +62,7 @@ const PaymentListPage = () => {
                   <td className="px-3 py-2 truncate max-w-[200px]">{p.notes || '-'}</td>
                   <td className="px-3 py-2">
                     <div className="flex gap-3 text-xs items-center">
-                      <button onClick={() => exportReceipt(payment.id)} className="text-red-600 hover:underline px-1">
+                      <button onClick={() => exportReceipt(payments.id)} className="text-red-600 hover:underline px-1">
                         PDF
                       </button>
                     </div>
