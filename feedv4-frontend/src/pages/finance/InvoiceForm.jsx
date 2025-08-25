@@ -59,14 +59,18 @@ const InvoiceForm = () => {
     const qty = (b.actualYieldKg && b.actualYieldKg > 0) ? b.actualYieldKg : (b.targetQuantityKg || 0);
     const costPerKg = b.formulation?.costPerKg || 0;
 
-    // adapt these property names to your ChargesConfig model if different
-    const { pelletingPerKg = 0, systemPercent = 0, formulationPerKg = 0 } = cfg;
+    // fees – adapt property names to your backend fields
+    const pelletingPerKg   = cfg.pelletingPerKg   ?? cfg.pelletingFeePerKg   ?? 0;
+    const systemPercent    = cfg.systemPercent    ?? cfg.systemFeePercent    ?? 0;
+    const formulationPerKg = cfg.formulationPerKg ?? cfg.formulationFeePerKg ?? 0;
+
+    const base = qty * costPerKg; // actual formulation cost
 
     const pelleting   = qty * pelletingPerKg;
     const formulation = qty * formulationPerKg;
     const system      = (qty * costPerKg) * (systemPercent / 100);
 
-    return round2(pelleting + formulation + system);
+    return round2(base, pelleting + formulation + system);
   };
 
   const handleChange = e => {
