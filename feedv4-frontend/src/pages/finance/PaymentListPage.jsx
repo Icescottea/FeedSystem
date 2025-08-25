@@ -14,6 +14,7 @@ const PaymentListPage = () => {
   };
 
   const exportReceipt = async (id) => {
+    if (!id) return alert('Payment id missing');
     const res = await fetch(`${API_BASE}/api/payments/${id}/export/pdf`);
     if (!res.ok) return alert('Failed to export receipt');
     const blob = await res.blob();
@@ -51,18 +52,21 @@ const PaymentListPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {payments.map((p, idx) => (
-                <tr key={idx} className="hover:bg-gray-50 whitespace-nowrap">
+              {payments.map((p) => (
+                <tr key={p.id ?? `${p.invoice?.id}-${p.paymentDate}`} className="hover:bg-gray-50 whitespace-nowrap">
                   <td className="px-3 py-2">{p.invoice?.id ?? '-'}</td>
-                  <td className="px-3 py-2">Rs. {p.amountPaid?.toFixed(2) ?? '-'}</td>
+                  <td className="px-3 py-2">Rs. {typeof p.amountPaid === 'number' ? p.amountPaid.toFixed(2) : '-'}</td>
                   <td className="px-3 py-2">{p.paymentMethod || '-'}</td>
                   <td className="px-3 py-2">
-                    {new Date(p.paidAt || p.paymentDate || '').toLocaleString() || '-'}
+                    {p.paidAt || p.paymentDate ? new Date(p.paidAt || p.paymentDate).toLocaleString() : '-'}
                   </td>
                   <td className="px-3 py-2 truncate max-w-[200px]">{p.notes || '-'}</td>
                   <td className="px-3 py-2">
                     <div className="flex gap-3 text-xs items-center">
-                      <button onClick={() => exportReceipt(payments.id)} className="text-red-600 hover:underline px-1">
+                      <button
+                        onClick={() => exportReceipt(p.id)}  // <-- FIXED
+                        className="text-red-600 hover:underline px-1"
+                      >
                         PDF
                       </button>
                     </div>
