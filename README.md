@@ -110,3 +110,61 @@ Follow these steps to set up the project locally for development and testing.
 spring.datasource.url=jdbc:mysql://localhost:3306/feedv4
 spring.datasource.username=your_username
 spring.datasource.password=your_password
+```
+
+**Frontend – `Create .env:`:**
+
+REACT_APP_API_BASE_URL=http://localhost:8080
+
+## Docker Support
+
+Build and run with Docker
+
+### Build image
+```docker build -t feedv4 .```
+
+### Run container
+```docker run -p 8080:8080 feedv4```
+
+## 📋 System Workflow
+
+User Login: Operators and managers authenticate through the frontend.
+
+Feed Formulation: Generate or manually build feed formulations based on nutrient constraints.
+
+Inventory Management: Track raw materials, costs, and stock levels.
+
+Production Management: Manage pelleting queues, batches, and yields.
+
+Financial Tracking: Create invoices, monitor receivables, and generate reports.
+
+Exports: Export PDF or Excel reports for compliance and record-keeping.
+
+## 🔐 Security Features
+
+Role-based access control built into the backend.
+
+Passwords securely stored (BCrypt).
+
+Input validation and sanitization to prevent SQL injection and XSS.
+
+HTTPS-ready with environment-based configuration.
+
+## 📊 Data Visualization
+
+Performance metrics, cost breakdowns, and production insights are visualized in real-time using Chart.js on the frontend.
+
+## 👥 Default User Roles
+
+Operator: Handles batch production and inventory updates.
+
+Manager: Oversees feed formulation, production scheduling, and financials.
+
+Admin: Full access to all system modules and configuration settings.
+
+## 📝 License
+
+This project is proprietary software. All rights reserved.
+
+
+
