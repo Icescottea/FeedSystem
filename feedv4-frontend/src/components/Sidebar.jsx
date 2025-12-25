@@ -134,7 +134,7 @@ const Sidebar = ({ roles }) => {
         )}
 
         {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
-          <Dropdown label="Sales" icon={CreditCard} menuKey="sales">
+          <Dropdown label="Purchases" icon={CreditCard} menuKey="purchases">
             <NavLink to="/sales/vendors">
               Vendors
             </NavLink>
