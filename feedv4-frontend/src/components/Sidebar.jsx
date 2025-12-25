@@ -8,7 +8,7 @@ import {
   Factory,
   DollarSign,
   Wrench,
-  User as UserIcon,
+  User,
   ChevronDown,
   CreditCard,
   Target
@@ -37,7 +37,7 @@ const Sidebar = ({ roles }) => {
           : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
       `}
     >
-      <Icon size={16} />
+      {Icon && <Icon size={16} />}
       {children}
     </Link>
   );
@@ -168,8 +168,8 @@ const Sidebar = ({ roles }) => {
         )}
 
         {roles.includes('ADMIN') && (
-          <Dropdown label="Admin" icon={UserIcon} menuKey="admin">
-            <NavLink to="/users" icon={UserIcon}>
+          <Dropdown label="Admin" icon={User} menuKey="admin">
+            <NavLink to="/users" icon={User}>
               Users
             </NavLink>
             <NavLink to="/factories" icon={Factory}>
