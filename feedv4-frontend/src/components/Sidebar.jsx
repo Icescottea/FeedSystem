@@ -98,13 +98,13 @@ const Sidebar = ({ roles }) => {
           </NavLink>
         )}
         
-        {(roles.includes('ADMIN') || roles.include('OPERATOR')) && (
+        {(roles.includes('ADMIN') || roles.includes('OPERATOR')) && (
           <NavLink to="/pelleting" icon={Factory}>
             Pelleting
           </NavLink>
         )}
 
-        {(roles.includes('ADMIN') || roles.include('FINANACE_OFFICER')) && (
+        {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
           <NavLink to="/finance" icon={DollarSign}>
             Finance
           </NavLink>
@@ -127,7 +127,7 @@ const Sidebar = ({ roles }) => {
             <NavLink to="/sales/receipts">
               Sales Receipts
             </NavLink>
-            <NavLink to="/sales/payaments-received">
+            <NavLink to="/sales/payments-received">
               Payments Received
             </NavLink>
           </Dropdown>
@@ -135,19 +135,19 @@ const Sidebar = ({ roles }) => {
 
         {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
           <Dropdown label="Purchases" icon={CreditCard} menuKey="purchases">
-            <NavLink to="/sales/vendors">
+            <NavLink to="/purchases/vendors">
               Vendors
             </NavLink>
-            <NavLink to="/sales/expenses">
+            <NavLink to="/purchases/expenses">
               Expenses
             </NavLink>
-            <NavLink to="/sales/purchase-orders">
+            <NavLink to="/purchases/purchase-orders">
               Purchase Orders
             </NavLink>
-            <NavLink to="/sales/bills">
+            <NavLink to="/purchases/bills">
               Bills
             </NavLink>
-            <NavLink to="/sales/payments-made">
+            <NavLink to="/purchases/payments-made">
               Payments Made
             </NavLink>
           </Dropdown>
