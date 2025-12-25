@@ -10,6 +10,7 @@ import {
   Wrench,
   User as UserIcon,
   ChevronDown,
+  CreditCard,
   Target
 } from 'lucide-react';
 
@@ -96,17 +97,58 @@ const Sidebar = ({ roles }) => {
             Inventory
           </NavLink>
         )}
+        
+        {(roles.includes('ADMIN') || roles.include('OPERATOR')) && (
+          <NavLink to="/pelleting" icon={Factory}>
+            Pelleting
+          </NavLink>
+        )}
+
+        {(roles.includes('ADMIN') || roles.include('FINANACE_OFFICER')) && (
+          <NavLink to="/finance" icon={DollarSign}>
+            Finance
+          </NavLink>
+        )}
 
         {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
           <Dropdown label="Sales" icon={DollarSign} menuKey="sales">
-            <NavLink to="/sales/customers" icon={UserIcon}>
+            <NavLink to="/sales/customers">
               Customers
             </NavLink>
-            <NavLink to="/sales/quotes" icon={Library}>
+            <NavLink to="/sales/quotes">
               Quotes
             </NavLink>
-            <NavLink to="/sales/invoices" icon={Factory}>
+            <NavLink to="/sales/sales-orders">
+              Sales Orders
+            </NavLink>
+            <NavLink to="/sales/invoices">
               Invoices
+            </NavLink>
+            <NavLink to="/sales/receipts">
+              Sales Receipts
+            </NavLink>
+            <NavLink to="/sales/payaments-received">
+              Payments Received
+            </NavLink>
+          </Dropdown>
+        )}
+
+        {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
+          <Dropdown label="Sales" icon={CreditCard} menuKey="sales">
+            <NavLink to="/sales/vendors">
+              Vendors
+            </NavLink>
+            <NavLink to="/sales/expenses">
+              Expenses
+            </NavLink>
+            <NavLink to="/sales/purchase-orders">
+              Purchase Orders
+            </NavLink>
+            <NavLink to="/sales/bills">
+              Bills
+            </NavLink>
+            <NavLink to="/sales/payments-made">
+              Payments Made
             </NavLink>
           </Dropdown>
         )}
@@ -123,18 +165,6 @@ const Sidebar = ({ roles }) => {
               Profiles
             </NavLink>
           </Dropdown>
-        )}
-
-        {(roles.includes('ADMIN') || roles.include('OPERATOR')) && (
-          <NavLink to="/pelleting" icon={Factory}>
-            Pelleting
-          </NavLink>
-        )}
-
-        {(roles.includes('ADMIN') || roles.include('FINANACE_OFFICER')) && (
-          <NavLink to="/finance" icon={DollarSign}>
-            Finance
-          </NavLink>
         )}
 
         {roles.includes('ADMIN') && (
