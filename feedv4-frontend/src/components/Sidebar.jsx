@@ -7,6 +7,7 @@ import {
   Library,
   Factory,
   DollarSign,
+  Wrench,
   User as UserIcon,
   ChevronDown,
   Target
@@ -65,12 +66,12 @@ const Sidebar = ({ roles }) => {
   );
 
   return (
-    <div className="w-60 bg-gray-900 text-white flex flex-col h-full">
+    <div className="w-60 bg-gray-900 text-white flex flex-col h-full shadow-md text-sm leading-tight">
       {/* Header */}
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center">
-            <Target size={14} />
+            <Target size={14} className="text-white"/>
           </div>
           <div>
             <h1 className="text-lg font-bold">Feed</h1>
@@ -80,7 +81,12 @@ const Sidebar = ({ roles }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto scroll-smooth 
+                      [&::-webkit-scrollbar]:w-1
+                      [&::-webkit-scrollbar-thumb]:bg-gray-600
+                      [&::-webkit-scrollbar-thumb]:rounded-full
+                      [&::-webkit-scrollbar-thumb:hover]:bg-gray-500
+                      [&::-webkit-scrollbar-track]:bg-gray-800">
         <NavLink to="/dashboard" icon={LayoutDashboard}>
           Dashboard
         </NavLink>
@@ -113,7 +119,22 @@ const Sidebar = ({ roles }) => {
             <NavLink to="/formulation-library" icon={Library}>
               Library
             </NavLink>
+            <NavLink to="/feed-profiles" icon={Target}>
+              Profiles
+            </NavLink>
           </Dropdown>
+        )}
+
+        {(roles.include('ADMIN') || roles.include('OPERATOR')) && (
+          <NavLink to="/pelleting" icon={Factory}>
+            Pelleting
+          </NavLink>
+        )}
+
+        {(roles.include('ADMIN') || roles.include('FINANACE_OFFICER')) && (
+          <NavLink to="/finance" icon={DollarSign}>
+            Finance
+          </NavLink>
         )}
 
         {roles.includes('ADMIN') && (
