@@ -125,13 +125,13 @@ const Sidebar = ({ roles }) => {
           </Dropdown>
         )}
 
-        {(roles.include('ADMIN') || roles.include('OPERATOR')) && (
+        {(roles.includes('ADMIN') || roles.include('OPERATOR')) && (
           <NavLink to="/pelleting" icon={Factory}>
             Pelleting
           </NavLink>
         )}
 
-        {(roles.include('ADMIN') || roles.include('FINANACE_OFFICER')) && (
+        {(roles.includes('ADMIN') || roles.include('FINANACE_OFFICER')) && (
           <NavLink to="/finance" icon={DollarSign}>
             Finance
           </NavLink>
