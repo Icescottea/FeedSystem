@@ -5,17 +5,16 @@ import {
   Package,
   Beaker,
   Library,
-  Wrench,
-  Target,
   Factory,
   DollarSign,
+  User as UserIcon,
   ChevronDown,
-  User as UserIcon
+  Target
 } from 'lucide-react';
 
 const Sidebar = ({ roles }) => {
   const location = useLocation();
-  const [openMenus, setOpenMenus] = useState();
+  const [openMenus, setOpenMenus] = useState({});
 
   const toggleMenu = (key) => {
     setOpenMenus(prev => ({
@@ -66,12 +65,12 @@ const Sidebar = ({ roles }) => {
   );
 
   return (
-    <div className="w-60 bg-gray-900 text-white flex flex-col h-full shadow-md text-sm leading-tight">
+    <div className="w-60 bg-gray-900 text-white flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center">
-            <Target size={14} className="text-white" />
+            <Target size={14} />
           </div>
           <div>
             <h1 className="text-lg font-bold">Feed</h1>
@@ -80,66 +79,16 @@ const Sidebar = ({ roles }) => {
         </div>
       </div>
 
-      {/* Navigation - Fixed with scrolling */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto scroll-smooth 
-                      [&::-webkit-scrollbar]:w-1
-                      [&::-webkit-scrollbar-thumb]:bg-gray-600
-                      [&::-webkit-scrollbar-thumb]:rounded-full
-                      [&::-webkit-scrollbar-thumb:hover]:bg-gray-500
-                      [&::-webkit-scrollbar-track]:bg-gray-800">
+      {/* Navigation */}
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         <NavLink to="/dashboard" icon={LayoutDashboard}>
           Dashboard
         </NavLink>
 
         {(roles.includes('ADMIN') || roles.includes('INVENTORY_MANAGER')) && (
-          <>
-            <NavLink to="/inventory" icon={Package}>
-              Inventory
-            </NavLink>
-          </>
-        )}
-
-        {(roles.includes('ADMIN') || roles.includes('FORMULATOR')) && (
-          <>
-            <Dropdown label="Formulation" icon={Beaker} menuKey="formulation">
-              <NavLink to="/formulations" icon={Beaker}>
-                Engine
-              </NavLink>
-              <NavLink to="/formulation-library" icon={Library}>
-                Library
-              </NavLink>
-              <NavLink to="/feed-profiles" icon={Target}>
-                Profiles
-              </NavLink>
-            </Dropdown>
-          </>
-        )}
-
-        {(roles.includes('ADMIN') || roles.includes('OPERATOR')) && (
-          <>
-            <NavLink to="/pelleting" icon={Factory}>
-              Pelleting
-            </NavLink>
-          </>
-        )}
-
-        {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
-          <>
-            <NavLink to="/finance" icon={DollarSign}>
-              Finance
-            </NavLink>
-          </>
-        )}
-
-        {(roles.includes('ADMIN')) && (
-          <Dropdown label="Admin" icon={UserIcon} menuKey="admin">
-            <NavLink to="/users" icon={UserIcon}>
-              User Management
-            </NavLink>
-            <NavLink to="/factories" icon={Factory}>
-              Factories
-            </NavLink>
-            </Dropdown>
+          <NavLink to="/inventory" icon={Package}>
+            Inventory
+          </NavLink>
         )}
 
         {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
@@ -155,7 +104,28 @@ const Sidebar = ({ roles }) => {
             </NavLink>
           </Dropdown>
         )}
-        
+
+        {(roles.includes('ADMIN') || roles.includes('FORMULATOR')) && (
+          <Dropdown label="Formulation" icon={Beaker} menuKey="formulation">
+            <NavLink to="/formulations" icon={Beaker}>
+              Engine
+            </NavLink>
+            <NavLink to="/formulation-library" icon={Library}>
+              Library
+            </NavLink>
+          </Dropdown>
+        )}
+
+        {roles.includes('ADMIN') && (
+          <Dropdown label="Admin" icon={UserIcon} menuKey="admin">
+            <NavLink to="/users" icon={UserIcon}>
+              Users
+            </NavLink>
+            <NavLink to="/factories" icon={Factory}>
+              Factories
+            </NavLink>
+          </Dropdown>
+        )}
       </nav>
     </div>
   );
