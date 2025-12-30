@@ -112,7 +112,7 @@ const Sidebar = ({ roles }) => {
 
         {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
           <Dropdown label="Sales" icon={DollarSign} menuKey="sales">
-            <NavLink to="/sales/customers">
+            <NavLink to="/finance/sales/customers">
               Customers
             </NavLink>
             <NavLink to="/sales/quotes">
