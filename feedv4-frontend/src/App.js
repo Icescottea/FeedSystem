@@ -19,6 +19,9 @@ import InvoiceForm from './pages/finance/InvoiceForm';
 import RequireAuth from './RequireAuth';
 import NewPaymentPage from './pages/finance/NewPaymentPage';
 import FactoryPage from "./pages/FactoryPage";
+import CustomerDetailsPage from './pages/finance/sales/CustomerDetailsPage';
+import CustomerFormPage from './pages/finance/sales/CustomerFormPage';
+import CustomersPage from './pages/finance/sales/CustomerPage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -62,6 +65,10 @@ const App = () => {
             <Route path="/users" element={<UserManagementPage />} />
             <Route path="/finance/payments/new" element={<NewPaymentPage />} />
             <Route path="/factories" element={<FactoryPage />} />
+            <Route path="/finance/sales/customers" element={<CustomersPage />} />
+            <Route path="/finance/sales/customers/new" element={<CustomerFormPage />} />
+            <Route path="/finance/sales/customers/:id" element={<CustomerDetailsPage />} />
+            <Route path="/finance/sales/customers/:id/edit" element={<CustomerFormPage />} />
             <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
           </Route>
         </Route>
