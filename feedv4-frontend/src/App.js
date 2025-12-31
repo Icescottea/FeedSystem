@@ -24,6 +24,9 @@ import CustomerFormPage from './pages/finance/sales/CustomerFormPage';
 import CustomersPage from './pages/finance/sales/CustomerPage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import QuotesPage from './pages/finance/sales/QuotesPage';
+import QuoteDetailsPage from './pages/finance/sales/QuoteDetailsPage';
+import QuoteFormPage from './pages/finance/sales/QuoteFormPage';
 
 const App = () => {
   const [user, setUser] = useState(undefined); 
@@ -69,6 +72,10 @@ const App = () => {
             <Route path="/finance/sales/customers/new" element={<CustomerFormPage />} />
             <Route path="/finance/sales/customers/:id" element={<CustomerDetailsPage />} />
             <Route path="/finance/sales/customers/:id/edit" element={<CustomerFormPage />} />
+            <Route path="/finance/sales/quotes" element={<QuotesPage />} />
+            <Route path="/finance/sales/quotes/new" element={<QuoteFormPage />} />
+            <Route path="/finance/sales/quotes/:id" element={<QuoteDetailsPage />} />
+            <Route path="/finance/sales/quotes/:id/edit" element={<QuoteFormPage />} />
             <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
           </Route>
         </Route>
