@@ -30,6 +30,9 @@ import QuoteFormPage from './pages/finance/sales/QuoteFormPage';
 import SalesOrderDetailsPage from './pages/finance/sales/SalesOrderDetailsPage';
 import SalesOrderFormPage from './pages/finance/sales/SalesOrderFormPage';
 import SalesOrdersPage from './pages/finance/sales/SalesOrderPage';
+import InvoiceDetailsPage from './pages/finance/sales/InvoiceDetailsPage';
+import InvoiceFormPage from './pages/finance/sales/InvoiceFormPage';
+import InvoicesPage from './pages/finance/sales/InvoicesPage';
 
 const App = () => {
   const [user, setUser] = useState(undefined); 
@@ -83,6 +86,10 @@ const App = () => {
             <Route path="/finance/sales/sales-orders/new" element={<SalesOrderFormPage />} />
             <Route path="/finance/sales/sales-orders/:id" element={<SalesOrderDetailsPage />} />
             <Route path="/finance/sales/sales-orders/:id/edit" element={<SalesOrderFormPage />} />
+            <Route path="/finance/sales/invoices" element={<InvoicesPage />} />
+            <Route path="/finance/sales/invoices/new" element={<InvoiceFormPage />} />
+            <Route path="/finance/sales/invoices/:id" element={<InvoiceDetailsPage />} />
+            <Route path="/finance/sales/invoices/:id/edit" element={<InvoiceFormPage />} />
             <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
           </Route>
         </Route>
