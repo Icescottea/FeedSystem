@@ -115,19 +115,19 @@ const Sidebar = ({ roles }) => {
             <NavLink to="/finance/sales/customers">
               Customers
             </NavLink>
-            <NavLink to="/sales/quotes">
+            <NavLink to="/finance/sales/quotes">
               Quotes
             </NavLink>
-            <NavLink to="/sales/sales-orders">
+            <NavLink to="/finance/sales/sales-orders">
               Sales Orders
             </NavLink>
-            <NavLink to="/sales/invoices">
+            <NavLink to="/finance/sales/invoices">
               Invoices
             </NavLink>
-            <NavLink to="/sales/receipts">
+            <NavLink to="/finance/sales/receipts">
               Sales Receipts
             </NavLink>
-            <NavLink to="/sales/payments-received">
+            <NavLink to="/finance/sales/payments-received">
               Payments Received
             </NavLink>
           </Dropdown>
@@ -135,19 +135,19 @@ const Sidebar = ({ roles }) => {
 
         {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
           <Dropdown label="Purchases" icon={CreditCard} menuKey="purchases">
-            <NavLink to="/purchases/vendors">
+            <NavLink to="/finance/purchases/vendors">
               Vendors
             </NavLink>
-            <NavLink to="/purchases/expenses">
+            <NavLink to="/finance/purchases/expenses">
               Expenses
             </NavLink>
-            <NavLink to="/purchases/purchase-orders">
+            <NavLink to="/finance/purchases/purchase-orders">
               Purchase Orders
             </NavLink>
-            <NavLink to="/purchases/bills">
+            <NavLink to="/finance/purchases/bills">
               Bills
             </NavLink>
-            <NavLink to="/purchases/payments-made">
+            <NavLink to="/finance/purchases/payments-made">
               Payments Made
             </NavLink>
           </Dropdown>
