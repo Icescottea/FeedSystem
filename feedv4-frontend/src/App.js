@@ -27,6 +27,9 @@ import 'react-toastify/dist/ReactToastify.css';
 import QuotesPage from './pages/finance/sales/QuotesPage';
 import QuoteDetailsPage from './pages/finance/sales/QuoteDetailsPage';
 import QuoteFormPage from './pages/finance/sales/QuoteFormPage';
+import SalesOrderDetailsPage from './pages/finance/sales/SalesOrderDetailsPage';
+import SalesOrderFormPage from './pages/finance/sales/SalesOrderFormPage';
+import SalesOrdersPage from './pages/finance/sales/SalesOrderPage';
 
 const App = () => {
   const [user, setUser] = useState(undefined); 
@@ -76,6 +79,10 @@ const App = () => {
             <Route path="/finance/sales/quotes/new" element={<QuoteFormPage />} />
             <Route path="/finance/sales/quotes/:id" element={<QuoteDetailsPage />} />
             <Route path="/finance/sales/quotes/:id/edit" element={<QuoteFormPage />} />
+            <Route path="/finance/sales/sales-orders" element={<SalesOrdersPage />} />
+            <Route path="/finance/sales/sales-orders/new" element={<SalesOrderFormPage />} />
+            <Route path="/finance/sales/sales-orders/:id" element={<SalesOrderDetailsPage />} />
+            <Route path="/finance/sales/sales-orders/:id/edit" element={<SalesOrderFormPage />} />
             <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
           </Route>
         </Route>
