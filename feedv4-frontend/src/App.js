@@ -36,6 +36,9 @@ import InvoicesPage from './pages/finance/sales/InvoicesPage';
 import SalesReceiptsPage from './pages/finance/sales/SalesReceiptsPage';
 import SalesReceiptDetailsPage from './pages/finance/sales/SalesReceiptDetailsPage';
 import SalesReceiptFormPage from './pages/finance/sales/SalesReceiptFormPage';
+import PaymentsReceivedPage from './pages/finance/sales/PaymentsReceivedPage';
+import PaymentReceivedFormPage from './pages/finance/sales/PaymentReceivedFormPage';
+import PaymentReceivedDetailsPage from './pages/finance/sales/PaymentReceivedDetailsPage';
 
 const App = () => {
   const [user, setUser] = useState(undefined); 
