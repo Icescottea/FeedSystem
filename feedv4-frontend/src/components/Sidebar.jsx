@@ -124,7 +124,7 @@ const Sidebar = ({ roles }) => {
             <NavLink to="/finance/sales/invoices">
               Invoices
             </NavLink>
-            <NavLink to="/finance/sales/receipts">
+            <NavLink to="/finance/sales-receipts">
               Sales Receipts
             </NavLink>
             <NavLink to="/finance/sales/payments-received">

@@ -97,6 +97,10 @@ const App = () => {
             <Route path="/finance/sales/sales-receipts/new" element={<SalesReceiptFormPage />} />
             <Route path="/finance/sales/sales-receipts/:id" element={<SalesReceiptDetailsPage />} />
             <Route path="/finance/sales/sales-receipts/:id/edit" element={<SalesReceiptFormPage />} />
+            <Route path="/finance/sales/payments-received" element={<PaymentsReceivedPage />} />
+            <Route path="/finance/sales/payments-received/new" element={<PaymentReceivedFormPage />} />
+            <Route path="/finance/sales/payments-received/:id" element={<PaymentReceivedDetailsPage />} />
+            <Route path="/finance/sales/payments-received/:id/edit" element={<PaymentReceivedFormPage />} />
             <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
           </Route>
         </Route>
