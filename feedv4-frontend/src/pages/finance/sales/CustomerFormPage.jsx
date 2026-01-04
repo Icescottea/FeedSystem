@@ -223,11 +223,11 @@ const CustomerFormPage = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Primary Contact <span className="text-red-500">*</span>
-                    </label>
+                <div className="w-full">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Primary Contact <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <select
                       name="status"
                       value={formData.status}
@@ -237,26 +237,22 @@ const CustomerFormPage = () => {
                       <option value="Mr">Mr.</option>
                       <option value="Mrs">Mrs.</option>
                       <option value="Ms">Ms.</option>
-                      <option value="Miss">Miss</option>
+                      <option value="Miss">Miss.</option>
                       <option value="Dr">Dr.</option>
                     </select>
-                  </div>
-                  <div>
                     <input
                       type="text"
-                      name="customerName"
-                      value={formData.customerName}
+                      name="firstName"
+                      value={formData.firstName}
                       onChange={handleChange}
                       required
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="First Name"
                     />
-                  </div>
-                  <div>
                     <input
                       type="text"
-                      name="customerName"
-                      value={formData.customerName}
+                      name="lastName"
+                      value={formData.lastName}
                       onChange={handleChange}
                       required
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
