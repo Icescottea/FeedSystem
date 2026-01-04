@@ -1,91 +1,102 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-const CustomerFormPage = () => {
+const VendorFormPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = Boolean(id);
 
+  const [activeTab, setActiveTab] = useState('basic');
   const [formData, setFormData] = useState({
-    customerType: 'BUSINESS',
-    customerName: '',
+    // Basic Info
+    vendorDisplayName: '',
     companyName: '',
-    displayName: '',
-    email: '',
-    phone: '',
-    mobile: '',
+    vendorEmail: '',
+    vendorPhone: '',
     website: '',
-    // Billing Address
+    // Other Details
+    currency: 'LKR',
+    paymentTerms: '30',
+    gstTreatment: 'REGISTERED',
+    gstNumber: '',
+    panNumber: '',
+    // Address
     billingStreet: '',
     billingCity: '',
     billingState: '',
     billingZip: '',
     billingCountry: 'Sri Lanka',
-    // Shipping Address
     shippingStreet: '',
     shippingCity: '',
     shippingState: '',
     shippingZip: '',
     shippingCountry: 'Sri Lanka',
-    // Financial
-    paymentTerms: '30',
-    creditLimit: '',
-    currency: 'LKR',
-    openingBalance: '0',
+    // Custom Fields
+    customField1: '',
+    customField2: '',
+    // Reporting Tags
+    department: '',
+    location: '',
     // Additional
     notes: '',
     status: 'ACTIVE'
   });
 
-  const [activeTab, setActiveTab] = useState('basic');
+  const [contactPersons, setContactPersons] = useState([
+    { id: 1, firstName: '', lastName: '', email: '', phone: '', mobile: '', designation: '' }
+  ]);
+
   const [loading, setLoading] = useState(false);
   const [copyBillingToShipping, setCopyBillingToShipping] = useState(false);
 
   useEffect(() => {
     if (isEditMode) {
-      fetchCustomer();
+      fetchVendor();
     }
   }, [id]);
 
-  const fetchCustomer = async () => {
+  const fetchVendor = async () => {
     try {
       setLoading(true);
       // TODO: Replace with actual API call
-      // const response = await fetch(`/api/customers/${id}`);
-      // const data = await response.json();
-      
-      // Mock data for edit mode
       const mockData = {
-        customerType: 'BUSINESS',
-        customerName: 'ABC Farms Ltd',
-        companyName: 'ABC Farms Ltd',
-        displayName: 'ABC Farms',
-        email: 'contact@abcfarms.com',
-        phone: '+94 11 234 5678',
-        mobile: '+94 77 123 4567',
-        website: 'www.abcfarms.com',
-        billingStreet: '123 Main Street',
+        vendorDisplayName: 'Global Feed Supplies Ltd',
+        companyName: 'Global Feed Supplies Ltd',
+        vendorEmail: 'info@globalfeed.com',
+        vendorPhone: '+94 11 234 5678',
+        website: 'www.globalfeed.com',
+        currency: 'LKR',
+        paymentTerms: '30',
+        gstTreatment: 'REGISTERED',
+        gstNumber: 'GST123456',
+        panNumber: 'PAN789012',
+        billingStreet: '123 Industrial Zone',
         billingCity: 'Colombo',
         billingState: 'Western',
         billingZip: '00100',
         billingCountry: 'Sri Lanka',
-        shippingStreet: '123 Main Street',
+        shippingStreet: '123 Industrial Zone',
         shippingCity: 'Colombo',
         shippingState: 'Western',
         shippingZip: '00100',
         shippingCountry: 'Sri Lanka',
-        paymentTerms: '30',
-        creditLimit: '500000',
-        currency: 'LKR',
-        openingBalance: '0',
-        notes: 'Regular customer since 2024',
+        customField1: 'Supplier Code: SUP001',
+        customField2: 'Credit Rating: A',
+        department: 'Raw Materials',
+        location: 'Main Warehouse',
+        notes: 'Preferred supplier for corn and wheat',
         status: 'ACTIVE'
       };
-      
+
+      const mockContactPersons = [
+        { id: 1, firstName: 'John', lastName: 'Silva', email: 'john@globalfeed.com', phone: '+94 11 234 5679', mobile: '+94 77 123 4567', designation: 'Sales Manager' }
+      ];
+
       setFormData(mockData);
+      setContactPersons(mockContactPersons);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching customer:', error);
+      console.error('Error fetching vendor:', error);
       setLoading(false);
     }
   };
@@ -114,32 +125,52 @@ const CustomerFormPage = () => {
     }
   };
 
+  const handleContactPersonChange = (index, field, value) => {
+    const newContactPersons = [...contactPersons];
+    newContactPersons[index][field] = value;
+    setContactPersons(newContactPersons);
+  };
+
+  const addContactPerson = () => {
+    setContactPersons([...contactPersons, {
+      id: Date.now(),
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      mobile: '',
+      designation: ''
+    }]);
+  };
+
+  const removeContactPerson = (index) => {
+    if (contactPersons.length > 1) {
+      setContactPersons(contactPersons.filter((_, i) => i !== index));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
       setLoading(true);
       
+      const vendorData = {
+        ...formData,
+        contactPersons
+      };
+
       // TODO: Replace with actual API call
-      // const url = isEditMode ? `/api/customers/${id}` : '/api/customers';
-      // const method = isEditMode ? 'PUT' : 'POST';
-      // const response = await fetch(url, {
-      //   method,
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData)
-      // });
+      console.log('Saving vendor:', vendorData);
       
-      console.log('Submitting customer:', formData);
-      
-      // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      alert(isEditMode ? 'Customer updated successfully!' : 'Customer created successfully!');
-      navigate('/finance/sales/customers');
+      alert(isEditMode ? 'Vendor updated successfully!' : 'Vendor created successfully!');
+      navigate('/finance/purchase/vendors');
       
     } catch (error) {
-      console.error('Error saving customer:', error);
-      alert('Error saving customer. Please try again.');
+      console.error('Error saving vendor:', error);
+      alert('Error saving vendor. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -147,10 +178,11 @@ const CustomerFormPage = () => {
 
   const tabs = [
     { id: 'basic', label: 'Basic Information' },
-    { id: 'contact', label: 'Contact Details' },
-    { id: 'address', label: 'Addresses' },
-    { id: 'financial', label: 'Financial' },
-    { id: 'additional', label: 'Additional' }
+    { id: 'other', label: 'Other Details' },
+    { id: 'address', label: 'Address' },
+    { id: 'contact', label: 'Contact Persons' },
+    { id: 'custom', label: 'Custom Fields' },
+    { id: 'tags', label: 'Reporting Tags' }
   ];
 
   return (
@@ -158,10 +190,10 @@ const CustomerFormPage = () => {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">
-          {isEditMode ? 'Edit Customer' : 'New Customer'}
+          {isEditMode ? 'Edit Vendor' : 'New Vendor'}
         </h1>
         <p className="text-gray-600 mt-1">
-          {isEditMode ? 'Update customer information' : 'Add a new customer to your database'}
+          {isEditMode ? 'Update vendor information' : 'Add a new vendor to your database'}
         </p>
       </div>
 
@@ -193,91 +225,19 @@ const CustomerFormPage = () => {
             {/* Basic Information Tab */}
             {activeTab === 'basic' && (
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Customer Type <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="customerType"
-                        value="BUSINESS"
-                        checked={formData.customerType === 'BUSINESS'}
-                        onChange={handleChange}
-                        className="mr-2"
-                      />
-                      Business
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="customerType"
-                        value="INDIVIDUAL"
-                        checked={formData.customerType === 'INDIVIDUAL'}
-                        onChange={handleChange}
-                        className="mr-2"
-                      />
-                      Individual
-                    </label>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Primary Contact <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="status"
-                      value={formData.status}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="Mr">Mr.</option>
-                      <option value="Mrs">Mrs.</option>
-                      <option value="Ms">Ms.</option>
-                      <option value="Miss">Miss</option>
-                      <option value="Dr">Dr.</option>
-                    </select>
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      name="customerName"
-                      value={formData.customerName}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="First Name"
-                    />
-                  </div>
-                  <div>
-                    <input
-                      type="text"
-                      name="customerName"
-                      value={formData.customerName}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Last Name"
-                    />
-                  </div>
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Customer Name <span className="text-red-500">*</span>
+                      Vendor Display Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
-                      name="customerName"
-                      value={formData.customerName}
+                      name="vendorDisplayName"
+                      value={formData.vendorDisplayName}
                       onChange={handleChange}
                       required
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter customer name"
+                      placeholder="Enter vendor name"
                     />
                   </div>
 
@@ -297,15 +257,44 @@ const CustomerFormPage = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Display Name
+                      Vendor Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      name="vendorEmail"
+                      value={formData.vendorEmail}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="email@example.com"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Vendor Phone
+                    </label>
+                    <input
+                      type="tel"
+                      name="vendorPhone"
+                      value={formData.vendorPhone}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="+94 11 234 5678"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Website
                     </label>
                     <input
                       type="text"
-                      name="displayName"
-                      value={formData.displayName}
+                      name="website"
+                      value={formData.website}
                       onChange={handleChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Display name for invoices"
+                      placeholder="www.example.com"
                     />
                   </div>
 
@@ -327,69 +316,94 @@ const CustomerFormPage = () => {
               </div>
             )}
 
-            {/* Contact Details Tab */}
-            {activeTab === 'contact' && (
+            {/* Other Details Tab */}
+            {activeTab === 'other' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email <span className="text-red-500">*</span>
+                    Currency
                   </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
+                  <select
+                    name="currency"
+                    value={formData.currency}
                     onChange={handleChange}
-                    required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="email@example.com"
-                  />
+                  >
+                    <option value="LKR">LKR - Sri Lankan Rupee</option>
+                    <option value="USD">USD - US Dollar</option>
+                    <option value="EUR">EUR - Euro</option>
+                    <option value="GBP">GBP - British Pound</option>
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone
+                    Payment Terms (Days)
                   </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
+                  <select
+                    name="paymentTerms"
+                    value={formData.paymentTerms}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="+94 11 234 5678"
-                  />
+                  >
+                    <option value="0">Due on Receipt</option>
+                    <option value="7">Net 7</option>
+                    <option value="15">Net 15</option>
+                    <option value="30">Net 30</option>
+                    <option value="45">Net 45</option>
+                    <option value="60">Net 60</option>
+                    <option value="90">Net 90</option>
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mobile
+                    GST Treatment
                   </label>
-                  <input
-                    type="tel"
-                    name="mobile"
-                    value={formData.mobile}
+                  <select
+                    name="gstTreatment"
+                    value={formData.gstTreatment}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="+94 77 123 4567"
-                  />
+                  >
+                    <option value="REGISTERED">Registered Business - Regular</option>
+                    <option value="UNREGISTERED">Unregistered Business</option>
+                    <option value="OVERSEAS">Overseas</option>
+                    <option value="SEZ">SEZ</option>
+                  </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Website
+                    GST Number
                   </label>
                   <input
                     type="text"
-                    name="website"
-                    value={formData.website}
+                    name="gstNumber"
+                    value={formData.gstNumber}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="www.example.com"
+                    placeholder="Enter GST number"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    PAN Number
+                  </label>
+                  <input
+                    type="text"
+                    name="panNumber"
+                    value={formData.panNumber}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter PAN number"
                   />
                 </div>
               </div>
             )}
 
-            {/* Addresses Tab */}
+            {/* Address Tab */}
             {activeTab === 'address' && (
               <div className="space-y-6">
                 {/* Billing Address */}
@@ -536,93 +550,178 @@ const CustomerFormPage = () => {
               </div>
             )}
 
-            {/* Financial Tab */}
-            {activeTab === 'financial' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Payment Terms (Days)
-                  </label>
-                  <select
-                    name="paymentTerms"
-                    value={formData.paymentTerms}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            {/* Contact Persons Tab */}
+            {activeTab === 'contact' && (
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-medium text-gray-800">Contact Persons</h3>
+                  <button
+                    type="button"
+                    onClick={addContactPerson}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                   >
-                    <option value="0">Due on Receipt</option>
-                    <option value="7">Net 7</option>
-                    <option value="15">Net 15</option>
-                    <option value="30">Net 30</option>
-                    <option value="45">Net 45</option>
-                    <option value="60">Net 60</option>
-                    <option value="90">Net 90</option>
-                  </select>
+                    + Add Contact Person
+                  </button>
                 </div>
+                
+                <div className="space-y-6">
+                  {contactPersons.map((person, index) => (
+                    <div key={person.id} className="border border-gray-300 rounded-lg p-4">
+                      <div className="flex justify-between items-center mb-4">
+                        <h4 className="font-medium text-gray-700">Contact Person {index + 1}</h4>
+                        {contactPersons.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeContactPerson(index)}
+                            className="text-red-600 hover:text-red-800 text-sm"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                          <input
+                            type="text"
+                            value={person.firstName}
+                            onChange={(e) => handleContactPersonChange(index, 'firstName', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="First name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                          <input
+                            type="text"
+                            value={person.lastName}
+                            onChange={(e) => handleContactPersonChange(index, 'lastName', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Last name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                          <input
+                            type="email"
+                            value={person.email}
+                            onChange={(e) => handleContactPersonChange(index, 'email', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="email@example.com"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                          <input
+                            type="tel"
+                            value={person.phone}
+                            onChange={(e) => handleContactPersonChange(index, 'phone', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="+94 11 234 5678"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Mobile</label>
+                          <input
+                            type="tel"
+                            value={person.mobile}
+                            onChange={(e) => handleContactPersonChange(index, 'mobile', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="+94 77 123 4567"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Designation</label>
+                          <input
+                            type="text"
+                            value={person.designation}
+                            onChange={(e) => handleContactPersonChange(index, 'designation', e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="e.g. Sales Manager"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
+            {/* Custom Fields Tab */}
+            {activeTab === 'custom' && (
+              <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Credit Limit
+                    Custom Field 1
                   </label>
                   <input
-                    type="number"
-                    name="creditLimit"
-                    value={formData.creditLimit}
+                    type="text"
+                    name="customField1"
+                    value={formData.customField1}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
+                    placeholder="Enter custom field value"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Currency
-                  </label>
-                  <select
-                    name="currency"
-                    value={formData.currency}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="LKR">LKR - Sri Lankan Rupee</option>
-                    <option value="USD">USD - US Dollar</option>
-                    <option value="EUR">EUR - Euro</option>
-                    <option value="GBP">GBP - British Pound</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Opening Balance
+                    Custom Field 2
                   </label>
                   <input
-                    type="number"
-                    name="openingBalance"
-                    value={formData.openingBalance}
+                    type="text"
+                    name="customField2"
+                    value={formData.customField2}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0.00"
-                    step="0.01"
+                    placeholder="Enter custom field value"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Notes
+                  </label>
+                  <textarea
+                    name="notes"
+                    value={formData.notes}
+                    onChange={handleChange}
+                    rows={4}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Add any notes about this vendor..."
                   />
                 </div>
               </div>
             )}
 
-            {/* Additional Tab */}
-            {activeTab === 'additional' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notes
-                </label>
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  rows={6}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Add any additional notes about this customer..."
-                />
+            {/* Reporting Tags Tab */}
+            {activeTab === 'tags' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Department
+                  </label>
+                  <input
+                    type="text"
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g. Raw Materials"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g. Main Warehouse"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -631,7 +730,7 @@ const CustomerFormPage = () => {
           <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
             <button
               type="button"
-              onClick={() => navigate('/finance/sales/customers')}
+              onClick={() => navigate('/finance/purchase/vendors')}
               className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
             >
               Cancel
@@ -641,7 +740,7 @@ const CustomerFormPage = () => {
               disabled={loading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Saving...' : (isEditMode ? 'Update Customer' : 'Create Customer')}
+              {loading ? 'Saving...' : (isEditMode ? 'Update Vendor' : 'Create Vendor')}
             </button>
           </div>
         </div>
@@ -650,4 +749,4 @@ const CustomerFormPage = () => {
   );
 };
 
-export default CustomerFormPage;
+export default VendorFormPage;
