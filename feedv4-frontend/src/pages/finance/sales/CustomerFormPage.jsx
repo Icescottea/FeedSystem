@@ -223,11 +223,13 @@ const CustomerFormPage = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Primary Contact <span className="text-red-500">*</span>
                     </label>
+                  </div>
+                  <div>
                     <select
                       name="status"
                       value={formData.status}
@@ -268,21 +270,6 @@ const CustomerFormPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Customer Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="customerName"
-                      value={formData.customerName}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter customer name"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Company Name
                     </label>
                     <input
@@ -311,17 +298,32 @@ const CustomerFormPage = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Status
+                      Email <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      name="status"
-                      value={formData.status}
+                    <input
+                      type="text"
+                      name="customerName"
+                      value={formData.customerName}
                       onChange={handleChange}
+                      required
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="ACTIVE">Active</option>
-                      <option value="INACTIVE">Inactive</option>
-                    </select>
+                      placeholder="Enter email address"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Phone <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="customerName"
+                      value={formData.customerName}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter phone number"
+                    />
                   </div>
                 </div>
               </div>
