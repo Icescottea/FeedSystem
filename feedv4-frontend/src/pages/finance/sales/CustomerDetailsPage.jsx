@@ -148,20 +148,6 @@ const CustomerDetailsPage = () => {
             <h1 className="text-2xl font-bold text-gray-800">{customer.customerName}</h1>
             <p className="text-gray-600 mt-1">{customer.companyName}</p>
           </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleEdit}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Edit
-            </button>
-            <button
-              onClick={handleDelete}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Delete
-            </button>
-          </div>
         </div>
       </div>
 
@@ -206,21 +192,18 @@ const CustomerDetailsPage = () => {
       <div className="mb-6">
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <h3 className="text-sm font-medium text-gray-700 mb-3">Quick Actions</h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-5">
             <button
               onClick={handleCreateInvoice}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Create Invoice
+              Clone
             </button>
             <button
               onClick={handleRecordPayment}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
-              Record Payment
-            </button>
-            <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-              Send Email
+              Mark As Inactive
             </button>
             <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
               Generate Statement
