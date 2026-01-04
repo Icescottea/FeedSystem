@@ -223,11 +223,11 @@ const CustomerFormPage = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Primary Contact <span className="text-red-500">*</span>
-                  </label>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Primary Contact <span className="text-red-500">*</span>
+                    </label>
                     <select
                       name="status"
                       value={formData.status}
