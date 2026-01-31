@@ -19,8 +19,26 @@ import InvoiceForm from './pages/finance/InvoiceForm';
 import RequireAuth from './RequireAuth';
 import NewPaymentPage from './pages/finance/NewPaymentPage';
 import FactoryPage from "./pages/FactoryPage";
+import CustomerDetailsPage from './pages/finance/sales/CustomerDetailsPage';
+import CustomerFormPage from './pages/finance/sales/CustomerFormPage';
+import CustomersPage from './pages/finance/sales/CustomerPage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import QuotesPage from './pages/finance/sales/QuotesPage';
+import QuoteDetailsPage from './pages/finance/sales/QuoteDetailsPage';
+import QuoteFormPage from './pages/finance/sales/QuoteFormPage';
+import SalesOrderDetailsPage from './pages/finance/sales/SalesOrderDetailsPage';
+import SalesOrderFormPage from './pages/finance/sales/SalesOrderFormPage';
+import SalesOrdersPage from './pages/finance/sales/SalesOrderPage';
+import InvoiceDetailsPage from './pages/finance/sales/InvoiceDetailsPage';
+import InvoiceFormPage from './pages/finance/sales/InvoiceFormPage';
+import InvoicesPage from './pages/finance/sales/InvoicesPage';
+import SalesReceiptsPage from './pages/finance/sales/SalesReceiptsPage';
+import SalesReceiptDetailsPage from './pages/finance/sales/SalesReceiptDetailsPage';
+import SalesReceiptFormPage from './pages/finance/sales/SalesReceiptFormPage';
+import PaymentsReceivedPage from './pages/finance/sales/PaymentsReceivedPage';
+import PaymentReceivedFormPage from './pages/finance/sales/PaymentReceivedFormPage';
+import PaymentReceivedDetailsPage from './pages/finance/sales/PaymentReceivedDetailsPage';
 
 const App = () => {
   const [user, setUser] = useState(undefined); 
@@ -62,6 +80,30 @@ const App = () => {
             <Route path="/users" element={<UserManagementPage />} />
             <Route path="/finance/payments/new" element={<NewPaymentPage />} />
             <Route path="/factories" element={<FactoryPage />} />
+            <Route path="/finance/sales/customers" element={<CustomersPage />} />
+            <Route path="/finance/sales/customers/new" element={<CustomerFormPage />} />
+            <Route path="/finance/sales/customers/:id" element={<CustomerDetailsPage />} />
+            <Route path="/finance/sales/customers/:id/edit" element={<CustomerFormPage />} />
+            <Route path="/finance/sales/quotes" element={<QuotesPage />} />
+            <Route path="/finance/sales/quotes/new" element={<QuoteFormPage />} />
+            <Route path="/finance/sales/quotes/:id" element={<QuoteDetailsPage />} />
+            <Route path="/finance/sales/quotes/:id/edit" element={<QuoteFormPage />} />
+            <Route path="/finance/sales/sales-orders" element={<SalesOrdersPage />} />
+            <Route path="/finance/sales/sales-orders/new" element={<SalesOrderFormPage />} />
+            <Route path="/finance/sales/sales-orders/:id" element={<SalesOrderDetailsPage />} />
+            <Route path="/finance/sales/sales-orders/:id/edit" element={<SalesOrderFormPage />} />
+            <Route path="/finance/sales/invoices" element={<InvoicesPage />} />
+            <Route path="/finance/sales/invoices/new" element={<InvoiceFormPage />} />
+            <Route path="/finance/sales/invoices/:id" element={<InvoiceDetailsPage />} />
+            <Route path="/finance/sales/invoices/:id/edit" element={<InvoiceFormPage />} />
+            <Route path="/finance/sales/sales-receipts" element={<SalesReceiptsPage />} />
+            <Route path="/finance/sales/sales-receipts/new" element={<SalesReceiptFormPage />} />
+            <Route path="/finance/sales/sales-receipts/:id" element={<SalesReceiptDetailsPage />} />
+            <Route path="/finance/sales/sales-receipts/:id/edit" element={<SalesReceiptFormPage />} />
+            <Route path="/finance/sales/payments-received" element={<PaymentsReceivedPage />} />
+            <Route path="/finance/sales/payments-received/new" element={<PaymentReceivedFormPage />} />
+            <Route path="/finance/sales/payments-received/:id" element={<PaymentReceivedDetailsPage />} />
+            <Route path="/finance/sales/payments-received/:id/edit" element={<PaymentReceivedFormPage />} />
             <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
           </Route>
         </Route>

@@ -1,41 +1,68 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
   Beaker,
   Library,
-  Wrench,
-  Target,
   Factory,
   DollarSign,
-  User as UserIcon
+  Wrench,
+  User,
+  ChevronDown,
+  CreditCard,
+  Target
 } from 'lucide-react';
 
 const Sidebar = ({ roles }) => {
   const location = useLocation();
+  const [openMenus, setOpenMenus] = useState({});
+
+  const toggleMenu = (key) => {
+    setOpenMenus(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
 
   const isActive = (path) => location.pathname === path;
 
-  const NavLink = ({ to, icon: Icon, children, ...props }) => (
+  const NavLink = ({ to, icon: Icon, children }) => (
     <Link
       to={to}
       className={`
-        flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-all duration-200 group
+        flex items-center gap-2 px-6 py-2 rounded-md text-sm transition
         ${isActive(to)
-          ? 'bg-blue-600 text-white shadow-md'
+          ? 'bg-blue-600 text-white'
           : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
       `}
-      {...props}
     >
-      <Icon size={16} className={isActive(to) ? 'text-white' : 'text-gray-400 group-hover:text-white'} />
-      <span>{children}</span>
+      {Icon && <Icon size={16} />}
+      {children}
     </Link>
   );
 
-  const SectionHeader = ({ children }) => (
-    <div className="px-3 pt-3 pb-1 text-[10px] font-semibold text-gray-500 uppercase tracking-widest">
-      {children}
+  const Dropdown = ({ label, icon: Icon, menuKey, children }) => (
+    <div>
+      <button
+        onClick={() => toggleMenu(menuKey)}
+        className="flex w-full items-center justify-between px-3 py-2 text-gray-300 hover:bg-gray-700 rounded-md"
+      >
+        <div className="flex items-center gap-2">
+          <Icon size={16} />
+          <span>{label}</span>
+        </div>
+        <ChevronDown
+          size={14}
+          className={`transition-transform ${openMenus[menuKey] ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {openMenus[menuKey] && (
+        <div className="mt-1 space-y-1">
+          {children}
+        </div>
+      )}
     </div>
   );
 
@@ -45,7 +72,7 @@ const Sidebar = ({ roles }) => {
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center">
-            <Target size={14} className="text-white" />
+            <Target size={14} className="text-white"/>
           </div>
           <div>
             <h1 className="text-lg font-bold">Feed</h1>
@@ -54,7 +81,7 @@ const Sidebar = ({ roles }) => {
         </div>
       </div>
 
-      {/* Navigation - Fixed with scrolling */}
+      {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto scroll-smooth 
                       [&::-webkit-scrollbar]:w-1
                       [&::-webkit-scrollbar-thumb]:bg-gray-600
@@ -66,17 +93,68 @@ const Sidebar = ({ roles }) => {
         </NavLink>
 
         {(roles.includes('ADMIN') || roles.includes('INVENTORY_MANAGER')) && (
-          <>
-            <SectionHeader>Inventory</SectionHeader>
-            <NavLink to="/inventory" icon={Package}>
-              Inventory
+          <NavLink to="/inventory" icon={Package}>
+            Inventory
+          </NavLink>
+        )}
+        
+        {(roles.includes('ADMIN') || roles.includes('OPERATOR')) && (
+          <NavLink to="/pelleting" icon={Factory}>
+            Pelleting
+          </NavLink>
+        )}
+
+        {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
+          <NavLink to="/finance" icon={DollarSign}>
+            Finance
+          </NavLink>
+        )}
+
+        {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
+          <Dropdown label="Sales" icon={DollarSign} menuKey="sales">
+            <NavLink to="/finance/sales/customers">
+              Customers
             </NavLink>
-          </>
+            <NavLink to="/finance/sales/quotes">
+              Quotes
+            </NavLink>
+            <NavLink to="/finance/sales/sales-orders">
+              Sales Orders
+            </NavLink>
+            <NavLink to="/finance/sales/invoices">
+              Invoices
+            </NavLink>
+            <NavLink to="/finance/sales/sales-receipts">
+              Sales Receipts
+            </NavLink>
+            <NavLink to="/finance/sales/payments-received">
+              Payments Received
+            </NavLink>
+          </Dropdown>
+        )}
+
+        {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
+          <Dropdown label="Purchases" icon={CreditCard} menuKey="purchases">
+            <NavLink to="/finance/purchases/vendors">
+              Vendors
+            </NavLink>
+            <NavLink to="/finance/purchases/expenses">
+              Expenses
+            </NavLink>
+            <NavLink to="/finance/purchases/purchase-orders">
+              Purchase Orders
+            </NavLink>
+            <NavLink to="/finance/purchases/bills">
+              Bills
+            </NavLink>
+            <NavLink to="/finance/purchases/payments-made">
+              Payments Made
+            </NavLink>
+          </Dropdown>
         )}
 
         {(roles.includes('ADMIN') || roles.includes('FORMULATOR')) && (
-          <>
-            <SectionHeader>Formulation</SectionHeader>
+          <Dropdown label="Formulation" icon={Beaker} menuKey="formulation">
             <NavLink to="/formulations" icon={Beaker}>
               Engine
             </NavLink>
@@ -86,42 +164,18 @@ const Sidebar = ({ roles }) => {
             <NavLink to="/feed-profiles" icon={Target}>
               Profiles
             </NavLink>
-          </>
+          </Dropdown>
         )}
 
-        {(roles.includes('ADMIN') || roles.includes('OPERATOR')) && (
-          <>
-            <SectionHeader>Production</SectionHeader>
-            <NavLink to="/pelleting" icon={Factory}>
-              Pelleting
+        {roles.includes('ADMIN') && (
+          <Dropdown label="Admin" icon={User} menuKey="admin">
+            <NavLink to="/users" icon={User}>
+              Users
             </NavLink>
-          </>
-        )}
-
-        {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
-          <>
-            <SectionHeader>Finance</SectionHeader>
-            <NavLink to="/finance" icon={DollarSign}>
-              Finance
-            </NavLink>
-          </>
-        )}
-
-        {(roles.includes('ADMIN')) && (
-          <>
-          <SectionHeader>User</SectionHeader>
-          <NavLink to="/users" icon={UserIcon}>
-            User Management
-          </NavLink></>
-        )}
-
-        {(roles.includes('ADMIN')) && (
-          <>
-            <SectionHeader>Factory</SectionHeader>
             <NavLink to="/factories" icon={Factory}>
               Factories
             </NavLink>
-          </>
+          </Dropdown>
         )}
       </nav>
     </div>
