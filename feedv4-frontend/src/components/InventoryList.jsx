@@ -1,7 +1,5 @@
 import React from 'react';
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL;
-
 const InventoryList = ({
   inventory,
   onEdit,

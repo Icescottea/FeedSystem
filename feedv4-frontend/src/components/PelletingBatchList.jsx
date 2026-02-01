@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL;
@@ -14,15 +14,22 @@ const PelletingBatchList = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [showArchived, setShowArchived] = useState(false);
 
-  const fetchBatches = () => {
-    const params = new URLSearchParams();
+  const fetchBatches = useCallback(async () => {
+    try { 
+      setLoading(true);
+      const params = new URLSearchParams();
     if (statusFilter) params.set('status', statusFilter);
     params.set('archived', String(showArchived));
     fetch(`${API_BASE}/api/pelleting/batches?` + params.toString())
       .then(res => res.json())
       .then(data => setBatches(Array.isArray(data) ? data : []))
       .catch(() => setBatches([]));
-  };
+    } catch (error) {
+      console.error('Failed to fetch batches: ', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const handleView = async (batchId) => {
     setShowView(true);
@@ -78,17 +85,17 @@ const PelletingBatchList = () => {
     setTimeout(() => navigate(`${INVOICE_NEW_ROUTE}?batchId=${batchId}`), 1000);
   };
   
-  const handleSendToFinance = async (id) => {
+  /*const handleSendToFinance = async (id) => {
     const res = await fetch(`${API_BASE}/api/pelleting/${id}/send-to-finance`, {
       method: 'POST'
     });
     const msg = await res.text();
     res.ok ? alert(msg) : alert("Failed to send to finance");
-  };
+  };*/
 
   useEffect(() => {
     fetchBatches();
-  }, [statusFilter, showArchived]);
+  }, [statusFilter, showArchived, fetchBatches]);
 
   return (
     <div className="bg-white rounded-lg shadow-md border p-4 overflow-hidden mb-6"

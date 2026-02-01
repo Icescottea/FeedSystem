@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL;
@@ -13,11 +13,11 @@ export default function FeeConfigList() {
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
 
-  const fetchList = async () => {
-    setLoading(true);
+  const fetchList = useCallback(async () => {
     setErr("");
     setOk("");
     try {
+      setLoading(true);
       const params = new URLSearchParams();
       if (q) params.append("q", q);
       if (active !== "") params.append("active", active);
@@ -33,9 +33,11 @@ export default function FeeConfigList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { fetchList(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { 
+    fetchList(); 
+  }, [fetchList]);
 
   const onSearch = (e) => {
     e.preventDefault();

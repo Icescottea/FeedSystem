@@ -7,7 +7,6 @@ import {
   Library,
   Factory,
   DollarSign,
-  Wrench,
   User,
   ChevronDown,
   CreditCard,
