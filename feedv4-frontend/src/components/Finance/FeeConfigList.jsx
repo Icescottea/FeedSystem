@@ -18,6 +18,9 @@ export default function FeeConfigList() {
     setOk("");
     try {
       setLoading(true);
+      setActive("");
+      setArchived("");
+      setQ("");
       const params = new URLSearchParams();
       if (q) params.append("q", q);
       if (active !== "") params.append("active", active);

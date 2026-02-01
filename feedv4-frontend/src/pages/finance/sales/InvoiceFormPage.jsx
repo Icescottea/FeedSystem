@@ -41,7 +41,7 @@ const InvoiceFormPage = () => {
     } else {
       generateInvoiceNumber();
     }
-  }, [id, salesOrderId]);
+  }, [id, salesOrderId, isEditMode]);
 
   useEffect(() => {
     // Calculate due date when invoice date or terms change

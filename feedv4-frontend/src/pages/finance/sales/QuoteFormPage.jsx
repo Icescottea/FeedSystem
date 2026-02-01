@@ -36,7 +36,7 @@ const QuoteFormPage = () => {
     } else {
       generateQuoteNumber();
     }
-  }, [id]);
+  }, [id, isEditMode]);
 
   const fetchCustomers = async () => {
     // TODO: Replace with actual API call

@@ -36,7 +36,7 @@ const InventoryPage = () => {
 
   useEffect(() => {
     fetchInventory();
-  }, [showArchived]);
+  }, [showArchived, fetchInventory]);
 
   const refreshAndClose = () => {
     fetchInventory();

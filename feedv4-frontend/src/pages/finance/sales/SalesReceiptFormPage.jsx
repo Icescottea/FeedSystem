@@ -39,7 +39,7 @@ const SalesReceiptFormPage = () => {
     } else {
       generateReceiptNumber();
     }
-  }, [id]);
+  }, [id, isEditMode]);
 
   const fetchCustomers = async () => {
     // TODO: Replace with actual API call

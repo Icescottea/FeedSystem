@@ -43,7 +43,7 @@ const Login = ({ setUser }) => {
       setCurrentImage((prev) => (prev + 1) % images.length);
     }, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [images]);
 
   return (
     <div className=" relative min-h-screen bg-[#f5f6fa] flex items-center justify-between px-8">
@@ -108,7 +108,7 @@ const Login = ({ setUser }) => {
               <input type="checkbox" className="mr-2" />
               Remember Me
             </label>
-            <a href="#" className="text-blue-600 hover:underline">Forgot Password?</a>
+            <span className="text-blue-600 hover:underline">Forgot Password?</span>
           </div>
 
           {/* Error */}

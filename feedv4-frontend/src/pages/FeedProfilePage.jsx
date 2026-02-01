@@ -26,7 +26,7 @@ const FeedProfilePage = () => {
 
   useEffect(() => {
     fetchProfiles();
-  }, [showArchived]);
+  }, [showArchived, fetchProfiles]);
 
   const refreshAndClose = () => {
     fetchProfiles();

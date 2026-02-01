@@ -36,7 +36,7 @@ const PaymentReceivedFormPage = () => {
     } else {
       generatePaymentNumber();
     }
-  }, [id]);
+  }, [id, isEditMode]);
 
   useEffect(() => {
     if (formData.customerId) {

@@ -3,7 +3,7 @@ import PelletingBatchForm from '../components/PelletingBatchForm';
 import PelletingBatchList from '../components/PelletingBatchList';
 import MyPelletingBatches from '../components/MyPelletingBatches';
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL;
+//const API_BASE = process.env.REACT_APP_API_BASE_URL;
 
 const PelletingQueuePage = () => {
   return (

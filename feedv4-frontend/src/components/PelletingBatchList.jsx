@@ -22,7 +22,7 @@ const PelletingBatchList = () => {
       .then(res => res.json())
       .then(data => setBatches(Array.isArray(data) ? data : []))
       .catch(() => setBatches([]));
-  }, []);
+  }, [showArchived, statusFilter]);
 
   const handleView = async (batchId) => {
     setShowView(true);
