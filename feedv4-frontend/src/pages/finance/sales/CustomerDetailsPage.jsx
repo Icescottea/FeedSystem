@@ -90,7 +90,7 @@ const CustomerDetailsPage = () => {
     }
   };
 
-  const handleEdit = () => {
+  /*const handleEdit = () => {
     navigate(`/finance/sales/customers/${id}/edit`);
   };
 
@@ -100,7 +100,7 @@ const CustomerDetailsPage = () => {
       console.log('Deactivating customer:', id);
       navigate('/finance/sales/customers');
     }
-  };
+  };*/
 
   const handleCreateInvoice = () => {
     navigate(`/finance/sales/invoices/new?customerId=${id}`);

@@ -45,7 +45,7 @@ const CustomerFormPage = () => {
     if (isEditMode) {
       fetchCustomer();
     }
-  }, [id]);
+  }, [id, isEditMode]);
 
   const fetchCustomer = async () => {
     try {
