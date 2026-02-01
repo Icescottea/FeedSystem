@@ -15,20 +15,13 @@ const PelletingBatchList = () => {
   const [showArchived, setShowArchived] = useState(false);
 
   const fetchBatches = useCallback(async () => {
-    try { 
-      setLoading(true);
-      const params = new URLSearchParams();
+    const params = new URLSearchParams();
     if (statusFilter) params.set('status', statusFilter);
     params.set('archived', String(showArchived));
     fetch(`${API_BASE}/api/pelleting/batches?` + params.toString())
       .then(res => res.json())
       .then(data => setBatches(Array.isArray(data) ? data : []))
       .catch(() => setBatches([]));
-    } catch (error) {
-      console.error('Failed to fetch batches: ', error);
-    } finally {
-      setLoading(false);
-    }
   }, []);
 
   const handleView = async (batchId) => {
