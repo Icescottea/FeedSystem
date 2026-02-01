@@ -43,7 +43,7 @@ const Login = ({ setUser }) => {
       setCurrentImage((prev) => (prev + 1) % images.length);
     }, 4000);
     return () => clearInterval(interval);
-  }, [images]);
+  }, []);
 
   return (
     <div className=" relative min-h-screen bg-[#f5f6fa] flex items-center justify-between px-8">

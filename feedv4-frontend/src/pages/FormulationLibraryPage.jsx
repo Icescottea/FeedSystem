@@ -33,7 +33,7 @@ const FormulationLibraryPage = () => {
 
   useEffect(() => {
     fetchFormulations();
-  }, [showArchived, fetchFormulations]);
+  }, [showArchived]);
 
   useEffect(() => {
   let list = [...formulations];
