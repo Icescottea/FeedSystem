@@ -48,9 +48,6 @@ import ExpenseDetailsPage from './pages/finance/payments/ExpenseDetailsPage';
 import PurchaseOrdersPage from './pages/finance/payments/PurchaseOrdersPage';
 import PurchaseOrderFormPage from './pages/finance/payments/PurchaseOrderFormPage';
 import PurchaseOrderDetailsPage from './pages/finance/payments/PurchaseOrderDetailsPage';
-import PurchaseOrdersPage from './pages/finance/payments/PurchaseOrdersPage';
-import PurchaseOrderFormPage from './pages/finance/payments/PurchaseOrderFormPage';
-import PurchaseOrderDetailsPage from './pages/finance/payments/PurchaseOrderDetailsPage';
 
 const App = () => {
   const [user, setUser] = useState(undefined); 
