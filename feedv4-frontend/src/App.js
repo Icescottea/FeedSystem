@@ -40,8 +40,8 @@ import PaymentsReceivedPage from './pages/finance/sales/PaymentsReceivedPage';
 import PaymentReceivedFormPage from './pages/finance/sales/PaymentReceivedFormPage';
 import PaymentReceivedDetailsPage from './pages/finance/sales/PaymentReceivedDetailsPage';
 import VendorsPage from './pages/finance/payments/VendorsPage';
-import VendorsPage from './pages/finance/payments/VendorsFormPage';
-import VendorsPage from './pages/finance/payments/VendorsDetailsPage';
+import VendorsFormPage from './pages/finance/payments/VendorsFormPage';
+import VendorsDetailsPage from './pages/finance/payments/VendorsDetailsPage';
 
 const App = () => {
   const [user, setUser] = useState(undefined); 
