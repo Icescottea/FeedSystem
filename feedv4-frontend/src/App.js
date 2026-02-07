@@ -116,7 +116,7 @@ const App = () => {
             <Route path="/finance/payments/vendors" element={<VendorsPage/>}/>
             <Route path="/finance/payments/vendors/new" element={<VendorsFormPage/>}/>
             <Route path="/finance/payments/vendors/:id" element={<VendorsDetailsPage/>}/>
-            <Route path="/finance/payments/vendors/:id/edit" element={<VendorsDetailsPage/>}/>
+            <Route path="/finance/payments/vendors/:id/edit" element={<VendorsFormPage/>}/>
 
             <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
           </Route>
