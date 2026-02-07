@@ -45,6 +45,12 @@ import VendorsDetailsPage from './pages/finance/payments/VendorsDetailsPage';
 import ExpensesPage from './pages/finance/payments/ExpensesPage';
 import ExpenseFormPage from './pages/finance/payments/ExpenseFormPage';
 import ExpenseDetailsPage from './pages/finance/payments/ExpenseDetailsPage';
+import PurchaseOrdersPage from './pages/finance/payments/PurchaseOrdersPage';
+import PurchaseOrderFormPage from './pages/finance/payments/PurchaseOrderFormPage';
+import PurchaseOrderDetailsPage from './pages/finance/payments/PurchaseOrderDetailsPage';
+import PurchaseOrdersPage from './pages/finance/payments/PurchaseOrdersPage';
+import PurchaseOrderFormPage from './pages/finance/payments/PurchaseOrderFormPage';
+import PurchaseOrderDetailsPage from './pages/finance/payments/PurchaseOrderDetailsPage';
 
 const App = () => {
   const [user, setUser] = useState(undefined); 
@@ -125,6 +131,16 @@ const App = () => {
             <Route path="/finance/payments/expenses/new" element={<ExpenseFormPage />} />
             <Route path="/finance/payments/expenses/:id" element={<ExpenseDetailsPage />} />
             <Route path="/finance/payments/expenses/:id/edit" element={<ExpenseFormPage />} />
+
+            <Route path="/finance/payments/purchase-orders" element={<PurchaseOrdersPage />} />
+            <Route path="/finance/payments/purchase-orders/new" element={<PurchaseOrderFormPage />} />
+            <Route path="/finance/payments/purchase-orders/:id" element={<PurchaseOrderDetailsPage />} />
+            <Route path="/finance/payments/purchase-orders/:id/edit" element={<PurchaseOrderFormPage />} />
+
+            <Route path="/finance/payments/purchase-orders" element={<PurchaseOrdersPage />} />
+            <Route path="/finance/payments/purchase-orders/new" element={<PurchaseOrderFormPage />} />
+            <Route path="/finance/payments/purchase-orders/:id" element={<PurchaseOrderDetailsPage />} />
+            <Route path="/finance/payments/purchase-orders/:id/edit" element={<PurchaseOrderFormPage />} />
 
             <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
           </Route>
