@@ -42,6 +42,9 @@ import PaymentReceivedDetailsPage from './pages/finance/sales/PaymentReceivedDet
 import VendorsPage from './pages/finance/payments/VendorsPage';
 import VendorsFormPage from './pages/finance/payments/VendorsFormPage';
 import VendorsDetailsPage from './pages/finance/payments/VendorsDetailsPage';
+import ExpensesPage from './pages/finance/payments/ExpensesPage';
+import ExpenseFormPage from './pages/finance/payments/ExpenseFormPage';
+import ExpenseDetailsPage from './pages/finance/payments/ExpenseDetailsPage';
 
 const App = () => {
   const [user, setUser] = useState(undefined); 
@@ -117,6 +120,11 @@ const App = () => {
             <Route path="/finance/payments/vendors/new" element={<VendorsFormPage/>}/>
             <Route path="/finance/payments/vendors/:id" element={<VendorsDetailsPage/>}/>
             <Route path="/finance/payments/vendors/:id/edit" element={<VendorsFormPage/>}/>
+
+            <Route path="/finance/payments/expenses" element={<ExpensesPage />} />
+            <Route path="/finance/payments/expenses/new" element={<ExpenseFormPage />} />
+            <Route path="/finance/payments/expenses/:id" element={<ExpenseDetailsPage />} />
+            <Route path="/finance/payments/expenses/:id/edit" element={<ExpenseFormPage />} />
 
             <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
           </Route>
