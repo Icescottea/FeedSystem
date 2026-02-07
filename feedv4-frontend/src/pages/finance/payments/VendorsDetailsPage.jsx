@@ -99,13 +99,13 @@ const VendorDetailsPage = () => {
   };
 
   const handleEdit = () => {
-    navigate(`/finance/purchase/vendors/${id}/edit`);
+    navigate(`/finance/payments/vendors/${id}/edit`);
   };
 
   const handleClone = () => {
     console.log('Cloning vendor:', id);
     alert('Vendor cloned! Redirecting to new vendor...');
-    navigate('/finance/purchase/vendors/new');
+    navigate('/finance/payments/vendors/new');
   };
 
   const handleMarkAsInactive = async () => {

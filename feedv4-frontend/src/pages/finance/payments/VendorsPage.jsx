@@ -100,11 +100,11 @@ const VendorsPage = () => {
   const paginatedVendors = filteredVendors.slice(startIndex, startIndex + itemsPerPage);
 
   const handleView = (id) => {
-    navigate(`/finance/purchase/vendors/${id}`);
+    navigate(`/finance/payments/vendors/${id}`);
   };
 
   const handleEdit = (id) => {
-    navigate(`/finance/purchase/vendors/${id}/edit`);
+    navigate(`/finance/payments/vendors/${id}/edit`);
   };
 
   const handleDelete = (id) => {
@@ -123,7 +123,7 @@ const VendorsPage = () => {
           <p className="text-gray-600 mt-1">Manage your vendor database</p>
         </div>
         <button
-          onClick={() => navigate('/finance/purchase/vendors/new')}
+          onClick={() => navigate('/finance/payments/vendors/new')}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
         >
           <span className="text-lg">+</span>
