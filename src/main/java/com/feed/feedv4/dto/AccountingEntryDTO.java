@@ -11,15 +11,11 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class BillItemDTO {
+public class AccountingEntryDTO {
     
     private Long id;
-    private String itemDetails;
-    private String account;
-    private BigDecimal quantity;
-    private BigDecimal rate;
-    private BigDecimal taxRate;
-    private String customerDetails;
-    private BigDecimal amount;
+    private String accountName;
+    private BigDecimal debit;
+    private BigDecimal credit;
     private Integer sequence;
 }
