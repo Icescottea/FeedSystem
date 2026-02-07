@@ -39,6 +39,7 @@ import SalesReceiptFormPage from './pages/finance/sales/SalesReceiptFormPage';
 import PaymentsReceivedPage from './pages/finance/sales/PaymentsReceivedPage';
 import PaymentReceivedFormPage from './pages/finance/sales/PaymentReceivedFormPage';
 import PaymentReceivedDetailsPage from './pages/finance/sales/PaymentReceivedDetailsPage';
+import VendorsPage from './pages/finance/payments/VendorsPage';
 
 const App = () => {
   const [user, setUser] = useState(undefined); 
@@ -71,7 +72,6 @@ const App = () => {
             <Route path="/formulation-builder" element={<FormulationBuilderPage />} />
             <Route path="/pelleting" element={<PelletingQueuePage />} />
             <Route path="/finance" element={<FinanceDashboard />} />
-            {/* FIX: allow nested routes under /finance/config */}
             <Route path="/finance/config/*" element={<FeeConfigPage />} />
             <Route path="/finance/invoices" element={<InvoiceListPage />} />
             <Route path="/finance/invoices/new" element={<InvoiceForm />} />
@@ -80,30 +80,42 @@ const App = () => {
             <Route path="/users" element={<UserManagementPage />} />
             <Route path="/finance/payments/new" element={<NewPaymentPage />} />
             <Route path="/factories" element={<FactoryPage />} />
+
             <Route path="/finance/sales/customers" element={<CustomersPage />} />
             <Route path="/finance/sales/customers/new" element={<CustomerFormPage />} />
             <Route path="/finance/sales/customers/:id" element={<CustomerDetailsPage />} />
             <Route path="/finance/sales/customers/:id/edit" element={<CustomerFormPage />} />
+
             <Route path="/finance/sales/quotes" element={<QuotesPage />} />
             <Route path="/finance/sales/quotes/new" element={<QuoteFormPage />} />
             <Route path="/finance/sales/quotes/:id" element={<QuoteDetailsPage />} />
             <Route path="/finance/sales/quotes/:id/edit" element={<QuoteFormPage />} />
+
             <Route path="/finance/sales/sales-orders" element={<SalesOrdersPage />} />
             <Route path="/finance/sales/sales-orders/new" element={<SalesOrderFormPage />} />
             <Route path="/finance/sales/sales-orders/:id" element={<SalesOrderDetailsPage />} />
             <Route path="/finance/sales/sales-orders/:id/edit" element={<SalesOrderFormPage />} />
+
             <Route path="/finance/sales/invoices" element={<InvoicesPage />} />
             <Route path="/finance/sales/invoices/new" element={<InvoiceFormPage />} />
             <Route path="/finance/sales/invoices/:id" element={<InvoiceDetailsPage />} />
             <Route path="/finance/sales/invoices/:id/edit" element={<InvoiceFormPage />} />
+
             <Route path="/finance/sales/sales-receipts" element={<SalesReceiptsPage />} />
             <Route path="/finance/sales/sales-receipts/new" element={<SalesReceiptFormPage />} />
             <Route path="/finance/sales/sales-receipts/:id" element={<SalesReceiptDetailsPage />} />
             <Route path="/finance/sales/sales-receipts/:id/edit" element={<SalesReceiptFormPage />} />
+
             <Route path="/finance/sales/payments-received" element={<PaymentsReceivedPage />} />
             <Route path="/finance/sales/payments-received/new" element={<PaymentReceivedFormPage />} />
             <Route path="/finance/sales/payments-received/:id" element={<PaymentReceivedDetailsPage />} />
             <Route path="/finance/sales/payments-received/:id/edit" element={<PaymentReceivedFormPage />} />
+
+            <Route path="/finance/payments/vendors" element={<VendorsPage/>}/>
+            <Route path="/finance/payments/vendors/new" element={<VendorsFormPage/>}/>
+            <Route path="/finance/payments/vendors/:id" element={<VendorsDetailsPage/>}/>
+            <Route path="/finance/payments/vendors/:id/edit" element={<VendorsDetailsPage/>}/>
+
             <Route path="/formulations/:formulationId/builder" element={<FormulationBuilderWrapper />} />
           </Route>
         </Route>

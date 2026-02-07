@@ -134,19 +134,19 @@ const Sidebar = ({ roles }) => {
 
         {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
           <Dropdown label="Purchases" icon={CreditCard} menuKey="purchases">
-            <NavLink to="/finance/purchases/vendors">
+            <NavLink to="/finance/payments/vendors">
               Vendors
             </NavLink>
-            <NavLink to="/finance/purchases/expenses">
+            <NavLink to="/finance/payments/expenses">
               Expenses
             </NavLink>
-            <NavLink to="/finance/purchases/purchase-orders">
+            <NavLink to="/finance/payments/purchase-orders">
               Purchase Orders
             </NavLink>
-            <NavLink to="/finance/purchases/bills">
+            <NavLink to="/finance/payments/bills">
               Bills
             </NavLink>
-            <NavLink to="/finance/purchases/payments-made">
+            <NavLink to="/finance/payments/payments-made">
               Payments Made
             </NavLink>
           </Dropdown>
