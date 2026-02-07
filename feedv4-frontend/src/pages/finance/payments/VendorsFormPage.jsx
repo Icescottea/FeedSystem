@@ -166,7 +166,7 @@ const VendorFormPage = () => {
       await new Promise(resolve => setTimeout(resolve, 500));
       
       alert(isEditMode ? 'Vendor updated successfully!' : 'Vendor created successfully!');
-      navigate('/finance/purchase/vendors');
+      navigate('/finance/payments/vendors');
       
     } catch (error) {
       console.error('Error saving vendor:', error);
@@ -730,7 +730,7 @@ const VendorFormPage = () => {
           <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
             <button
               type="button"
-              onClick={() => navigate('/finance/purchase/vendors')}
+              onClick={() => navigate('/finance/payments/vendors')}
               className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
             >
               Cancel

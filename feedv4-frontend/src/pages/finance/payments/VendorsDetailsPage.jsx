@@ -132,7 +132,7 @@ const VendorDetailsPage = () => {
         // TODO: Implement delete API call
         console.log('Deleting vendor:', id);
         alert('Vendor deleted successfully!');
-        navigate('/finance/purchase/vendors');
+        navigate('/finance/payments/vendors');
       } catch (error) {
         console.error('Error deleting vendor:', error);
         alert('Error deleting vendor.');
@@ -169,7 +169,7 @@ const VendorDetailsPage = () => {
       {/* Header */}
       <div className="mb-6">
         <button
-          onClick={() => navigate('/finance/purchase/vendors')}
+          onClick={() => navigate('/finance/payments/vendors')}
           className="text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
         >
           ← Back to Vendors
