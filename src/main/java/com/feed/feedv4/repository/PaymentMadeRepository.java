@@ -47,7 +47,7 @@ public interface PaymentMadeRepository extends JpaRepository<PaymentMade, Long> 
     @Query("""
         SELECT COALESCE(SUM(p.excessAmount), 0)
         FROM PaymentMade p
-        WHERE p.vendor.id = :vendorId
+        WHERE p.vendorId = :vendorId
     """)
     BigDecimal sumExcessByVendorId(@Param("vendorId") Long vendorId);
 }

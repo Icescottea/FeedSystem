@@ -52,7 +52,7 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     @Query("""
         SELECT COALESCE(SUM(b.outstandingAmount), 0)
         FROM Bill b
-        WHERE b.vendor.id = :vendorId
+        WHERE b.vendorId = :vendorId
     """)
     BigDecimal sumOutstandingByVendorId(@Param("vendorId") Long vendorId);
 }
