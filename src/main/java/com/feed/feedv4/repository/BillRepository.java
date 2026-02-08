@@ -1,17 +1,16 @@
 package com.feed.feedv4.repository;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-
+import com.feed.feedv4.model.Bill;
+import com.feed.feedv4.model.Bill.BillStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.feed.feedv4.model.Bill;
-import com.feed.feedv4.model.Bill.BillStatus;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface BillRepository extends JpaRepository<Bill, Long> {
@@ -49,4 +48,6 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     BigDecimal sumTotalByStatuses(@Param("statuses") List<BillStatus> statuses);
     
     boolean existsByBillNumber(String billNumber);
+
+    public BigDecimal sumOutstandingByVendorId(Long vendorId);
 }

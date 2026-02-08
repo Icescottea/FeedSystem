@@ -43,4 +43,6 @@ public interface PaymentMadeRepository extends JpaRepository<PaymentMade, Long> 
     BigDecimal sumTotalUnusedAmount();
     
     boolean existsByPaymentNumber(String paymentNumber);
+
+    public BigDecimal sumExcessByVendorId(Long vendorId);
 }

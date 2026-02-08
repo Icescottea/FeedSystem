@@ -1,0 +1,47 @@
+package com.feed.feedv4.model;
+
+import lombok.*;
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+
+@Entity
+@Table(name = "sales_receipt_items")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class SalesReceiptItem {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sales_receipt_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private SalesReceipt salesReceipt;
+    
+    @Column(nullable = false, length = 500)
+    private String itemName;
+    
+    @Column(precision = 15, scale = 2, nullable = false)
+    private BigDecimal quantity = BigDecimal.ZERO;
+    
+    @Column(precision = 15, scale = 2, nullable = false)
+    private BigDecimal rate = BigDecimal.ZERO;
+    
+    @Column(precision = 5, scale = 2, nullable = false)
+    private BigDecimal tax = BigDecimal.ZERO;
+    
+    @Column(precision = 15, scale = 2, nullable = false)
+    private BigDecimal amount = BigDecimal.ZERO;
+    
+    @Column(nullable = false)
+    private Integer sequence = 0;
+    
+    // Helper method to calculate amount
+    public void calculateAmount() {
+        this.amount = this.quantity.multiply(this.rate);
+    }
+}
