@@ -93,6 +93,8 @@ public class PaymentMade {
         updatedAt = LocalDateTime.now();
         calculateAmounts();
     }
+
+    private BigDecimal excessAmount;
     
     @PreUpdate
     protected void onUpdate() {

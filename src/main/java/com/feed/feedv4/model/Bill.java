@@ -77,6 +77,8 @@ public class Bill {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BillStatus status = BillStatus.DRAFT;
+
+    private BigDecimal outstandingAmount;
     
     @Column(columnDefinition = "TEXT")
     private String notes;

@@ -49,5 +49,10 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     
     boolean existsByBillNumber(String billNumber);
 
-    public BigDecimal sumOutstandingByVendorId(Long vendorId);
+    @Query("""
+        SELECT COALESCE(SUM(b.outstandingAmount), 0)
+        FROM Bill b
+        WHERE b.vendor.id = :vendorId
+    """)
+    BigDecimal sumOutstandingByVendorId(@Param("vendorId") Long vendorId);
 }
