@@ -10,6 +10,8 @@ const InvoicesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+
   useEffect(() => {
     fetchInvoices();
   }, []);
@@ -17,82 +19,23 @@ const InvoicesPage = () => {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/invoices');
-      // const data = await response.json();
-      
-      // Mock data
-      const mockData = [
-        {
-          id: 1,
-          invoiceNumber: 'INV-2024-001',
-          orderNumber: 'SO-2024-001',
-          date: '2024-12-20',
-          customerName: 'ABC Farms Ltd',
-          status: 'SENT',
-          dueDate: '2025-01-19',
-          amount: 250000,
-          balanceDue: 250000
-        },
-        {
-          id: 2,
-          invoiceNumber: 'INV-2024-002',
-          orderNumber: 'SO-2024-002',
-          date: '2024-12-18',
-          customerName: 'Green Valley Poultry',
-          status: 'DRAFT',
-          dueDate: '2025-01-17',
-          amount: 180000,
-          balanceDue: 180000
-        },
-        {
-          id: 3,
-          invoiceNumber: 'INV-2024-003',
-          orderNumber: 'SO-2024-003',
-          date: '2024-12-15',
-          customerName: 'Royal Livestock Co.',
-          status: 'PAID',
-          dueDate: '2025-01-14',
-          amount: 320000,
-          balanceDue: 0
-        },
-        {
-          id: 4,
-          invoiceNumber: 'INV-2024-004',
-          orderNumber: 'SO-2024-004',
-          date: '2024-12-10',
-          customerName: 'ABC Farms Ltd',
-          status: 'PARTIALLY_PAID',
-          dueDate: '2025-01-09',
-          amount: 150000,
-          balanceDue: 75000
-        },
-        {
-          id: 5,
-          invoiceNumber: 'INV-2024-005',
-          orderNumber: '',
-          date: '2024-12-05',
-          customerName: 'Green Valley Poultry',
-          status: 'OVERDUE',
-          dueDate: '2024-12-20',
-          amount: 95000,
-          balanceDue: 95000
-        }
-      ];
-      
-      setInvoices(mockData);
+      const response = await fetch(`${API_BASE_URL}/invoices`);
+      if (!response.ok) throw new Error('Failed to fetch invoices');
+      const data = await response.json();
+      setInvoices(data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching invoices:', error);
       setLoading(false);
+      // Optionally show error message to user
     }
   };
 
   const filteredInvoices = invoices.filter(invoice => {
     const matchesSearch = 
       invoice.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      invoice.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      invoice.customerName.toLowerCase().includes(searchQuery.toLowerCase());
+      (invoice.orderNumber && invoice.orderNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (invoice.customerName && invoice.customerName.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
     
@@ -130,10 +73,21 @@ const InvoicesPage = () => {
     navigate(`/finance/sales/invoices/${id}/edit`);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this invoice?')) {
-      // TODO: Implement delete API call
-      console.log('Deleting invoice:', id);
+      try {
+        const response = await fetch(`${API_BASE_URL}/invoices/${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete invoice');
+        
+        // Refresh the list
+        fetchInvoices();
+      } catch (error) {
+        console.error('Error deleting invoice:', error);
+        alert('Error deleting invoice. ' + error.message);
+      }
     }
   };
 
@@ -181,7 +135,7 @@ const InvoicesPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Total Outstanding</p>
           <p className="text-2xl font-bold text-orange-600 mt-1">
-            LKR {invoices.reduce((sum, i) => sum + i.balanceDue, 0).toLocaleString()}
+            LKR {invoices.reduce((sum, i) => sum + (i.balanceDue || 0), 0).toLocaleString()}
           </p>
         </div>
       </div>
@@ -245,7 +199,7 @@ const InvoicesPage = () => {
                   {paginatedInvoices.map((invoice) => (
                     <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                        {new Date(invoice.date).toLocaleDateString()}
+                        {new Date(invoice.invoiceDate).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-blue-600">{invoice.invoiceNumber}</div>
@@ -254,7 +208,7 @@ const InvoicesPage = () => {
                         {invoice.orderNumber || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{invoice.customerName}</div>
+                        <div className="text-sm font-medium text-gray-900">{invoice.customerName || 'N/A'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(invoice.status)}`}>
@@ -266,7 +220,7 @@ const InvoicesPage = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          LKR {invoice.amount.toLocaleString()}
+                          LKR {invoice.total.toLocaleString()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

@@ -10,6 +10,8 @@ const CustomersPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+
   useEffect(() => {
     fetchCustomers();
   }, []);
@@ -17,45 +19,10 @@ const CustomersPage = () => {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/customers');
-      // const data = await response.json();
-      
-      // Mock data for now
-      const mockData = [
-        {
-          id: 1,
-          customerName: 'ABC Farms Ltd',
-          companyName: 'ABC Farms Ltd',
-          email: 'contact@abcfarms.com',
-          phone: '+94 11 234 5678',
-          status: 'ACTIVE',
-          outstandingBalance: 125000,
-          createdDate: '2024-01-15'
-        },
-        {
-          id: 2,
-          customerName: 'Green Valley Poultry',
-          companyName: 'Green Valley Enterprises',
-          email: 'info@greenvalley.lk',
-          phone: '+94 77 123 4567',
-          status: 'ACTIVE',
-          outstandingBalance: 85000,
-          createdDate: '2024-02-20'
-        },
-        {
-          id: 3,
-          customerName: 'Royal Livestock Co.',
-          companyName: 'Royal Livestock Co.',
-          email: 'sales@royallivestock.com',
-          phone: '+94 31 222 3333',
-          status: 'INACTIVE',
-          outstandingBalance: 0,
-          createdDate: '2023-11-10'
-        }
-      ];
-      
-      setCustomers(mockData);
+      const response = await fetch(`${API_BASE_URL}/customers`);
+      if (!response.ok) throw new Error('Failed to fetch customers');
+      const data = await response.json();
+      setCustomers(data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching customers:', error);
@@ -66,7 +33,7 @@ const CustomersPage = () => {
   const filteredCustomers = customers.filter(customer => {
     const matchesSearch = 
       customer.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (customer.companyName && customer.companyName.toLowerCase().includes(searchQuery.toLowerCase())) ||
       customer.email.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || customer.status === statusFilter;
@@ -86,10 +53,23 @@ const CustomersPage = () => {
     navigate(`/finance/sales/customers/${id}/edit`);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to deactivate this customer?')) {
-      // TODO: Implement delete/deactivate API call
-      console.log('Deactivating customer:', id);
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this customer?')) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/customers/${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(error || 'Failed to delete customer');
+        }
+        
+        fetchCustomers();
+      } catch (error) {
+        console.error('Error deleting customer:', error);
+        alert('Error deleting customer: ' + error.message);
+      }
     }
   };
 
@@ -125,7 +105,7 @@ const CustomersPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Total Outstanding</p>
           <p className="text-2xl font-bold text-orange-600 mt-1">
-            LKR {customers.reduce((sum, c) => sum + c.outstandingBalance, 0).toLocaleString()}
+            LKR {customers.reduce((sum, c) => sum + (c.receivables || 0), 0).toLocaleString()}
           </p>
         </div>
       </div>
@@ -197,11 +177,11 @@ const CustomersPage = () => {
                         <div className="text-sm font-medium text-gray-900">{customer.customerName}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-600">{customer.companyName}</div>
+                        <div className="text-sm text-gray-600">{customer.companyName || '-'}</div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-sm text-gray-600">{customer.email}</div>
-                        <div className="text-sm text-gray-500">{customer.phone}</div>
+                        <div className="text-sm text-gray-500">{customer.phone || '-'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -214,7 +194,7 @@ const CustomersPage = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          LKR {customer.outstandingBalance.toLocaleString()}
+                          LKR {(customer.receivables || 0).toLocaleString()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">

@@ -10,6 +10,8 @@ const QuotesPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+
   useEffect(() => {
     fetchQuotes();
   }, []);
@@ -17,55 +19,10 @@ const QuotesPage = () => {
   const fetchQuotes = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/quotes');
-      // const data = await response.json();
-      
-      // Mock data
-      const mockData = [
-        {
-          id: 1,
-          quoteNumber: 'QT-2024-001',
-          referenceNumber: 'REF-001',
-          date: '2024-12-15',
-          customerName: 'ABC Farms Ltd',
-          status: 'SENT',
-          amount: 250000,
-          expiryDate: '2025-01-15'
-        },
-        {
-          id: 2,
-          quoteNumber: 'QT-2024-002',
-          referenceNumber: 'REF-002',
-          date: '2024-12-20',
-          customerName: 'Green Valley Poultry',
-          status: 'DRAFT',
-          amount: 180000,
-          expiryDate: '2025-01-20'
-        },
-        {
-          id: 3,
-          quoteNumber: 'QT-2024-003',
-          referenceNumber: 'REF-003',
-          date: '2024-12-10',
-          customerName: 'Royal Livestock Co.',
-          status: 'ACCEPTED',
-          amount: 320000,
-          expiryDate: '2025-01-10'
-        },
-        {
-          id: 4,
-          quoteNumber: 'QT-2024-004',
-          referenceNumber: 'REF-004',
-          date: '2024-11-25',
-          customerName: 'ABC Farms Ltd',
-          status: 'DECLINED',
-          amount: 150000,
-          expiryDate: '2024-12-25'
-        }
-      ];
-      
-      setQuotes(mockData);
+      const response = await fetch(`${API_BASE_URL}/quotes`);
+      if (!response.ok) throw new Error('Failed to fetch quotes');
+      const data = await response.json();
+      setQuotes(data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching quotes:', error);
@@ -76,8 +33,8 @@ const QuotesPage = () => {
   const filteredQuotes = quotes.filter(quote => {
     const matchesSearch = 
       quote.quoteNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      quote.referenceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      quote.customerName.toLowerCase().includes(searchQuery.toLowerCase());
+      (quote.referenceNumber && quote.referenceNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (quote.customerName && quote.customerName.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || quote.status === statusFilter;
     
@@ -113,10 +70,20 @@ const QuotesPage = () => {
     navigate(`/finance/sales/quotes/${id}/edit`);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this quote?')) {
-      // TODO: Implement delete API call
-      console.log('Deleting quote:', id);
+      try {
+        const response = await fetch(`${API_BASE_URL}/quotes/${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete quote');
+        
+        fetchQuotes();
+      } catch (error) {
+        console.error('Error deleting quote:', error);
+        alert('Error deleting quote: ' + error.message);
+      }
     }
   };
 
@@ -158,7 +125,7 @@ const QuotesPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Total Value</p>
           <p className="text-2xl font-bold text-gray-800 mt-1">
-            LKR {quotes.reduce((sum, q) => sum + q.amount, 0).toLocaleString()}
+            LKR {quotes.reduce((sum, q) => sum + (q.total || 0), 0).toLocaleString()}
           </p>
         </div>
       </div>
@@ -234,17 +201,17 @@ const QuotesPage = () => {
                     <tr key={quote.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-800">
-                          {new Date(quote.date).toLocaleDateString()}
+                          {new Date(quote.quoteDate).toLocaleDateString()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-blue-600">{quote.quoteNumber}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-600">{quote.referenceNumber}</div>
+                        <div className="text-sm text-gray-600">{quote.referenceNumber || '-'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{quote.customerName}</div>
+                        <div className="text-sm font-medium text-gray-900">{quote.customerName || 'N/A'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(quote.status)}`}>
@@ -253,7 +220,7 @@ const QuotesPage = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          LKR {quote.amount.toLocaleString()}
+                          LKR {quote.total.toLocaleString()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">

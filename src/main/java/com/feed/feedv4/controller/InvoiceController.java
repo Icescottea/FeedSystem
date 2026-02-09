@@ -1,120 +1,102 @@
 package com.feed.feedv4.controller;
 
-import com.feed.feedv4.dto.CreateInvoiceDTO;
-import com.feed.feedv4.model.Invoice;
-import com.feed.feedv4.service.InvoiceService;
-import com.feed.feedv4.service.InvoicePdfService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
+import java.math.BigDecimal;
 import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.feed.feedv4.dto.InvoiceDTO;
+import com.feed.feedv4.service.InvoiceService;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/invoices")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class InvoiceController {
-
+    
     private final InvoiceService invoiceService;
-    private final InvoicePdfService invoicePdfService;
-
-    public InvoiceController(InvoiceService invoiceService, InvoicePdfService invoicePdfService) {
-        this.invoiceService = invoiceService;
-        this.invoicePdfService = invoicePdfService;
-    }
-
-    // ===== List / Read =====
-
+    
     @GetMapping
-    public ResponseEntity<List<Invoice>> getAllInvoices() {
-        return ResponseEntity.ok(invoiceService.getAllInvoices());
+    public ResponseEntity<List<InvoiceDTO>> getAllInvoices() {
+        List<InvoiceDTO> invoices = invoiceService.getAllInvoices();
+        return ResponseEntity.ok(invoices);
     }
-
+    
     @GetMapping("/{id}")
-    public ResponseEntity<Invoice> getInvoice(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(invoiceService.getInvoice(id));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<InvoiceDTO> getInvoiceById(@PathVariable Long id) {
+        InvoiceDTO invoice = invoiceService.getInvoiceById(id);
+        return ResponseEntity.ok(invoice);
     }
-
-    /**
-     * Lightweight list of unpaid (or partially paid) invoices for pickers.
-     * Returns: id, customerName, totalAmount, amountPaid
-     */
-    @GetMapping("/unpaid")
-    public ResponseEntity<List<UnpaidInvoiceOption>> getUnpaidOptions() {
-        List<Invoice> all = invoiceService.getAllInvoices(); // simple & safe
-        List<UnpaidInvoiceOption> out = all.stream()
-                .filter(inv -> {
-                    double total = nvl(inv.getTotalAmount(), inv.getAmount());
-                    double paid  = nvl(inv.getPaidAmount(), inv.getAmountPaid()); // support either getter name
-                    return paid < total;
-                })
-                .map(inv -> new UnpaidInvoiceOption(
-                        inv.getId(),
-                        inv.getCustomerName(),
-                        nvl(inv.getTotalAmount(), inv.getAmount()),
-                        nvl(inv.getPaidAmount(), inv.getAmountPaid())
-                ))
-                .toList();
-        return ResponseEntity.ok(out);
+    
+    @GetMapping("/customer/{customerId}/outstanding")
+    public ResponseEntity<List<InvoiceDTO>> getOutstandingInvoicesByCustomer(@PathVariable Long customerId) {
+        List<InvoiceDTO> invoices = invoiceService.getOutstandingInvoicesByCustomer(customerId);
+        return ResponseEntity.ok(invoices);
     }
-
-    /**
-     * Backward compat: existing endpoint you already use.
-     * Kept as-is; can be removed later if unused.
-     */
-    @GetMapping("/unpaid-customers")
-    public ResponseEntity<List<String>> getUnpaidCustomers() {
-        return ResponseEntity.ok(invoiceService.getUnpaidCustomerNames());
-    }
-
-    // ===== Create / Update / Delete =====
-
+    
     @PostMapping
-    public ResponseEntity<Invoice> createInvoice(@RequestBody CreateInvoiceDTO dto) {
-        // NOTE: ensure your service sets dateIssued if null
-        return ResponseEntity.ok(invoiceService.createInvoice(dto));
+    public ResponseEntity<InvoiceDTO> createInvoice(@Valid @RequestBody InvoiceDTO dto) {
+        InvoiceDTO created = invoiceService.createInvoice(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
-
-    @PutMapping("/{id}/status")
-    public ResponseEntity<Invoice> updateStatus(@PathVariable Long id, @RequestParam String status) {
-        return ResponseEntity.ok(invoiceService.updateStatus(id, status));
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<InvoiceDTO> updateInvoice(
+            @PathVariable Long id,
+            @Valid @RequestBody InvoiceDTO dto) {
+        InvoiceDTO updated = invoiceService.updateInvoice(id, dto);
+        return ResponseEntity.ok(updated);
     }
-
+    
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteInvoice(@PathVariable Long id) {
         invoiceService.deleteInvoice(id);
         return ResponseEntity.noContent().build();
     }
-
-    @GetMapping("/customer/{customerId}")
-    public ResponseEntity<List<Invoice>> getInvoicesByCustomer(@PathVariable Long customerId) {
-        return ResponseEntity.ok(invoiceService.getInvoicesByCustomer(customerId));
+    
+    @PostMapping("/{id}/void")
+    public ResponseEntity<InvoiceDTO> voidInvoice(@PathVariable Long id) {
+        InvoiceDTO voided = invoiceService.voidInvoice(id);
+        return ResponseEntity.ok(voided);
     }
-
-    // ===== DTO for /unpaid =====
-    public record UnpaidInvoiceOption(
-            Long id,
-            String customerName,
-            Double totalAmount,
-            Double amountPaid
-    ) {}
-
-    // small null-safe helper; prefers primary, else fallback; returns 0 if both null
-    private static double nvl(Double primary, Double fallback) {
-        if (primary != null) return primary;
-        if (fallback != null) return fallback;
-        return 0d;
+    
+    @PostMapping("/{id}/clone")
+    public ResponseEntity<InvoiceDTO> cloneInvoice(@PathVariable Long id) {
+        InvoiceDTO cloned = invoiceService.cloneInvoice(id);
+        return ResponseEntity.status(HttpStatus.CREATED).body(cloned);
     }
-
-    @GetMapping("/{id}/export/pdf")
-    public ResponseEntity<byte[]> exportInvoicePdf(@PathVariable Long id) {
-        byte[] file = invoicePdfService.exportInvoicePdf(id);
-        return ResponseEntity.ok()
-                .header("Content-Type", "application/pdf")
-                .header("Content-Disposition", "attachment; filename=invoice-" + id + ".pdf")
-                .body(file);
+    
+    @PutMapping("/{id}/record-payment")
+    public ResponseEntity<InvoiceDTO> recordPayment(
+            @PathVariable Long id,
+            @RequestParam BigDecimal amount) {
+        InvoiceDTO updated = invoiceService.recordPayment(id, amount);
+        return ResponseEntity.ok(updated);
     }
-
+    
+    @GetMapping("/overdue")
+    public ResponseEntity<List<InvoiceDTO>> getOverdueInvoices() {
+        List<InvoiceDTO> invoices = invoiceService.getOverdueInvoices();
+        return ResponseEntity.ok(invoices);
+    }
+    
+    @GetMapping("/search")
+    public ResponseEntity<List<InvoiceDTO>> searchInvoices(@RequestParam String query) {
+        List<InvoiceDTO> invoices = invoiceService.searchInvoices(query);
+        return ResponseEntity.ok(invoices);
+    }
 }

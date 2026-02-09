@@ -1,214 +1,343 @@
 package com.feed.feedv4.service;
 
-import com.feed.feedv4.dto.CreateInvoiceDTO;
-import com.feed.feedv4.model.ChargesConfig;
-import com.feed.feedv4.model.Formulation;
-import com.feed.feedv4.model.FormulationIngredient;
-import com.feed.feedv4.model.Invoice;
-import com.feed.feedv4.model.Payment;
-import com.feed.feedv4.model.PelletingBatch;
-import com.feed.feedv4.repository.ChargesConfigRepository;
-import com.feed.feedv4.repository.InvoiceRepository;
-import com.feed.feedv4.repository.PaymentRepository;
-import com.feed.feedv4.repository.PelletingBatchRepository;
-import jakarta.transaction.Transactional;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.feed.feedv4.dto.InvoiceDTO;
+import com.feed.feedv4.dto.InvoiceItemDTO;
+import com.feed.feedv4.model.Invoice;
+import com.feed.feedv4.model.InvoiceItem;
+import com.feed.feedv4.repository.InvoiceItemRepository;
+import com.feed.feedv4.repository.InvoiceRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
+@Transactional
 public class InvoiceService {
-
-    private final InvoiceRepository invoiceRepo;
-    private final PelletingBatchRepository batchRepo;
-    private final ChargesConfigRepository chargesRepo;
-    private final PaymentRepository paymentRepository;
-
-    public InvoiceService(
-            InvoiceRepository invoiceRepo,
-            PelletingBatchRepository batchRepo,
-            ChargesConfigRepository chargesRepo,
-            PaymentRepository paymentRepository
-    ) {
-        this.invoiceRepo = invoiceRepo;
-        this.batchRepo = batchRepo;
-        this.chargesRepo = chargesRepo;
-        this.paymentRepository = paymentRepository;
+    
+    private final InvoiceRepository invoiceRepository;
+    private final InvoiceItemRepository invoiceItemRepository;
+    
+    public List<InvoiceDTO> getAllInvoices() {
+        return invoiceRepository.findAll().stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
     }
-
-    /* -------------------- CREATE -------------------- */
-    @Transactional
-    public Invoice createInvoice(CreateInvoiceDTO dto) {
-        // 1) Resolve batch (for qty & cost/kg)
-        PelletingBatch batch = null;
-        double qtyKg = 0.0;
-        double costPerKg = 0.0;
-
-        if (dto.getBatchId() != null) {
-            batch = batchRepo.findWithFormulationById(dto.getBatchId())
-                    .orElseThrow(() -> new RuntimeException("Batch not found: " + dto.getBatchId()));
-
-            qtyKg = (batch.getActualYieldKg() > 0 ? batch.getActualYieldKg()
-                    : (batch.getTargetQuantityKg() > 0 ? batch.getTargetQuantityKg() : 0));
-
-            if (batch.getFormulation() != null) {
-                costPerKg = safe(batch.getFormulation().getCostPerKg());
-                if (costPerKg <= 0) {
-                    costPerKg = computeCostPerKgFromIngredients(batch.getFormulation());
-                }
-            }
+    
+    public InvoiceDTO getInvoiceById(Long id) {
+        Invoice invoice = invoiceRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + id));
+        return convertToDTO(invoice);
+    }
+    
+    public List<InvoiceDTO> getOutstandingInvoicesByCustomer(Long customerId) {
+        return invoiceRepository.findOutstandingInvoicesByCustomerId(customerId).stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
+    
+    public InvoiceDTO createInvoice(InvoiceDTO dto) {
+        if (dto.getInvoiceNumber() == null || dto.getInvoiceNumber().isEmpty()) {
+            dto.setInvoiceNumber(generateInvoiceNumber());
         }
-
-        // Manufacturing cost
-        final double baseCost = round2(qtyKg * costPerKg);
-
-        // 2) Resolve fee config (by name first, then id, then latest active)
-        ChargesConfig cfg = null;
-        String feeTypeDisplayName = dto.getServiceType();
-        if (feeTypeDisplayName != null) feeTypeDisplayName = feeTypeDisplayName.trim();
-
-        if (feeTypeDisplayName != null && !feeTypeDisplayName.isEmpty()) {
-            cfg = chargesRepo.findByNameIgnoreCase(feeTypeDisplayName).orElse(null);
-            if (cfg == null) {
-                try {
-                    Long cfgId = Long.valueOf(feeTypeDisplayName);
-                    cfg = chargesRepo.findById(cfgId).orElse(null);
-                } catch (NumberFormatException ignored) { }
-            }
+        
+        if (invoiceRepository.existsByInvoiceNumber(dto.getInvoiceNumber())) {
+            throw new RuntimeException("Invoice number " + dto.getInvoiceNumber() + " already exists");
         }
-        if (cfg == null) {
-            cfg = chargesRepo.findTopByActiveTrueAndArchivedFalseOrderByUpdatedAtDesc()
-                    .orElseGet(() -> chargesRepo.findTopByActiveTrueAndArchivedFalseOrderByCreatedAtDesc()
-                            .orElse(null));
+        
+        Invoice invoice = convertToEntity(dto);
+        
+        // Auto-calculate due date if not provided
+        if (invoice.getDueDate() == null && invoice.getPaymentTerms() != null) {
+            invoice.setDueDate(calculateDueDate(invoice.getInvoiceDate(), invoice.getPaymentTerms()));
         }
-
-        // 3) Calculate fees
-        double pelletingFeeTotal = 0, formulationFeeTotal = 0, systemFeeTotal = 0;
-        if (cfg != null) {
-            if (feeTypeDisplayName == null || feeTypeDisplayName.isBlank()) {
-                feeTypeDisplayName = cfg.getName();
-            }
-
-            double pelletingPerKg      = (cfg.getPelletingFeeType()   == ChargesConfig.FeeBasis.PER_KG)    ? safe(cfg.getPelletingFee())   : 0.0;
-            double formulationPerKg    = (cfg.getFormulationFeeType() == ChargesConfig.FeeBasis.PER_KG)    ? safe(cfg.getFormulationFee()) : 0.0;
-            double pelletingPerBatch   = (cfg.getPelletingFeeType()   == ChargesConfig.FeeBasis.PER_BATCH) ? safe(cfg.getPelletingFee())   : 0.0;
-            double formulationPerBatch = (cfg.getFormulationFeeType() == ChargesConfig.FeeBasis.PER_BATCH) ? safe(cfg.getFormulationFee()) : 0.0;
-            double systemPercent       = safe(cfg.getSystemFeePercent());
-
-            pelletingFeeTotal   = round2(qtyKg * pelletingPerKg) + pelletingPerBatch;
-            formulationFeeTotal = round2(qtyKg * formulationPerKg) + formulationPerBatch;
-            systemFeeTotal      = round2(baseCost * (systemPercent / 100.0));
-        }
-
-        // 4) Subtotal (base + fees)
-        final double subtotal = round2(baseCost + pelletingFeeTotal + formulationFeeTotal + systemFeeTotal);
-
-        // 5) Apply discount (Rs) then tax (%) and persist those fields
-        //    (DTO fields are primitives in your code; treat missing as 0)
-        double discount = safe(dto.getDiscount());
-        double taxRate  = safe(dto.getTaxRate());
-
-        double afterDiscount = Math.max(0d, subtotal - discount);
-        double taxAmount     = round2(afterDiscount * (taxRate / 100.0));
-        double finalTotal    = round2(afterDiscount + taxAmount);
-
-        // 6) Build & save invoice
-        Invoice inv = new Invoice();
-        inv.setCustomerId(dto.getCustomerId());
-        inv.setCustomerName(dto.getCustomerName());
-        inv.setServiceType(feeTypeDisplayName);
-        inv.setBatchId(dto.getBatchId());
-
-        inv.setDiscount(discount);     // persist for display / PDF
-        inv.setTaxRate(taxRate);       // persist for display / PDF
-        inv.setAmount(finalTotal);     // authoritative grand total (after discount & tax)
-
-        inv.setStatus("Unpaid");
-        inv.setDateIssued(LocalDateTime.now());
-        inv.setPaid(false);
-        inv.setAmountPaid(0.0);
-        inv.setUpdatedAt(LocalDateTime.now());
-
-        return invoiceRepo.save(inv);
+        
+        calculateTotals(invoice);
+        
+        Invoice savedInvoice = invoiceRepository.save(invoice);
+        return convertToDTO(savedInvoice);
     }
-
-    /* -------------------- READ / UPDATE -------------------- */
-
-    public List<Invoice> getAllInvoices() {
-        return invoiceRepo.findAll();
+    
+    public InvoiceDTO updateInvoice(Long id, InvoiceDTO dto) {
+        Invoice existingInvoice = invoiceRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + id));
+        
+        updateInvoiceFields(existingInvoice, dto);
+        calculateTotals(existingInvoice);
+        
+        Invoice updatedInvoice = invoiceRepository.save(existingInvoice);
+        return convertToDTO(updatedInvoice);
     }
-
-    public Invoice getInvoice(Long id) {
-        return invoiceRepo.findById(id).orElseThrow(() -> new RuntimeException("Invoice not found"));
-    }
-
-    public List<Invoice> getInvoicesByCustomer(Long customerId) {
-        return invoiceRepo.findByCustomerId(customerId);
-    }
-
+    
     public void deleteInvoice(Long id) {
-        invoiceRepo.deleteById(id);
-    }
-
-    public Invoice updateStatus(Long id, String status) {
-        Invoice invoice = invoiceRepo.findById(id).orElseThrow(() -> new RuntimeException("Invoice not found"));
-        invoice.setStatus(status);
-        invoice.setUpdatedAt(LocalDateTime.now());
-        return invoiceRepo.save(invoice);
-    }
-
-    public List<String> getUnpaidCustomerNames() {
-        return invoiceRepo.findDistinctCustomerNamesByStatus("Unpaid");
-    }
-
-    public Invoice markAsPaid(Long id, Payment payment) {
-        Invoice invoice = getInvoice(id);
-        payment.setInvoice(invoice);
-        paymentRepository.save(payment);
-
-        invoice.setPaid(true);
-        invoice.setAmountPaid(invoice.getAmount());
-        invoice.setPaymentDate(payment.getPaymentDate());
-
-        return invoiceRepo.save(invoice);
-    }
-
-    /* =================== helpers =================== */
-
-    private double safe(Double v) {
-        return v == null ? 0.0 : v;
-    }
-
-    // Overload for primitives (in case DTO uses double)
-    private double safe(double v) {
-        return Double.isNaN(v) || Double.isInfinite(v) ? 0.0 : v;
-    }
-
-    private double round2(double v) {
-        return Math.round((v + 1e-9) * 100.0) / 100.0;
-    }
-
-    /**
-     * Fallback for formulations where costPerKg isn't persisted yet.
-     * Computes: sum(ingredientKg * ingredientCostPerKg) / batchSize
-     */
-    private double computeCostPerKgFromIngredients(Formulation f) {
-        if (f == null || f.getIngredients() == null || f.getIngredients().isEmpty() || f.getBatchSize() <= 0) {
-            return 0.0;
+        Invoice invoice = invoiceRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + id));
+        
+        if (invoice.getAmountPaid().compareTo(BigDecimal.ZERO) > 0) {
+            throw new RuntimeException("Cannot delete invoice with payments. Please void the invoice instead.");
         }
-        double total = 0.0;
-        for (FormulationIngredient fi : f.getIngredients()) {
-            double kg = fi.getQuantityKg() > 0 ? fi.getQuantityKg()
-                    : (fi.getPercentage() != null ? (fi.getPercentage() * f.getBatchSize() / 100.0) : 0.0);
-
-            double cpk = fi.getCostPerKg() > 0 ? fi.getCostPerKg()
-                    : (fi.getRawMaterial() != null && fi.getRawMaterial().getCostPerKg() != null
-                    ? fi.getRawMaterial().getCostPerKg() : 0.0);
-
-            total += kg * cpk;
+        
+        invoiceRepository.delete(invoice);
+    }
+    
+    public InvoiceDTO voidInvoice(Long id) {
+        Invoice invoice = invoiceRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + id));
+        
+        if (invoice.getAmountPaid().compareTo(BigDecimal.ZERO) > 0) {
+            throw new RuntimeException("Cannot void invoice with payments. Please reverse payments first.");
         }
-        return (total > 0) ? round2(total / f.getBatchSize()) : 0.0;
+        
+        invoice.voidInvoice();
+        Invoice voidedInvoice = invoiceRepository.save(invoice);
+        
+        return convertToDTO(voidedInvoice);
+    }
+    
+    public InvoiceDTO cloneInvoice(Long id) {
+        Invoice original = invoiceRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + id));
+        
+        Invoice cloned = Invoice.builder()
+            .invoiceNumber(generateInvoiceNumber())
+            .customerId(original.getCustomerId())
+            .invoiceDate(LocalDate.now())
+            .paymentTerms(original.getPaymentTerms())
+            .subject(original.getSubject())
+            .taxInclusive(original.getTaxInclusive())
+            .discount(original.getDiscount())
+            .discountType(original.getDiscountType())
+            .customerNotes(original.getCustomerNotes())
+            .termsAndConditions(original.getTermsAndConditions())
+            .status(Invoice.InvoiceStatus.DRAFT)
+            .build();
+        
+        cloned.setDueDate(calculateDueDate(cloned.getInvoiceDate(), cloned.getPaymentTerms()));
+        
+        for (InvoiceItem item : original.getItems()) {
+            InvoiceItem clonedItem = InvoiceItem.builder()
+                .itemDetails(item.getItemDetails())
+                .account(item.getAccount())
+                .quantity(item.getQuantity())
+                .rate(item.getRate())
+                .taxRate(item.getTaxRate())
+                .amount(item.getAmount())
+                .sequence(item.getSequence())
+                .build();
+            cloned.addItem(clonedItem);
+        }
+        
+        calculateTotals(cloned);
+        Invoice savedInvoice = invoiceRepository.save(cloned);
+        
+        return convertToDTO(savedInvoice);
+    }
+    
+    public InvoiceDTO recordPayment(Long invoiceId, BigDecimal amount) {
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+            .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + invoiceId));
+        
+        if (amount.compareTo(invoice.getBalanceDue()) > 0) {
+            throw new RuntimeException("Payment amount cannot exceed balance due");
+        }
+        
+        invoice.recordPayment(amount);
+        Invoice updatedInvoice = invoiceRepository.save(invoice);
+        
+        return convertToDTO(updatedInvoice);
+    }
+    
+    public InvoiceDTO reversePayment(Long invoiceId, BigDecimal amount) {
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+            .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + invoiceId));
+        
+        invoice.reversePayment(amount);
+        Invoice updatedInvoice = invoiceRepository.save(invoice);
+        
+        return convertToDTO(updatedInvoice);
+    }
+    
+    public List<InvoiceDTO> getOverdueInvoices() {
+        return invoiceRepository.findOverdueInvoices(LocalDate.now()).stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
+    
+    public List<InvoiceDTO> searchInvoices(String query) {
+        return invoiceRepository.searchInvoices(query).stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
+    
+    private LocalDate calculateDueDate(LocalDate invoiceDate, Invoice.PaymentTerms terms) {
+        if (terms == null) return invoiceDate;
+        
+        switch (terms) {
+            case DUE_ON_RECEIPT: return invoiceDate;
+            case NET_15: return invoiceDate.plusDays(15);
+            case NET_30: return invoiceDate.plusDays(30);
+            case NET_45: return invoiceDate.plusDays(45);
+            case NET_60: return invoiceDate.plusDays(60);
+            case NET_90: return invoiceDate.plusDays(90);
+            default: return invoiceDate.plusDays(30);
+        }
+    }
+    
+    private void calculateTotals(Invoice invoice) {
+        BigDecimal subtotal = invoice.getItems().stream()
+            .map(item -> {
+                item.calculateAmount();
+                return item.getAmount();
+            })
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        invoice.setSubtotal(subtotal);
+        
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (invoice.getDiscount().compareTo(BigDecimal.ZERO) > 0) {
+            if (invoice.getDiscountType() == Invoice.DiscountType.PERCENTAGE) {
+                discountAmount = subtotal.multiply(invoice.getDiscount()).divide(new BigDecimal("100"));
+            } else {
+                discountAmount = invoice.getDiscount();
+            }
+        }
+        
+        BigDecimal afterDiscount = subtotal.subtract(discountAmount);
+        
+        BigDecimal taxAmount = BigDecimal.ZERO;
+        if (!invoice.getTaxInclusive()) {
+            taxAmount = invoice.getItems().stream()
+                .map(item -> item.getAmount().multiply(item.getTaxRate()).divide(new BigDecimal("100")))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        }
+        
+        invoice.setTax(taxAmount);
+        invoice.setTotal(afterDiscount.add(taxAmount));
+    }
+    
+    private String generateInvoiceNumber() {
+        String year = String.valueOf(LocalDate.now().getYear());
+        Long count = invoiceRepository.count() + 1;
+        return String.format("INV-%s-%03d", year, count);
+    }
+    
+    private InvoiceDTO convertToDTO(Invoice invoice) {
+        List<InvoiceItemDTO> itemDTOs = invoice.getItems().stream()
+            .map(this::convertItemToDTO)
+            .collect(Collectors.toList());
+        
+        return InvoiceDTO.builder()
+            .id(invoice.getId())
+            .invoiceNumber(invoice.getInvoiceNumber())
+            .orderNumber(invoice.getOrderNumber())
+            .customerId(invoice.getCustomerId())
+            .salesOrderId(invoice.getSalesOrderId())
+            .invoiceDate(invoice.getInvoiceDate())
+            .dueDate(invoice.getDueDate())
+            .paymentTerms(invoice.getPaymentTerms() != null ? invoice.getPaymentTerms().name() : null)
+            .subject(invoice.getSubject())
+            .taxInclusive(invoice.getTaxInclusive())
+            .subtotal(invoice.getSubtotal())
+            .discount(invoice.getDiscount())
+            .discountType(invoice.getDiscountType() != null ? invoice.getDiscountType().name() : null)
+            .tax(invoice.getTax())
+            .total(invoice.getTotal())
+            .amountPaid(invoice.getAmountPaid())
+            .balanceDue(invoice.getBalanceDue())
+            .status(invoice.getStatus() != null ? invoice.getStatus().name() : null)
+            .customerNotes(invoice.getCustomerNotes())
+            .termsAndConditions(invoice.getTermsAndConditions())
+            .attachments(invoice.getAttachments())
+            .items(itemDTOs)
+            .createdBy(invoice.getCreatedBy())
+            .createdAt(invoice.getCreatedAt())
+            .updatedAt(invoice.getUpdatedAt())
+            .build();
+    }
+    
+    private InvoiceItemDTO convertItemToDTO(InvoiceItem item) {
+        return InvoiceItemDTO.builder()
+            .id(item.getId())
+            .itemDetails(item.getItemDetails())
+            .account(item.getAccount())
+            .quantity(item.getQuantity())
+            .rate(item.getRate())
+            .taxRate(item.getTaxRate())
+            .amount(item.getAmount())
+            .sequence(item.getSequence())
+            .build();
+    }
+    
+    private Invoice convertToEntity(InvoiceDTO dto) {
+        Invoice invoice = Invoice.builder()
+            .invoiceNumber(dto.getInvoiceNumber())
+            .orderNumber(dto.getOrderNumber())
+            .customerId(dto.getCustomerId())
+            .salesOrderId(dto.getSalesOrderId())
+            .invoiceDate(dto.getInvoiceDate())
+            .dueDate(dto.getDueDate())
+            .paymentTerms(dto.getPaymentTerms() != null ? Invoice.PaymentTerms.valueOf(dto.getPaymentTerms()) : null)
+            .subject(dto.getSubject())
+            .taxInclusive(dto.getTaxInclusive())
+            .discount(dto.getDiscount())
+            .discountType(dto.getDiscountType() != null ? Invoice.DiscountType.valueOf(dto.getDiscountType()) : null)
+            .status(dto.getStatus() != null ? Invoice.InvoiceStatus.valueOf(dto.getStatus()) : Invoice.InvoiceStatus.DRAFT)
+            .customerNotes(dto.getCustomerNotes())
+            .termsAndConditions(dto.getTermsAndConditions())
+            .attachments(dto.getAttachments())
+            .createdBy(dto.getCreatedBy())
+            .build();
+        
+        if (dto.getItems() != null) {
+            for (InvoiceItemDTO itemDTO : dto.getItems()) {
+                InvoiceItem item = convertItemToEntity(itemDTO);
+                invoice.addItem(item);
+            }
+        }
+        
+        return invoice;
+    }
+    
+    private InvoiceItem convertItemToEntity(InvoiceItemDTO dto) {
+        return InvoiceItem.builder()
+            .itemDetails(dto.getItemDetails())
+            .account(dto.getAccount())
+            .quantity(dto.getQuantity())
+            .rate(dto.getRate())
+            .taxRate(dto.getTaxRate())
+            .amount(dto.getAmount())
+            .sequence(dto.getSequence())
+            .build();
+    }
+    
+    private void updateInvoiceFields(Invoice invoice, InvoiceDTO dto) {
+        invoice.setOrderNumber(dto.getOrderNumber());
+        invoice.setCustomerId(dto.getCustomerId());
+        invoice.setSalesOrderId(dto.getSalesOrderId());
+        invoice.setInvoiceDate(dto.getInvoiceDate());
+        invoice.setDueDate(dto.getDueDate());
+        invoice.setPaymentTerms(dto.getPaymentTerms() != null ? Invoice.PaymentTerms.valueOf(dto.getPaymentTerms()) : null);
+        invoice.setSubject(dto.getSubject());
+        invoice.setTaxInclusive(dto.getTaxInclusive());
+        invoice.setDiscount(dto.getDiscount());
+        invoice.setDiscountType(dto.getDiscountType() != null ? Invoice.DiscountType.valueOf(dto.getDiscountType()) : null);
+        invoice.setCustomerNotes(dto.getCustomerNotes());
+        invoice.setTermsAndConditions(dto.getTermsAndConditions());
+        invoice.setAttachments(dto.getAttachments());
+        
+        invoice.getItems().clear();
+        if (dto.getItems() != null) {
+            for (InvoiceItemDTO itemDTO : dto.getItems()) {
+                InvoiceItem item = convertItemToEntity(itemDTO);
+                invoice.addItem(item);
+            }
+        }
     }
 }

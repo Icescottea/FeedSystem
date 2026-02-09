@@ -7,6 +7,8 @@ const PaymentReceivedDetailsPage = () => {
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+
   useEffect(() => {
     fetchPaymentDetails();
   }, [id]);
@@ -14,47 +16,10 @@ const PaymentReceivedDetailsPage = () => {
   const fetchPaymentDetails = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      
-      const mockData = {
-        id: 1,
-        paymentNumber: 'PAY-2024-001',
-        referenceNumber: 'REF-001',
-        type: 'INVOICE_PAYMENT',
-        paymentDate: '2024-12-20',
-        customerName: 'ABC Farms Ltd',
-        customerId: 1,
-        amountReceived: 250000,
-        bankCharges: 500,
-        taxDeducted: false,
-        taxAmount: 0,
-        netAmount: 249500,
-        paymentMode: 'BANK_TRANSFER',
-        depositedTo: 'Main Bank Account - Commercial Bank',
-        status: 'COMPLETED',
-        invoicePayments: [
-          {
-            invoiceId: 1,
-            invoiceNumber: 'INV-2024-001',
-            invoiceDate: '2024-12-01',
-            invoiceAmount: 250000,
-            amountDue: 250000,
-            paymentApplied: 249500
-          }
-        ],
-        totalPaymentsApplied: 249500,
-        amountRefunded: 0,
-        amountInExcess: 0,
-        notes: 'Payment received for invoice INV-2024-001',
-        attachments: [
-          { id: 1, name: 'payment_receipt.pdf', size: '1.2 MB' }
-        ],
-        createdBy: 'John Doe',
-        createdDate: '2024-12-20T14:30:00',
-        modifiedDate: '2024-12-20T14:30:00'
-      };
-      
-      setPayment(mockData);
+      const response = await fetch(`${API_BASE_URL}/payments-received/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch payment details');
+      const data = await response.json();
+      setPayment(data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching payment details:', error);
@@ -75,47 +40,48 @@ const PaymentReceivedDetailsPage = () => {
       alert('Payment is already voided.');
       return;
     }
-    if (window.confirm('Are you sure you want to void this payment? This action cannot be undone.')) {
+    if (window.confirm('Are you sure you want to void this payment? This will reverse all invoice payments.')) {
       try {
-        // TODO: Implement void API call
-        console.log('Voiding payment:', id);
-        setPayment(prev => ({ ...prev, status: 'VOID' }));
+        const response = await fetch(`${API_BASE_URL}/payments-received/${id}/void`, {
+          method: 'POST',
+        });
+        
+        if (!response.ok) throw new Error('Failed to void payment');
+        
+        const data = await response.json();
+        setPayment(data);
         alert('Payment voided successfully!');
       } catch (error) {
         console.error('Error voiding payment:', error);
-        alert('Error voiding payment.');
+        alert('Error voiding payment: ' + error.message);
       }
     }
   };
 
   const handleDelete = async () => {
-    if (payment.status === 'COMPLETED' && payment.totalPaymentsApplied > 0) {
+    if (payment.invoicePayments && payment.invoicePayments.length > 0) {
       alert('Cannot delete a payment that has been applied to invoices. Please void it first.');
       return;
     }
     if (window.confirm('Are you sure you want to delete this payment? This action cannot be undone.')) {
       try {
-        // TODO: Implement delete API call
-        console.log('Deleting payment:', id);
+        const response = await fetch(`${API_BASE_URL}/payments-received/${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete payment');
+        
         alert('Payment deleted successfully!');
         navigate('/finance/sales/payments-received');
       } catch (error) {
         console.error('Error deleting payment:', error);
-        alert('Error deleting payment.');
+        alert('Error deleting payment: ' + error.message);
       }
     }
   };
 
-  const handleDownloadPDF = () => {
-    // TODO: Implement PDF download
-    console.log('Downloading PDF for payment:', id);
-    alert('PDF download will be implemented with backend integration.');
-  };
-
-  const handleSendEmail = () => {
-    // TODO: Implement email functionality
-    console.log('Sending payment receipt via email:', id);
-    alert('Email functionality will be implemented with backend integration.');
+  const handlePrint = () => {
+    window.print();
   };
 
   const getStatusColor = (status) => {
@@ -125,24 +91,7 @@ const PaymentReceivedDetailsPage = () => {
       case 'PARTIALLY_USED':
         return 'bg-yellow-100 text-yellow-800';
       case 'VOID':
-        return 'bg-red-100 text-red-800';
-      default:
         return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getPaymentModeColor = (mode) => {
-    switch (mode) {
-      case 'CASH':
-        return 'bg-green-100 text-green-800';
-      case 'BANK_TRANSFER':
-        return 'bg-blue-100 text-blue-800';
-      case 'CHEQUE':
-        return 'bg-purple-100 text-purple-800';
-      case 'CREDIT_CARD':
-        return 'bg-indigo-100 text-indigo-800';
-      case 'DEBIT_CARD':
-        return 'bg-cyan-100 text-cyan-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -152,10 +101,10 @@ const PaymentReceivedDetailsPage = () => {
     switch (type) {
       case 'INVOICE_PAYMENT':
         return 'bg-blue-100 text-blue-800';
-      case 'ADVANCE_PAYMENT':
-        return 'bg-purple-100 text-purple-800';
       case 'PARTIAL_PAYMENT':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-purple-100 text-purple-800';
+      case 'ADVANCE_PAYMENT':
+        return 'bg-orange-100 text-orange-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -177,232 +126,177 @@ const PaymentReceivedDetailsPage = () => {
     );
   }
 
+  const netAmount = payment.amountReceived - payment.bankCharges - (payment.taxAmount || 0);
+
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={() => navigate('/finance/sales/payments-received')}
-          className="text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
-        >
-          ← Back to Payments Received
-        </button>
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">{payment.paymentNumber}</h1>
-            <p className="text-gray-600 mt-1">Customer: {payment.customerName}</p>
-          </div>
-          <div className="flex gap-2 flex-wrap justify-end">
-            <button
-              onClick={handleEdit}
-              disabled={payment.status === 'VOID'}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Edit
-            </button>
-            <button
-              onClick={handleVoid}
-              disabled={payment.status === 'VOID'}
-              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Void
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={payment.status === 'COMPLETED' && payment.totalPaymentsApplied > 0}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Delete
-            </button>
-          </div>
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Payment Details</h1>
+          <p className="text-gray-600 mt-1">{payment.paymentNumber}</p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate('/finance/sales/payments-received')}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Back to List
+          </button>
+          <button
+            onClick={handleEdit}
+            disabled={payment.status === 'VOID'}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Edit
+          </button>
+          <button
+            onClick={handlePrint}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Print
+          </button>
+          <button
+            onClick={handleVoid}
+            disabled={payment.status === 'VOID'}
+            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Void
+          </button>
+          <button
+            onClick={handleDelete}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Delete
+          </button>
         </div>
       </div>
 
-      {/* Status Badges */}
-      <div className="mb-6 flex gap-2 flex-wrap">
-        <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${getStatusColor(payment.status)}`}>
-          {payment.status.replace('_', ' ')}
-        </span>
-        <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${getTypeColor(payment.type)}`}>
-          {payment.type.replace('_', ' ')}
-        </span>
-        <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${getPaymentModeColor(payment.paymentMode)}`}>
-          {payment.paymentMode.replace('_', ' ')}
-        </span>
-      </div>
-
-      {/* Payment Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <p className="text-gray-600 text-sm">Amount Received</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">
-            LKR {payment.amountReceived.toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <p className="text-gray-600 text-sm">Net Amount</p>
-          <p className="text-2xl font-bold text-blue-600 mt-1">
-            LKR {payment.netAmount.toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <p className="text-gray-600 text-sm">Amount Used</p>
-          <p className="text-2xl font-bold text-gray-800 mt-1">
-            LKR {payment.totalPaymentsApplied.toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <p className="text-gray-600 text-sm">Amount in Excess</p>
-          <p className="text-2xl font-bold text-orange-600 mt-1">
-            LKR {payment.amountInExcess.toLocaleString()}
-          </p>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="mb-6">
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Quick Actions</h3>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={handleDownloadPDF}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Download PDF
-            </button>
-            <button
-              onClick={handleSendEmail}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Send via Email
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Print
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Payment Details */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
-        {/* Basic Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Payment Information</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Payment Number:</span>
-                <span className="font-medium text-gray-800">{payment.paymentNumber}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Reference Number:</span>
-                <span className="font-medium text-gray-800">{payment.referenceNumber || '-'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Payment Date:</span>
-                <span className="font-medium text-gray-800">
-                  {new Date(payment.paymentDate).toLocaleDateString()}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Payment Mode:</span>
-                <span className="font-medium text-gray-800">{payment.paymentMode.replace('_', ' ')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Deposited To:</span>
-                <span className="font-medium text-gray-800">{payment.depositedTo}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Created By:</span>
-                <span className="font-medium text-gray-800">{payment.createdBy}</span>
-              </div>
+      {/* Payment Information */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        {/* Main Details */}
+        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Payment Information</h2>
+            </div>
+            <div className="flex gap-2">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(payment.status)}`}>
+                {payment.status?.replace('_', ' ')}
+              </span>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getTypeColor(payment.type)}`}>
+                {payment.type?.replace('_', ' ')}
+              </span>
             </div>
           </div>
 
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Customer Information</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Customer Name:</span>
-                <span className="font-medium text-gray-800">{payment.customerName}</span>
-              </div>
-              <div className="mt-4">
-                <button
-                  onClick={() => navigate(`/finance/sales/customers/${payment.customerId}`)}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  View Customer Details →
-                </button>
-              </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-600">Payment Number</p>
+              <p className="text-base font-medium text-gray-900">{payment.paymentNumber}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Reference Number</p>
+              <p className="text-base font-medium text-gray-900">{payment.referenceNumber || '-'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Payment Date</p>
+              <p className="text-base font-medium text-gray-900">
+                {new Date(payment.paymentDate).toLocaleDateString()}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Customer Name</p>
+              <p className="text-base font-medium text-gray-900">{payment.customerName || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Payment Mode</p>
+              <p className="text-base font-medium text-gray-900">
+                {payment.paymentMode?.replace('_', ' ')}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Deposited To</p>
+              <p className="text-base font-medium text-gray-900">{payment.depositTo}</p>
             </div>
           </div>
         </div>
 
-        {/* Payment Breakdown */}
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">Payment Breakdown</h3>
-          <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700">Amount Received:</span>
-              <span className="font-medium text-gray-900">LKR {payment.amountReceived.toLocaleString()}</span>
+        {/* Amount Summary */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Amount Summary</h2>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Amount Received</span>
+              <span className="text-base font-medium text-gray-900">
+                LKR {payment.amountReceived.toLocaleString()}
+              </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700">Bank Charges:</span>
-              <span className="font-medium text-gray-900">LKR {payment.bankCharges.toLocaleString()}</span>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Bank Charges</span>
+              <span className="text-base font-medium text-gray-900">
+                LKR {payment.bankCharges.toLocaleString()}
+              </span>
             </div>
             {payment.taxDeducted && (
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Tax Deducted:</span>
-                <span className="font-medium text-gray-900">LKR {payment.taxAmount.toLocaleString()}</span>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Tax Deducted</span>
+                <span className="text-base font-medium text-gray-900">
+                  LKR {payment.taxAmount.toLocaleString()}
+                </span>
               </div>
             )}
-            <div className="border-t pt-3 flex justify-between items-center">
-              <span className="font-semibold text-gray-800">Net Amount:</span>
-              <span className="font-bold text-blue-600 text-lg">LKR {payment.netAmount.toLocaleString()}</span>
+            <div className="flex justify-between border-t border-gray-200 pt-3">
+              <span className="text-sm font-medium text-gray-700">Net Amount</span>
+              <span className="text-base font-bold text-gray-900">
+                LKR {netAmount.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Amount Used</span>
+              <span className="text-base font-medium text-green-600">
+                LKR {payment.amountUsed.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between border-t border-gray-200 pt-3">
+              <span className="text-sm font-medium text-gray-700">Unused Amount</span>
+              <span className="text-lg font-bold text-orange-600">
+                LKR {payment.unusedAmount.toLocaleString()}
+              </span>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Invoice Payments Applied */}
-        {payment.invoicePayments && payment.invoicePayments.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Payment Applied to Invoices</h3>
-            <div className="overflow-x-auto border border-gray-300 rounded-lg">
+      {/* Invoice Payments */}
+      {payment.invoicePayments && payment.invoicePayments.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <div className="p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Applied to Invoices</h2>
+            <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Date</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice Number</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice Amount</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount Due</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Invoice Balance</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Applied</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {payment.invoicePayments.map((inv) => (
-                    <tr key={inv.invoiceId}>
+                  {payment.invoicePayments.map((invoicePayment, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-800">
-                        {new Date(inv.invoiceDate).toLocaleDateString()}
+                        {new Date(invoicePayment.paymentDate).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-blue-600">
-                        <button
-                          onClick={() => navigate(`/finance/sales/invoices/${inv.invoiceId}`)}
-                          className="hover:underline"
-                        >
-                          {inv.invoiceNumber}
-                        </button>
+                        {invoicePayment.invoiceNumber}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-800">
-                        LKR {inv.invoiceAmount.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-medium text-red-600">
-                        LKR {inv.amountDue.toLocaleString()}
+                        LKR {invoicePayment.invoiceBalanceDue.toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-green-600">
-                        LKR {inv.paymentApplied.toLocaleString()}
+                        LKR {invoicePayment.paymentAmount.toLocaleString()}
                       </td>
                     </tr>
                   ))}
@@ -410,68 +304,39 @@ const PaymentReceivedDetailsPage = () => {
               </table>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Payment Summary */}
-        <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-3">Summary</h3>
-          <div className="bg-blue-50 p-4 rounded-lg space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700">Total Amount Used:</span>
-              <span className="font-medium text-gray-900">LKR {payment.totalPaymentsApplied.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-700">Amount Refunded:</span>
-              <span className="font-medium text-gray-900">LKR {payment.amountRefunded.toLocaleString()}</span>
-            </div>
-            <div className="border-t pt-3 flex justify-between items-center">
-              <span className="font-semibold text-gray-800">Amount in Excess:</span>
-              <span className={`font-bold text-lg ${payment.amountInExcess > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
-                LKR {payment.amountInExcess.toLocaleString()}
-              </span>
-            </div>
+      {/* Notes */}
+      {payment.notes && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <div className="p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Notes</h2>
+            <p className="text-gray-700 whitespace-pre-wrap">{payment.notes}</p>
           </div>
         </div>
+      )}
 
-        {/* Notes */}
-        {payment.notes && (
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Notes</h3>
-            <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">{payment.notes}</p>
-          </div>
-        )}
-
-        {/* Attachments */}
-        {payment.attachments && payment.attachments.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Attachments</h3>
-            <div className="space-y-2">
-              {payment.attachments.map((file) => (
-                <div key={file.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-                  <div>
-                    <span className="text-sm font-medium text-gray-800">{file.name}</span>
-                    <span className="text-xs text-gray-500 ml-2">({file.size})</span>
-                  </div>
-                  <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                    Download
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Audit Information */}
-        <div className="border-t pt-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Audit Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+      {/* Metadata */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Record Information</h2>
+          <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span>Created: </span>
-              <span className="text-gray-800">{new Date(payment.createdDate).toLocaleString()}</span>
+              <p className="text-gray-600">Created By</p>
+              <p className="font-medium text-gray-900">{payment.createdBy || 'N/A'}</p>
             </div>
             <div>
-              <span>Last Modified: </span>
-              <span className="text-gray-800">{new Date(payment.modifiedDate).toLocaleString()}</span>
+              <p className="text-gray-600">Created Date</p>
+              <p className="font-medium text-gray-900">
+                {payment.createdAt ? new Date(payment.createdAt).toLocaleString() : 'N/A'}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-600">Last Modified</p>
+              <p className="font-medium text-gray-900">
+                {payment.updatedAt ? new Date(payment.updatedAt).toLocaleString() : 'N/A'}
+              </p>
             </div>
           </div>
         </div>
