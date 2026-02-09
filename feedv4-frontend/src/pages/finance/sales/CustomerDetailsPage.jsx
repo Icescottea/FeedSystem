@@ -15,7 +15,7 @@ const CustomerDetailsPage = () => {
   const fetchCustomerDetails = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
+      // TODO Replace with actual API call
       // const response = await fetch(`/api/customers/${id}`);
       // const data = await response.json();
       
