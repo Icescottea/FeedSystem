@@ -104,12 +104,6 @@ const Sidebar = ({ roles }) => {
         )}
 
         {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
-          <NavLink to="/finance" icon={DollarSign}>
-            Finance
-          </NavLink>
-        )}
-
-        {(roles.includes('ADMIN') || roles.includes('FINANCE_OFFICER')) && (
           <Dropdown label="Sales" icon={DollarSign} menuKey="sales">
             <NavLink to="/finance/sales/customers">
               Customers

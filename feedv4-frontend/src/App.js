@@ -9,15 +9,8 @@ import FormulationEnginePage from './pages/FormulationEnginePage';
 import FormulationLibraryPage from './pages/FormulationLibraryPage';
 import FormulationBuilderPage from './pages/FormulationBuilderPage';
 import PelletingQueuePage from './pages/PelletingQueuePage';
-import FinanceDashboard from './components/Finance/FinanceDashboard';
-import FeeConfigPage from './pages/finance/FeeConfigPage';
-import InvoiceListPage from './pages/finance/InvoiceListPage';
 import UserManagementPage from './pages/UserManagementPage';
-import PaymentListPage from './pages/finance/PaymentListPage';
-import ReportsPage from './pages/finance/ReportsPage';
-import InvoiceForm from './pages/finance/InvoiceForm';
 import RequireAuth from './RequireAuth';
-import NewPaymentPage from './pages/finance/NewPaymentPage';
 import FactoryPage from "./pages/FactoryPage";
 import CustomerDetailsPage from './pages/finance/sales/CustomerDetailsPage';
 import CustomerFormPage from './pages/finance/sales/CustomerFormPage';
@@ -85,14 +78,7 @@ const App = () => {
             <Route path="/formulation-library" element={<FormulationLibraryPage />} />
             <Route path="/formulation-builder" element={<FormulationBuilderPage />} />
             <Route path="/pelleting" element={<PelletingQueuePage />} />
-            <Route path="/finance" element={<FinanceDashboard />} />
-            <Route path="/finance/config/*" element={<FeeConfigPage />} />
-            <Route path="/finance/invoices" element={<InvoiceListPage />} />
-            <Route path="/finance/invoices/new" element={<InvoiceForm />} />
-            <Route path="/finance/payments" element={<PaymentListPage />} />
-            <Route path="/finance/reports" element={<ReportsPage />} />
             <Route path="/users" element={<UserManagementPage />} />
-            <Route path="/finance/payments/new" element={<NewPaymentPage />} />
             <Route path="/factories" element={<FactoryPage />} />
 
             <Route path="/finance/sales/customers" element={<CustomersPage />} />

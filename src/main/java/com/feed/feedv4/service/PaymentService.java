@@ -1,129 +1,112 @@
 package com.feed.feedv4.service;
 
-import com.feed.feedv4.dto.CreatePaymentDTO;
-import com.feed.feedv4.model.Invoice;
-import com.feed.feedv4.model.Payment;
-import com.feed.feedv4.repository.InvoiceRepository;
-import com.feed.feedv4.repository.PaymentRepository;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import com.feed.feedv4.model.Invoice;
+import com.feed.feedv4.repository.InvoiceRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
+@Transactional
 public class PaymentService {
-
-    private final PaymentRepository paymentRepo;
-    private final InvoiceRepository invoiceRepo;
-
-    public PaymentService(PaymentRepository paymentRepo, InvoiceRepository invoiceRepo) {
-        this.paymentRepo = paymentRepo;
-        this.invoiceRepo = invoiceRepo;
-    }
-
-    public List<Payment> getAllPayments() {
-        return paymentRepo.findAll();
-    }
-
-    public Payment getById(Long id) {
-        return paymentRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Payment not found"));
-    }
-
-    public List<Payment> getPaymentsForInvoice(Long invoiceId) {
-        return paymentRepo.findByInvoiceId(invoiceId);
-    }
-
-    public void delete(Long id) {
-        if (!paymentRepo.existsById(id)) {
-            throw new RuntimeException("Payment not found");
+    
+    private final InvoiceRepository invoiceRepository;
+    
+    public Map<String, Object> processPayment(Long invoiceId, BigDecimal paymentAmount) {
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+            .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + invoiceId));
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        // Validate payment amount
+        if (paymentAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Payment amount must be greater than zero");
         }
-        paymentRepo.deleteById(id);
+        
+        if (paymentAmount.compareTo(invoice.getBalanceDue()) > 0) {
+            throw new RuntimeException("Payment amount cannot exceed balance due");
+        }
+        
+        // Record payment using the Invoice entity method
+        invoice.recordPayment(paymentAmount);
+        
+        // Save updated invoice
+        Invoice updatedInvoice = invoiceRepository.save(invoice);
+        
+        result.put("success", true);
+        result.put("invoiceId", invoiceId);
+        result.put("paymentAmount", paymentAmount);
+        result.put("newBalanceDue", updatedInvoice.getBalanceDue());
+        result.put("status", updatedInvoice.getStatus().name());
+        
+        return result;
     }
-
-    /**
-     * Creates a payment, persists tax/discount, and updates the linked invoice totals + status.
-     * Rules:
-     * - If taxRate/discountAmount provided: compute finalAmount = base + base*tax% - discount
-     * - Else, use dto.amountPaid as finalAmount
-     * - Never allow negative or zero finalAmount
-     * - Cap finalAmount at remaining due to avoid overpay drift
-     */
-    @Transactional
-    public Payment createPayment(CreatePaymentDTO dto) {
-        Invoice invoice = invoiceRepo.findById(dto.getInvoiceId())
-                .orElseThrow(() -> new RuntimeException("Invoice not found"));
-
-        // Base and already paid
-        double baseAmount = safe(invoice.getTotalAmount());      // maps to invoice.amount via your getter
-        double alreadyPaid = safe(invoice.getPaidAmount());      // maps to invoice.amountPaid via your getter
-        double remaining = Math.max(0d, baseAmount - alreadyPaid);
-
-        // Compute final amount to apply
-        Double taxRate = dto.getTaxRate();               // % (nullable)
-        Double discountAmount = dto.getDiscountAmount(); // absolute (nullable)
-
-        double finalAmount;
-        if (taxRate != null || discountAmount != null) {
-            double tax = (taxRate != null ? taxRate : 0d) * baseAmount / 100d;
-            double disc = (discountAmount != null ? discountAmount : 0d);
-            finalAmount = baseAmount + tax - disc;
-        } else {
-            finalAmount = safe(dto.getAmountPaid());
-        }
-
-        if (finalAmount <= 0d) {
-            throw new IllegalArgumentException("Payment amount must be greater than zero");
-        }
-
-        // Cap to remaining due (prevents overpayment drift)
-        double applied = Math.min(finalAmount, remaining);
-
-        // Build payment
-        Payment payment = new Payment();
-        payment.setInvoice(invoice);
-        payment.setAmountPaid(applied);
-        payment.setPaymentMethod(dto.getPaymentMethod());
-        payment.setNotes(dto.getNotes());
-        payment.setTaxRate(taxRate);
-        payment.setDiscountAmount(discountAmount);
-        payment.setPaymentDate(dto.getPaymentDate() != null ? dto.getPaymentDate() : LocalDateTime.now());
-
-        // Update invoice totals/status
-        double newPaidTotal = alreadyPaid + applied;
-        invoice.setAmountPaid(newPaidTotal); // your model exposes setAmountPaid(...) and getPaidAmount()
-        invoice.setUpdatedAt(LocalDateTime.now());
-
-        if (newPaidTotal >= baseAmount) {
-            invoice.setStatus("Paid");
-            if (hasPaidFlag(invoice)) invoice.setPaid(true);
-        } else if (newPaidTotal > 0d) {
-            invoice.setStatus("Partially Paid");
-            if (hasPaidFlag(invoice)) invoice.setPaid(false);
-        } else {
-            invoice.setStatus("Unpaid");
-            if (hasPaidFlag(invoice)) invoice.setPaid(false);
-        }
-
-        // Persist
-        paymentRepo.save(payment);
-        invoiceRepo.save(invoice);
-
-        return payment;
+    
+    public Map<String, Object> getPaymentStatus(Long invoiceId) {
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+            .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + invoiceId));
+        
+        Map<String, Object> status = new HashMap<>();
+        status.put("invoiceId", invoiceId);
+        status.put("invoiceNumber", invoice.getInvoiceNumber());
+        status.put("total", invoice.getTotal());
+        status.put("amountPaid", invoice.getAmountPaid());
+        status.put("balanceDue", invoice.getBalanceDue());
+        status.put("status", invoice.getStatus().name());
+        status.put("isPaid", invoice.getStatus() == Invoice.InvoiceStatus.PAID);
+        status.put("isPartiallyPaid", invoice.getStatus() == Invoice.InvoiceStatus.PARTIALLY_PAID);
+        
+        return status;
     }
-
-    private static double safe(Double v) {
-        return v == null ? 0d : v;
-    }
-
-    // Helper to avoid NoSuchMethod if your Invoice doesn’t have a boolean paid field
-    private static boolean hasPaidFlag(Invoice inv) {
-        try {
-            inv.getClass().getDeclaredMethod("setPaid", boolean.class);
-            return true;
-        } catch (NoSuchMethodException e) {
-            return false;
+    
+    public List<Map<String, Object>> getOutstandingInvoices(Long customerId) {
+        List<Invoice> invoices = invoiceRepository.findOutstandingInvoicesByCustomerId(customerId);
+        
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Invoice invoice : invoices) {
+            Map<String, Object> item = new HashMap<>();
+            item.put("id", invoice.getId());
+            item.put("invoiceNumber", invoice.getInvoiceNumber());
+            item.put("invoiceDate", invoice.getInvoiceDate());
+            item.put("dueDate", invoice.getDueDate());
+            item.put("total", invoice.getTotal());
+            item.put("balanceDue", invoice.getBalanceDue());
+            item.put("status", invoice.getStatus().name());
+            result.add(item);
         }
+        
+        return result;
+    }
+    
+    public Map<String, Object> reversePayment(Long invoiceId, BigDecimal amount) {
+        Invoice invoice = invoiceRepository.findById(invoiceId)
+            .orElseThrow(() -> new RuntimeException("Invoice not found with id: " + invoiceId));
+        
+        if (amount.compareTo(invoice.getAmountPaid()) > 0) {
+            throw new RuntimeException("Reversal amount cannot exceed paid amount");
+        }
+        
+        // Reverse payment using Invoice entity method
+        invoice.reversePayment(amount);
+        
+        Invoice updatedInvoice = invoiceRepository.save(invoice);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("invoiceId", invoiceId);
+        result.put("reversalAmount", amount);
+        result.put("newBalanceDue", updatedInvoice.getBalanceDue());
+        result.put("status", updatedInvoice.getStatus().name());
+        
+        return result;
     }
 }
