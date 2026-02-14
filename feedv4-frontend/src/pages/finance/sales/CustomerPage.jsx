@@ -56,7 +56,7 @@ const CustomersPage = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this customer?')) {
       try {
-        const response = await fetch(`${API_BASE_URL}/customers/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/api/customers/${id}`, {
           method: 'DELETE',
         });
         

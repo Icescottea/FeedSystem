@@ -55,7 +55,7 @@ const CustomerFormPage = () => {
   const fetchCustomer = async () => {
     try {
       setFetchLoading(true);
-      const response = await fetch(`${API_BASE_URL}/customers/${id}`);
+      const response = await fetch(`${API_BASE_URL}/api/customers/${id}`);
       if (!response.ok) throw new Error('Failed to fetch customer');
       const data = await response.json();
 
@@ -196,7 +196,7 @@ const CustomerFormPage = () => {
 
     try {
       setLoading(true);
-      const url    = isEditMode ? `${API_BASE_URL}/customers/${id}` : `${API_BASE_URL}/customers`;
+      const url    = isEditMode ? `${API_BASE_URL}/api/customers/${id}` : `${API_BASE_URL}/customers`;
       const method = isEditMode ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
