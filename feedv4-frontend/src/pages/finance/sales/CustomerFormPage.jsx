@@ -6,7 +6,7 @@ const CustomerFormPage = () => {
   const { id } = useParams();
   const isEditMode = Boolean(id);
 
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://feedv4-backend.onrender.com/api';
 
   // Fields mirror CustomerDTO exactly.
   // paymentTerms is kept as a string for <select>, parsed to Integer before sending.

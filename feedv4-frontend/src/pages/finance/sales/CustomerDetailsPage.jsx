@@ -8,7 +8,7 @@ const CustomerDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://feedv4-backend.onrender.com/api';
 
   useEffect(() => {
     fetchCustomerDetails();
