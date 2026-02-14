@@ -52,4 +52,5 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     BigDecimal sumOutstandingByCustomerId(@Param("customerId") Long customerId);
     
     boolean existsByInvoiceNumber(String invoiceNumber);
+    boolean existsByCustomerId(Long customerId);
 }

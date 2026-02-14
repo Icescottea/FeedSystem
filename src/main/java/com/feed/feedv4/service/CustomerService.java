@@ -103,7 +103,7 @@ public class CustomerService {
         }
         
         // Check if customer has any invoices
-        if (!invoiceRepository.findByCustomerId(id).isEmpty()) {
+        if (invoiceRepository.existsByCustomerId(id)) {
             throw new RuntimeException("Cannot delete customer with existing invoices. Please mark customer as inactive instead.");
         }
         
@@ -138,7 +138,9 @@ public class CustomerService {
     
     private BigDecimal calculateReceivables(Long customerId) {
         // Sum all outstanding invoices for this customer
-        return invoiceRepository.sumOutstandingByCustomerId(customerId);
+        // sumOutstandingByCustomerId returns null when no invoices exist — coerce to ZERO
+        BigDecimal result = invoiceRepository.sumOutstandingByCustomerId(customerId);
+        return result != null ? result : BigDecimal.ZERO;
     }
     
     private CustomerDTO convertToDTO(Customer customer) {
@@ -279,6 +281,7 @@ public class CustomerService {
         customer.setDepartment(dto.getDepartment());
         customer.setLocation(dto.getLocation());
         customer.setNotes(dto.getNotes());
+        customer.setStatus(dto.getStatus() != null ? Customer.CustomerStatus.valueOf(dto.getStatus()) : Customer.CustomerStatus.ACTIVE);
         
         // Update contact persons
         customer.getContactPersons().clear();
