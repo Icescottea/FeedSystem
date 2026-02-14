@@ -8,39 +8,40 @@ const CustomerFormPage = () => {
 
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
+  // Fields mirror CustomerDTO exactly.
+  // paymentTerms is kept as a string for <select>, parsed to Integer before sending.
   const [formData, setFormData] = useState({
-    customerType: 'BUSINESS',
-    salutation: 'Mr',
-    firstName: '',
-    lastName: '',
-    customerName: '',
-    companyName: '',
-    displayName: '',
-    email: '',
-    phone: '',
-    mobile: '',
-    website: '',
-    // Billing Address
-    billingStreet: '',
-    billingCity: '',
-    billingState: '',
-    billingZip: '',
-    billingCountry: 'Sri Lanka',
-    // Shipping Address
-    shippingStreet: '',
-    shippingCity: '',
-    shippingState: '',
-    shippingZip: '',
+    customerName:    '',
+    companyName:     '',
+    email:           '',
+    phone:           '',
+    mobile:          '',
+    website:         '',
+    currency:        'LKR',
+    paymentTerms:    '30',
+    gstTreatment:    '',
+    gstNumber:       '',
+    panNumber:       '',
+    billingStreet:   '',
+    billingCity:     '',
+    billingState:    '',
+    billingZip:      '',
+    billingCountry:  'Sri Lanka',
+    shippingStreet:  '',
+    shippingCity:    '',
+    shippingState:   '',
+    shippingZip:     '',
     shippingCountry: 'Sri Lanka',
-    // Financial
-    paymentTerms: '30',
-    creditLimit: '',
-    currency: 'LKR',
-    openingBalance: '0',
-    // Additional
-    notes: '',
-    status: 'ACTIVE'
+    department:      '',
+    location:        '',
+    notes:           '',
+    status:          'ACTIVE',
   });
+
+  // Contact persons managed separately (maps to CustomerContactPersonDTO list)
+  const [contactPersons, setContactPersons] = useState([
+    { firstName: '', lastName: '', email: '', phone: '', mobile: '', designation: '', sequence: 0 }
+  ]);
 
   const [activeTab, setActiveTab] = useState('basic');
   const [loading, setLoading] = useState(false);
@@ -48,10 +49,8 @@ const CustomerFormPage = () => {
   const [copyBillingToShipping, setCopyBillingToShipping] = useState(false);
 
   useEffect(() => {
-    if (isEditMode) {
-      fetchCustomer();
-    }
-  }, [id, isEditMode]);
+    if (isEditMode) fetchCustomer();
+  }, [id]);
 
   const fetchCustomer = async () => {
     try {
@@ -59,35 +58,47 @@ const CustomerFormPage = () => {
       const response = await fetch(`${API_BASE_URL}/customers/${id}`);
       if (!response.ok) throw new Error('Failed to fetch customer');
       const data = await response.json();
+
       setFormData({
-        customerType: data.customerType || 'BUSINESS',
-        salutation: data.salutation || 'Mr',
-        firstName: data.firstName || '',
-        lastName: data.lastName || '',
-        customerName: data.customerName || '',
-        companyName: data.companyName || '',
-        displayName: data.displayName || '',
-        email: data.email || '',
-        phone: data.phone || '',
-        mobile: data.mobile || '',
-        website: data.website || '',
-        billingStreet: data.billingStreet || '',
-        billingCity: data.billingCity || '',
-        billingState: data.billingState || '',
-        billingZip: data.billingZip || '',
-        billingCountry: data.billingCountry || 'Sri Lanka',
-        shippingStreet: data.shippingStreet || '',
-        shippingCity: data.shippingCity || '',
-        shippingState: data.shippingState || '',
-        shippingZip: data.shippingZip || '',
+        customerName:    data.customerName    || '',
+        companyName:     data.companyName     || '',
+        email:           data.email           || '',
+        phone:           data.phone           || '',
+        mobile:          data.mobile          || '',
+        website:         data.website         || '',
+        currency:        data.currency        || 'LKR',
+        paymentTerms:    data.paymentTerms != null ? String(data.paymentTerms) : '30',
+        gstTreatment:    data.gstTreatment    || '',
+        gstNumber:       data.gstNumber       || '',
+        panNumber:       data.panNumber       || '',
+        billingStreet:   data.billingStreet   || '',
+        billingCity:     data.billingCity     || '',
+        billingState:    data.billingState    || '',
+        billingZip:      data.billingZip      || '',
+        billingCountry:  data.billingCountry  || 'Sri Lanka',
+        shippingStreet:  data.shippingStreet  || '',
+        shippingCity:    data.shippingCity    || '',
+        shippingState:   data.shippingState   || '',
+        shippingZip:     data.shippingZip     || '',
         shippingCountry: data.shippingCountry || 'Sri Lanka',
-        paymentTerms: data.paymentTerms != null ? String(data.paymentTerms) : '30',
-        creditLimit: data.creditLimit != null ? String(data.creditLimit) : '',
-        currency: data.currency || 'LKR',
-        openingBalance: data.openingBalance != null ? String(data.openingBalance) : '0',
-        notes: data.notes || '',
-        status: data.status || 'ACTIVE'
+        department:      data.department      || '',
+        location:        data.location        || '',
+        notes:           data.notes           || '',
+        status:          data.status          || 'ACTIVE',
       });
+
+      if (data.contactPersons && data.contactPersons.length > 0) {
+        setContactPersons(data.contactPersons.map(cp => ({
+          id:          cp.id,
+          firstName:   cp.firstName   || '',
+          lastName:    cp.lastName    || '',
+          email:       cp.email       || '',
+          phone:       cp.phone       || '',
+          mobile:      cp.mobile      || '',
+          designation: cp.designation || '',
+          sequence:    cp.sequence    ?? 0,
+        })));
+      }
     } catch (error) {
       console.error('Error fetching customer:', error);
       alert('Error loading customer details. Please try again.');
@@ -98,72 +109,100 @@ const CustomerFormPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleCopyBillingToShipping = (e) => {
     const checked = e.target.checked;
     setCopyBillingToShipping(checked);
-
     if (checked) {
       setFormData(prev => ({
         ...prev,
-        shippingStreet: prev.billingStreet,
-        shippingCity: prev.billingCity,
-        shippingState: prev.billingState,
-        shippingZip: prev.billingZip,
-        shippingCountry: prev.billingCountry
+        shippingStreet:  prev.billingStreet,
+        shippingCity:    prev.billingCity,
+        shippingState:   prev.billingState,
+        shippingZip:     prev.billingZip,
+        shippingCountry: prev.billingCountry,
       }));
     }
   };
 
+  const handleContactChange = (index, e) => {
+    const { name, value } = e.target;
+    setContactPersons(prev => prev.map((cp, i) => i === index ? { ...cp, [name]: value } : cp));
+  };
+
+  const addContactPerson = () => {
+    setContactPersons(prev => [
+      ...prev,
+      { firstName: '', lastName: '', email: '', phone: '', mobile: '', designation: '', sequence: prev.length }
+    ]);
+  };
+
+  const removeContactPerson = (index) => {
+    setContactPersons(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Build payload that matches CustomerDTO field-for-field.
+  // Phantom fields (customerType, salutation, firstName, lastName,
+  // displayName, creditLimit, openingBalance) are intentionally excluded —
+  // the backend DTO does not have them and @Valid will reject unknown fields
+  // if Spring is configured strictly.
   const buildPayload = () => ({
-    customerType: formData.customerType,
-    salutation: formData.salutation,
-    firstName: formData.firstName,
-    lastName: formData.lastName,
-    customerName: formData.customerName,
-    companyName: formData.companyName,
-    displayName: formData.displayName,
-    email: formData.email,
-    phone: formData.phone,
-    mobile: formData.mobile,
-    website: formData.website,
-    billingStreet: formData.billingStreet,
-    billingCity: formData.billingCity,
-    billingState: formData.billingState,
-    billingZip: formData.billingZip,
-    billingCountry: formData.billingCountry,
-    shippingStreet: formData.shippingStreet,
-    shippingCity: formData.shippingCity,
-    shippingState: formData.shippingState,
-    shippingZip: formData.shippingZip,
-    shippingCountry: formData.shippingCountry,
-    paymentTerms: formData.paymentTerms,
-    creditLimit: formData.creditLimit !== '' ? parseFloat(formData.creditLimit) : null,
-    currency: formData.currency,
-    openingBalance: formData.openingBalance !== '' ? parseFloat(formData.openingBalance) : 0,
-    notes: formData.notes,
-    status: formData.status
+    customerName:    formData.customerName,
+    companyName:     formData.companyName     || null,
+    email:           formData.email,
+    phone:           formData.phone           || null,
+    mobile:          formData.mobile          || null,
+    website:         formData.website         || null,
+    currency:        formData.currency,
+    paymentTerms:    parseInt(formData.paymentTerms, 10),
+    gstTreatment:    formData.gstTreatment    || null,
+    gstNumber:       formData.gstNumber       || null,
+    panNumber:       formData.panNumber       || null,
+    billingStreet:   formData.billingStreet   || null,
+    billingCity:     formData.billingCity     || null,
+    billingState:    formData.billingState    || null,
+    billingZip:      formData.billingZip      || null,
+    billingCountry:  formData.billingCountry  || null,
+    shippingStreet:  formData.shippingStreet  || null,
+    shippingCity:    formData.shippingCity    || null,
+    shippingState:   formData.shippingState   || null,
+    shippingZip:     formData.shippingZip     || null,
+    shippingCountry: formData.shippingCountry || null,
+    department:      formData.department      || null,
+    location:        formData.location        || null,
+    notes:           formData.notes           || null,
+    status:          formData.status,
+    contactPersons:  contactPersons
+      .filter(cp => cp.firstName.trim())   // skip empty rows
+      .map((cp, i) => ({ ...cp, sequence: i })),
   });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Guard required DB-level fields before hitting the server
+    if (!formData.customerName.trim()) {
+      alert('Customer Name is required.');
+      setActiveTab('basic');
+      return;
+    }
+    if (!formData.email.trim()) {
+      alert('Email is required.');
+      setActiveTab('contact');
+      return;
+    }
+
     try {
       setLoading(true);
-      const url = isEditMode
-        ? `${API_BASE_URL}/customers/${id}`
-        : `${API_BASE_URL}/customers`;
+      const url    = isEditMode ? `${API_BASE_URL}/customers/${id}` : `${API_BASE_URL}/customers`;
       const method = isEditMode ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildPayload())
+        body: JSON.stringify(buildPayload()),
       });
 
       if (!response.ok) {
@@ -182,19 +221,15 @@ const CustomerFormPage = () => {
   };
 
   const tabs = [
-    { id: 'basic', label: 'Basic Information' },
-    { id: 'contact', label: 'Contact Details' },
-    { id: 'address', label: 'Addresses' },
-    { id: 'financial', label: 'Financial' },
-    { id: 'additional', label: 'Additional' }
+    { id: 'basic',      label: 'Basic Information' },
+    { id: 'contact',    label: 'Contact Details' },
+    { id: 'address',    label: 'Addresses' },
+    { id: 'financial',  label: 'Financial' },
+    { id: 'additional', label: 'Additional' },
   ];
 
   if (fetchLoading) {
-    return (
-      <div className="p-6">
-        <div className="text-center text-gray-500">Loading customer...</div>
-      </div>
-    );
+    return <div className="p-6 text-center text-gray-500">Loading customer...</div>;
   }
 
   return (
@@ -216,9 +251,9 @@ const CustomerFormPage = () => {
         </p>
       </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit}>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+
           {/* Tabs */}
           <div className="border-b border-gray-200">
             <div className="flex overflow-x-auto">
@@ -239,98 +274,28 @@ const CustomerFormPage = () => {
             </div>
           </div>
 
-          {/* Tab Content */}
           <div className="p-6">
 
-            {/* Basic Information Tab */}
+            {/* ── Basic Information ── */}
             {activeTab === 'basic' && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Customer Type <span className="text-red-500">*</span>
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="customerType"
-                        value="BUSINESS"
-                        checked={formData.customerType === 'BUSINESS'}
-                        onChange={handleChange}
-                        className="mr-2"
-                      />
-                      Business
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="customerType"
-                        value="INDIVIDUAL"
-                        checked={formData.customerType === 'INDIVIDUAL'}
-                        onChange={handleChange}
-                        className="mr-2"
-                      />
-                      Individual
-                    </label>
-                  </div>
-                </div>
-
-                <div className="w-full">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Primary Contact <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <select
-                      name="salutation"
-                      value={formData.salutation}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="Mr">Mr.</option>
-                      <option value="Mrs">Mrs.</option>
-                      <option value="Ms">Ms.</option>
-                      <option value="Miss">Miss.</option>
-                      <option value="Dr">Dr.</option>
-                    </select>
-                    <input
-                      type="text"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="First Name"
-                    />
-                    <input
-                      type="text"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleChange}
-                      required
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Last Name"
-                    />
-                  </div>
-                </div>
-
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Customer Name
+                      Customer Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       name="customerName"
                       value={formData.customerName}
                       onChange={handleChange}
+                      required
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Enter customer name"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Company Name
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
                     <input
                       type="text"
                       name="companyName"
@@ -341,22 +306,29 @@ const CustomerFormPage = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Display Name
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
                     <input
                       type="text"
-                      name="displayName"
-                      value={formData.displayName}
+                      name="department"
+                      value={formData.department}
                       onChange={handleChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Display name for invoices"
+                      placeholder="Department"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Status
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                    <input
+                      type="text"
+                      name="location"
+                      value={formData.location}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Location"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                     <select
                       name="status"
                       value={formData.status}
@@ -368,10 +340,62 @@ const CustomerFormPage = () => {
                     </select>
                   </div>
                 </div>
+
+                {/* Contact Persons */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-base font-medium text-gray-800">Contact Persons</h3>
+                    <button
+                      type="button"
+                      onClick={addContactPerson}
+                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      + Add Contact
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    {contactPersons.map((cp, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-sm font-medium text-gray-600">Contact {index + 1}</span>
+                          {contactPersons.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeContactPerson(index)}
+                              className="text-sm text-red-600 hover:text-red-800"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <input type="text" name="firstName" value={cp.firstName}
+                            onChange={e => handleContactChange(index, e)} placeholder="First Name"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                          <input type="text" name="lastName" value={cp.lastName}
+                            onChange={e => handleContactChange(index, e)} placeholder="Last Name"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                          <input type="text" name="designation" value={cp.designation}
+                            onChange={e => handleContactChange(index, e)} placeholder="Designation"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                          <input type="email" name="email" value={cp.email}
+                            onChange={e => handleContactChange(index, e)} placeholder="Email"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                          <input type="tel" name="phone" value={cp.phone}
+                            onChange={e => handleContactChange(index, e)} placeholder="Phone"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                          <input type="tel" name="mobile" value={cp.mobile}
+                            onChange={e => handleContactChange(index, e)} placeholder="Mobile"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* Contact Details Tab */}
+            {/* ── Contact Details ── */}
             {activeTab === 'contact' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -388,185 +412,101 @@ const CustomerFormPage = () => {
                     placeholder="email@example.com"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
+                  <input type="tel" name="phone" value={formData.phone} onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="+94 11 234 5678"
-                  />
+                    placeholder="+94 11 234 5678" />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Mobile</label>
-                  <input
-                    type="tel"
-                    name="mobile"
-                    value={formData.mobile}
-                    onChange={handleChange}
+                  <input type="tel" name="mobile" value={formData.mobile} onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="+94 77 123 4567"
-                  />
+                    placeholder="+94 77 123 4567" />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
-                  <input
-                    type="text"
-                    name="website"
-                    value={formData.website}
-                    onChange={handleChange}
+                  <input type="text" name="website" value={formData.website} onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="www.example.com"
-                  />
+                    placeholder="www.example.com" />
                 </div>
               </div>
             )}
 
-            {/* Addresses Tab */}
+            {/* ── Addresses ── */}
             {activeTab === 'address' && (
               <div className="space-y-6">
-                {/* Billing Address */}
                 <div>
                   <h3 className="text-lg font-medium text-gray-800 mb-4">Billing Address</h3>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Street</label>
-                      <input
-                        type="text"
-                        name="billingStreet"
-                        value={formData.billingStreet}
-                        onChange={handleChange}
+                      <input type="text" name="billingStreet" value={formData.billingStreet} onChange={handleChange}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Street address"
-                      />
+                        placeholder="Street address" />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                        <input
-                          type="text"
-                          name="billingCity"
-                          value={formData.billingCity}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="City"
-                        />
+                        <input type="text" name="billingCity" value={formData.billingCity} onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="City" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">State/Province</label>
-                        <input
-                          type="text"
-                          name="billingState"
-                          value={formData.billingState}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="State/Province"
-                        />
+                        <input type="text" name="billingState" value={formData.billingState} onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="State/Province" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
-                        <input
-                          type="text"
-                          name="billingZip"
-                          value={formData.billingZip}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Postal code"
-                        />
+                        <input type="text" name="billingZip" value={formData.billingZip} onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Postal code" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                        <input
-                          type="text"
-                          name="billingCountry"
-                          value={formData.billingCountry}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Country"
-                        />
+                        <input type="text" name="billingCountry" value={formData.billingCountry} onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Country" />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Copy Billing to Shipping */}
                 <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="copyBilling"
-                    checked={copyBillingToShipping}
-                    onChange={handleCopyBillingToShipping}
-                    className="mr-2"
-                  />
+                  <input type="checkbox" id="copyBilling" checked={copyBillingToShipping}
+                    onChange={handleCopyBillingToShipping} className="mr-2" />
                   <label htmlFor="copyBilling" className="text-sm text-gray-700">
                     Copy billing address to shipping address
                   </label>
                 </div>
 
-                {/* Shipping Address */}
                 <div>
                   <h3 className="text-lg font-medium text-gray-800 mb-4">Shipping Address</h3>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Street</label>
-                      <input
-                        type="text"
-                        name="shippingStreet"
-                        value={formData.shippingStreet}
-                        onChange={handleChange}
+                      <input type="text" name="shippingStreet" value={formData.shippingStreet} onChange={handleChange}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Street address"
-                      />
+                        placeholder="Street address" />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
-                        <input
-                          type="text"
-                          name="shippingCity"
-                          value={formData.shippingCity}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="City"
-                        />
+                        <input type="text" name="shippingCity" value={formData.shippingCity} onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="City" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">State/Province</label>
-                        <input
-                          type="text"
-                          name="shippingState"
-                          value={formData.shippingState}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="State/Province"
-                        />
+                        <input type="text" name="shippingState" value={formData.shippingState} onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="State/Province" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Postal Code</label>
-                        <input
-                          type="text"
-                          name="shippingZip"
-                          value={formData.shippingZip}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Postal code"
-                        />
+                        <input type="text" name="shippingZip" value={formData.shippingZip} onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Postal code" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                        <input
-                          type="text"
-                          name="shippingCountry"
-                          value={formData.shippingCountry}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Country"
-                        />
+                        <input type="text" name="shippingCountry" value={formData.shippingCountry} onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Country" />
                       </div>
                     </div>
                   </div>
@@ -574,74 +514,66 @@ const CustomerFormPage = () => {
               </div>
             )}
 
-            {/* Financial Tab */}
+            {/* ── Financial ── */}
             {activeTab === 'financial' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Payment Terms (Days)
-                  </label>
-                  <select
-                    name="paymentTerms"
-                    value={formData.paymentTerms}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="0">Due on Receipt</option>
-                    <option value="7">Net 7</option>
-                    <option value="15">Net 15</option>
-                    <option value="30">Net 30</option>
-                    <option value="45">Net 45</option>
-                    <option value="60">Net 60</option>
-                    <option value="90">Net 90</option>
-                  </select>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Payment Terms (Days)</label>
+                    <select name="paymentTerms" value={formData.paymentTerms} onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                      <option value="0">Due on Receipt</option>
+                      <option value="7">Net 7</option>
+                      <option value="15">Net 15</option>
+                      <option value="30">Net 30</option>
+                      <option value="45">Net 45</option>
+                      <option value="60">Net 60</option>
+                      <option value="90">Net 90</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+                    <select name="currency" value={formData.currency} onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                      <option value="LKR">LKR - Sri Lankan Rupee</option>
+                      <option value="USD">USD - US Dollar</option>
+                      <option value="EUR">EUR - Euro</option>
+                      <option value="GBP">GBP - British Pound</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Credit Limit</label>
-                  <input
-                    type="number"
-                    name="creditLimit"
-                    value={formData.creditLimit}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
-                  <select
-                    name="currency"
-                    value={formData.currency}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="LKR">LKR - Sri Lankan Rupee</option>
-                    <option value="USD">USD - US Dollar</option>
-                    <option value="EUR">EUR - Euro</option>
-                    <option value="GBP">GBP - British Pound</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Opening Balance</label>
-                  <input
-                    type="number"
-                    name="openingBalance"
-                    value={formData.openingBalance}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0.00"
-                    step="0.01"
-                  />
+                  <h3 className="text-base font-medium text-gray-800 mb-3">Tax Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">GST Treatment</label>
+                      <select name="gstTreatment" value={formData.gstTreatment} onChange={handleChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">Select GST Treatment</option>
+                        <option value="REGISTERED">Registered</option>
+                        <option value="UNREGISTERED">Unregistered</option>
+                        <option value="EXEMPT">Exempt</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">GST Number</label>
+                      <input type="text" name="gstNumber" value={formData.gstNumber} onChange={handleChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="GST registration number" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">PAN Number</label>
+                      <input type="text" name="panNumber" value={formData.panNumber} onChange={handleChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="PAN number" />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Additional Tab */}
+            {/* ── Additional ── */}
             {activeTab === 'additional' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
