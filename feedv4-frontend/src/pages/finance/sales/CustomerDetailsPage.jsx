@@ -8,17 +8,16 @@ const CustomerDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://feedv4-backend.onrender.com/api';
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
   useEffect(() => {
     fetchCustomerDetails();
   }, [id]);
 
-  // Use /with-financials so receivables is calculated server-side
   const fetchCustomerDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/customers/${id}/with-financials`);
+      const response = await fetch(`${API_BASE_URL}/customers/${id}`);
       if (!response.ok) throw new Error('Failed to fetch customer');
       const data = await response.json();
       setCustomer(data);
@@ -34,19 +33,18 @@ const CustomerDetailsPage = () => {
     navigate(`/finance/sales/customers/${id}/edit`);
   };
 
-  // Use the dedicated mark-active / mark-inactive endpoints instead of a full PUT
   const handleToggleStatus = async () => {
-    const isActive = customer.status === 'ACTIVE';
-    const action = isActive ? 'deactivate' : 'reactivate';
+    const newStatus = customer.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    const action = newStatus === 'INACTIVE' ? 'deactivate' : 'reactivate';
 
     if (!window.confirm(`Are you sure you want to ${action} this customer?`)) return;
 
     try {
-      const endpoint = isActive
-        ? `${API_BASE_URL}/customers/${id}/mark-inactive`
-        : `${API_BASE_URL}/customers/${id}/mark-active`;
-
-      const response = await fetch(endpoint, { method: 'PUT' });
+      const response = await fetch(`${API_BASE_URL}/customers/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...customer, status: newStatus })
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -56,8 +54,8 @@ const CustomerDetailsPage = () => {
       const updated = await response.json();
       setCustomer(updated);
     } catch (error) {
-      console.error('Error updating customer status:', error);
-      alert('Error updating customer status: ' + error.message);
+      console.error(`Error updating customer status:`, error);
+      alert(`Error updating customer status: ` + error.message);
     }
   };
 
@@ -66,7 +64,7 @@ const CustomerDetailsPage = () => {
   };
 
   const handleRecordPayment = () => {
-    navigate(`/finance/sales/payments-received/new?customerId=${id}`);
+    navigate(`/finance/sales/payments/new?customerId=${id}`);
   };
 
   if (loading) {
@@ -85,15 +83,32 @@ const CustomerDetailsPage = () => {
     );
   }
 
-  const receivables    = customer.receivables    ?? 0;
-  const unusedCredits  = customer.unusedCredits  ?? 0;
-  const paymentTerms   = customer.paymentTerms;
+  // Normalise address fields — backend sends flat fields, so fall back gracefully
+  const billingAddress = {
+    street: customer.billingStreet || '',
+    city: customer.billingCity || '',
+    state: customer.billingState || '',
+    zip: customer.billingZip || '',
+    country: customer.billingCountry || ''
+  };
+
+  const shippingAddress = {
+    street: customer.shippingStreet || '',
+    city: customer.shippingCity || '',
+    state: customer.shippingState || '',
+    zip: customer.shippingZip || '',
+    country: customer.shippingCountry || ''
+  };
+
+  const outstandingBalance = customer.outstandingBalance ?? customer.receivables ?? 0;
+  const creditLimit = customer.creditLimit ?? 0;
+  const availableCredit = creditLimit - outstandingBalance;
 
   const tabs = [
-    { id: 'overview',     label: 'Overview' },
+    { id: 'overview', label: 'Overview' },
     { id: 'transactions', label: 'Transactions' },
-    { id: 'statements',   label: 'Statements' },
-    { id: 'comments',     label: 'Comments' },
+    { id: 'statements', label: 'Statements' },
+    { id: 'comments', label: 'Comments' }
   ];
 
   return (
@@ -136,27 +151,27 @@ const CustomerDetailsPage = () => {
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <p className="text-gray-600 text-sm">Outstanding Receivables</p>
+          <p className="text-gray-600 text-sm">Outstanding Balance</p>
           <p className="text-2xl font-bold text-orange-600 mt-1">
-            {customer.currency || 'LKR'} {Number(receivables).toLocaleString()}
+            {customer.currency || 'LKR'} {outstandingBalance.toLocaleString()}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <p className="text-gray-600 text-sm">Unused Credits</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">
-            {customer.currency || 'LKR'} {Number(unusedCredits).toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <p className="text-gray-600 text-sm">Currency</p>
+          <p className="text-gray-600 text-sm">Credit Limit</p>
           <p className="text-2xl font-bold text-gray-800 mt-1">
-            {customer.currency || '—'}
+            {customer.currency || 'LKR'} {creditLimit.toLocaleString()}
+          </p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <p className="text-gray-600 text-sm">Available Credit</p>
+          <p className={`text-2xl font-bold mt-1 ${availableCredit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {customer.currency || 'LKR'} {availableCredit.toLocaleString()}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Payment Terms</p>
           <p className="text-2xl font-bold text-gray-800 mt-1">
-            {paymentTerms != null ? `Net ${paymentTerms}` : '—'}
+            {customer.paymentTerms ? `Net ${customer.paymentTerms}` : '—'}
           </p>
         </div>
       </div>
@@ -197,6 +212,7 @@ const CustomerDetailsPage = () => {
 
       {/* Tabbed Content */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        {/* Tabs */}
         <div className="border-b border-gray-200">
           <div className="flex overflow-x-auto">
             {tabs.map(tab => (
@@ -215,12 +231,12 @@ const CustomerDetailsPage = () => {
           </div>
         </div>
 
+        {/* Tab Content */}
         <div className="p-6">
 
-          {/* ── Overview ── */}
+          {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-
               {/* Contact Information */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Contact Information</h3>
@@ -244,74 +260,36 @@ const CustomerDetailsPage = () => {
                 </div>
               </div>
 
-              {/* Contact Persons */}
-              {customer.contactPersons && customer.contactPersons.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Contact Persons</h3>
-                  <div className="space-y-3">
-                    {customer.contactPersons.map((cp, i) => (
-                      <div key={cp.id ?? i} className="border border-gray-200 rounded-lg p-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-                        <div>
-                          <p className="text-gray-600">Name</p>
-                          <p className="text-gray-800">{[cp.firstName, cp.lastName].filter(Boolean).join(' ') || '—'}</p>
-                        </div>
-                        {cp.designation && (
-                          <div>
-                            <p className="text-gray-600">Designation</p>
-                            <p className="text-gray-800">{cp.designation}</p>
-                          </div>
-                        )}
-                        {cp.email && (
-                          <div>
-                            <p className="text-gray-600">Email</p>
-                            <p className="text-gray-800">{cp.email}</p>
-                          </div>
-                        )}
-                        {cp.phone && (
-                          <div>
-                            <p className="text-gray-600">Phone</p>
-                            <p className="text-gray-800">{cp.phone}</p>
-                          </div>
-                        )}
-                        {cp.mobile && (
-                          <div>
-                            <p className="text-gray-600">Mobile</p>
-                            <p className="text-gray-800">{cp.mobile}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Addresses */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 mb-3">Billing Address</h3>
-                  {customer.billingStreet || customer.billingCity ? (
+                  {billingAddress.street || billingAddress.city ? (
                     <div className="text-gray-700">
-                      {customer.billingStreet && <p>{customer.billingStreet}</p>}
+                      {billingAddress.street && <p>{billingAddress.street}</p>}
                       <p>
-                        {[customer.billingCity, customer.billingState, customer.billingZip]
-                          .filter(Boolean).join(', ')}
+                        {[billingAddress.city, billingAddress.state, billingAddress.zip]
+                          .filter(Boolean)
+                          .join(', ')}
                       </p>
-                      {customer.billingCountry && <p>{customer.billingCountry}</p>}
+                      {billingAddress.country && <p>{billingAddress.country}</p>}
                     </div>
                   ) : (
                     <p className="text-gray-500 text-sm">No billing address on file</p>
                   )}
                 </div>
+
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 mb-3">Shipping Address</h3>
-                  {customer.shippingStreet || customer.shippingCity ? (
+                  {shippingAddress.street || shippingAddress.city ? (
                     <div className="text-gray-700">
-                      {customer.shippingStreet && <p>{customer.shippingStreet}</p>}
+                      {shippingAddress.street && <p>{shippingAddress.street}</p>}
                       <p>
-                        {[customer.shippingCity, customer.shippingState, customer.shippingZip]
-                          .filter(Boolean).join(', ')}
+                        {[shippingAddress.city, shippingAddress.state, shippingAddress.zip]
+                          .filter(Boolean)
+                          .join(', ')}
                       </p>
-                      {customer.shippingCountry && <p>{customer.shippingCountry}</p>}
+                      {shippingAddress.country && <p>{shippingAddress.country}</p>}
                     </div>
                   ) : (
                     <p className="text-gray-500 text-sm">No shipping address on file</p>
@@ -326,31 +304,25 @@ const CustomerDetailsPage = () => {
                   <div>
                     <p className="text-sm text-gray-600">Payment Terms</p>
                     <p className="text-gray-800">
-                      {paymentTerms != null ? `Net ${paymentTerms} days` : '—'}
+                      {customer.paymentTerms ? `Net ${customer.paymentTerms} days` : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Credit Limit</p>
+                    <p className="text-gray-800">
+                      {customer.currency || 'LKR'} {creditLimit.toLocaleString()}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Currency</p>
                     <p className="text-gray-800">{customer.currency || '—'}</p>
                   </div>
-                  {customer.gstTreatment && (
-                    <div>
-                      <p className="text-sm text-gray-600">GST Treatment</p>
-                      <p className="text-gray-800">{customer.gstTreatment}</p>
-                    </div>
-                  )}
-                  {customer.gstNumber && (
-                    <div>
-                      <p className="text-sm text-gray-600">GST Number</p>
-                      <p className="text-gray-800">{customer.gstNumber}</p>
-                    </div>
-                  )}
-                  {customer.panNumber && (
-                    <div>
-                      <p className="text-sm text-gray-600">PAN Number</p>
-                      <p className="text-gray-800">{customer.panNumber}</p>
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-sm text-gray-600">Opening Balance</p>
+                    <p className="text-gray-800">
+                      {customer.currency || 'LKR'} {(customer.openingBalance ?? 0).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -366,28 +338,16 @@ const CustomerDetailsPage = () => {
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Additional Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {customer.department && (
+                  <div>
+                    <p className="text-sm text-gray-600">Customer Type</p>
+                    <p className="text-gray-800">{customer.customerType || '—'}</p>
+                  </div>
+                  {customer.createdDate && (
                     <div>
-                      <p className="text-sm text-gray-600">Department</p>
-                      <p className="text-gray-800">{customer.department}</p>
-                    </div>
-                  )}
-                  {customer.location && (
-                    <div>
-                      <p className="text-sm text-gray-600">Location</p>
-                      <p className="text-gray-800">{customer.location}</p>
-                    </div>
-                  )}
-                  {customer.createdBy && (
-                    <div>
-                      <p className="text-sm text-gray-600">Created By</p>
-                      <p className="text-gray-800">{customer.createdBy}</p>
-                    </div>
-                  )}
-                  {customer.createdAt && (
-                    <div>
-                      <p className="text-sm text-gray-600">Created At</p>
-                      <p className="text-gray-800">{new Date(customer.createdAt).toLocaleDateString()}</p>
+                      <p className="text-sm text-gray-600">Created Date</p>
+                      <p className="text-gray-800">
+                        {new Date(customer.createdDate).toLocaleDateString()}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -395,21 +355,21 @@ const CustomerDetailsPage = () => {
             </div>
           )}
 
-          {/* ── Transactions ── */}
+          {/* Transactions Tab */}
           {activeTab === 'transactions' && (
             <div className="text-center py-8 text-gray-500">
               <p>Transaction history coming soon</p>
             </div>
           )}
 
-          {/* ── Statements ── */}
+          {/* Statements Tab */}
           {activeTab === 'statements' && (
             <div className="text-center py-8 text-gray-500">
               <p>Statement generation coming soon</p>
             </div>
           )}
 
-          {/* ── Comments ── */}
+          {/* Comments Tab */}
           {activeTab === 'comments' && (
             <div className="text-center py-8 text-gray-500">
               <p>Comments feature coming soon</p>
