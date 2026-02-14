@@ -18,7 +18,7 @@ const CustomerDetailsPage = () => {
   const fetchCustomerDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/customers/${id}/with-financials`);
+      const response = await fetch(`${API_BASE_URL}/customers/${id}/with-financials`);
       if (!response.ok) throw new Error('Failed to fetch customer');
       const data = await response.json();
       setCustomer(data);
@@ -43,8 +43,8 @@ const CustomerDetailsPage = () => {
 
     try {
       const endpoint = isActive
-        ? `${API_BASE_URL}/api/customers/${id}/mark-inactive`
-        : `${API_BASE_URL}/api/customers/${id}/mark-active`;
+        ? `${API_BASE_URL}/customers/${id}/mark-inactive`
+        : `${API_BASE_URL}/customers/${id}/mark-active`;
 
       const response = await fetch(endpoint, { method: 'PUT' });
 

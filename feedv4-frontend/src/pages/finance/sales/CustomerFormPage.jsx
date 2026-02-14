@@ -6,7 +6,7 @@ const CustomerFormPage = () => {
   const { id } = useParams();
   const isEditMode = Boolean(id);
 
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+  const API_BASE_URL = `${process.env.REACT_APP_API_BASE_URL}/api`;
 
   // Fields mirror CustomerDTO exactly.
   // paymentTerms is kept as a string for <select>, parsed to Integer before sending.
@@ -55,7 +55,7 @@ const CustomerFormPage = () => {
   const fetchCustomer = async () => {
     try {
       setFetchLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/customers/${id}`);
+      const response = await fetch(`${API_BASE_URL}/customers/${id}`);
       if (!response.ok) throw new Error('Failed to fetch customer');
       const data = await response.json();
 
@@ -196,7 +196,7 @@ const CustomerFormPage = () => {
 
     try {
       setLoading(true);
-      const url    = isEditMode ? `${API_BASE_URL}/api/customers/${id}` : `${API_BASE_URL}/customers`;
+      const url    = isEditMode ? `${API_BASE_URL}/customers/${id}` : `${API_BASE_URL}/customers`;
       const method = isEditMode ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
