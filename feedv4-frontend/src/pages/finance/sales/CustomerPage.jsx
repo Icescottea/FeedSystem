@@ -10,7 +10,7 @@ const CustomersPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
   useEffect(() => {
     fetchCustomers();

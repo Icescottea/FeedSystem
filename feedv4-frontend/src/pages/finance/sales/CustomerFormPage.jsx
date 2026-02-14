@@ -6,8 +6,13 @@ const CustomerFormPage = () => {
   const { id } = useParams();
   const isEditMode = Boolean(id);
 
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
   const [formData, setFormData] = useState({
     customerType: 'BUSINESS',
+    salutation: 'Mr',
+    firstName: '',
+    lastName: '',
     customerName: '',
     companyName: '',
     displayName: '',
@@ -39,6 +44,7 @@ const CustomerFormPage = () => {
 
   const [activeTab, setActiveTab] = useState('basic');
   const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(false);
   const [copyBillingToShipping, setCopyBillingToShipping] = useState(false);
 
   useEffect(() => {
@@ -49,44 +55,44 @@ const CustomerFormPage = () => {
 
   const fetchCustomer = async () => {
     try {
-      setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/customers/${id}`);
-      // const data = await response.json();
-      
-      // Mock data for edit mode
-      const mockData = {
-        customerType: 'BUSINESS',
-        customerName: 'ABC Farms Ltd',
-        companyName: 'ABC Farms Ltd',
-        displayName: 'ABC Farms',
-        email: 'contact@abcfarms.com',
-        phone: '+94 11 234 5678',
-        mobile: '+94 77 123 4567',
-        website: 'www.abcfarms.com',
-        billingStreet: '123 Main Street',
-        billingCity: 'Colombo',
-        billingState: 'Western',
-        billingZip: '00100',
-        billingCountry: 'Sri Lanka',
-        shippingStreet: '123 Main Street',
-        shippingCity: 'Colombo',
-        shippingState: 'Western',
-        shippingZip: '00100',
-        shippingCountry: 'Sri Lanka',
-        paymentTerms: '30',
-        creditLimit: '500000',
-        currency: 'LKR',
-        openingBalance: '0',
-        notes: 'Regular customer since 2024',
-        status: 'ACTIVE'
-      };
-      
-      setFormData(mockData);
-      setLoading(false);
+      setFetchLoading(true);
+      const response = await fetch(`${API_BASE_URL}/customers/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch customer');
+      const data = await response.json();
+      setFormData({
+        customerType: data.customerType || 'BUSINESS',
+        salutation: data.salutation || 'Mr',
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        customerName: data.customerName || '',
+        companyName: data.companyName || '',
+        displayName: data.displayName || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        mobile: data.mobile || '',
+        website: data.website || '',
+        billingStreet: data.billingStreet || '',
+        billingCity: data.billingCity || '',
+        billingState: data.billingState || '',
+        billingZip: data.billingZip || '',
+        billingCountry: data.billingCountry || 'Sri Lanka',
+        shippingStreet: data.shippingStreet || '',
+        shippingCity: data.shippingCity || '',
+        shippingState: data.shippingState || '',
+        shippingZip: data.shippingZip || '',
+        shippingCountry: data.shippingCountry || 'Sri Lanka',
+        paymentTerms: data.paymentTerms != null ? String(data.paymentTerms) : '30',
+        creditLimit: data.creditLimit != null ? String(data.creditLimit) : '',
+        currency: data.currency || 'LKR',
+        openingBalance: data.openingBalance != null ? String(data.openingBalance) : '0',
+        notes: data.notes || '',
+        status: data.status || 'ACTIVE'
+      });
     } catch (error) {
       console.error('Error fetching customer:', error);
-      setLoading(false);
+      alert('Error loading customer details. Please try again.');
+    } finally {
+      setFetchLoading(false);
     }
   };
 
@@ -101,7 +107,7 @@ const CustomerFormPage = () => {
   const handleCopyBillingToShipping = (e) => {
     const checked = e.target.checked;
     setCopyBillingToShipping(checked);
-    
+
     if (checked) {
       setFormData(prev => ({
         ...prev,
@@ -114,32 +120,62 @@ const CustomerFormPage = () => {
     }
   };
 
+  const buildPayload = () => ({
+    customerType: formData.customerType,
+    salutation: formData.salutation,
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    customerName: formData.customerName,
+    companyName: formData.companyName,
+    displayName: formData.displayName,
+    email: formData.email,
+    phone: formData.phone,
+    mobile: formData.mobile,
+    website: formData.website,
+    billingStreet: formData.billingStreet,
+    billingCity: formData.billingCity,
+    billingState: formData.billingState,
+    billingZip: formData.billingZip,
+    billingCountry: formData.billingCountry,
+    shippingStreet: formData.shippingStreet,
+    shippingCity: formData.shippingCity,
+    shippingState: formData.shippingState,
+    shippingZip: formData.shippingZip,
+    shippingCountry: formData.shippingCountry,
+    paymentTerms: formData.paymentTerms,
+    creditLimit: formData.creditLimit !== '' ? parseFloat(formData.creditLimit) : null,
+    currency: formData.currency,
+    openingBalance: formData.openingBalance !== '' ? parseFloat(formData.openingBalance) : 0,
+    notes: formData.notes,
+    status: formData.status
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
-      
-      // TODO: Replace with actual API call
-      // const url = isEditMode ? `/api/customers/${id}` : '/api/customers';
-      // const method = isEditMode ? 'PUT' : 'POST';
-      // const response = await fetch(url, {
-      //   method,
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData)
-      // });
-      
-      console.log('Submitting customer:', formData);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      const url = isEditMode
+        ? `${API_BASE_URL}/customers/${id}`
+        : `${API_BASE_URL}/customers`;
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildPayload())
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to save customer');
+      }
+
       alert(isEditMode ? 'Customer updated successfully!' : 'Customer created successfully!');
       navigate('/finance/sales/customers');
-      
     } catch (error) {
       console.error('Error saving customer:', error);
-      alert('Error saving customer. Please try again.');
+      alert('Error saving customer: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -153,10 +189,25 @@ const CustomerFormPage = () => {
     { id: 'additional', label: 'Additional' }
   ];
 
+  if (fetchLoading) {
+    return (
+      <div className="p-6">
+        <div className="text-center text-gray-500">Loading customer...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       {/* Header */}
       <div className="mb-6">
+        <button
+          type="button"
+          onClick={() => navigate('/finance/sales/customers')}
+          className="text-blue-600 hover:text-blue-800 mb-2 flex items-center gap-1"
+        >
+          ← Back to Customers
+        </button>
         <h1 className="text-2xl font-bold text-gray-800">
           {isEditMode ? 'Edit Customer' : 'New Customer'}
         </h1>
@@ -190,6 +241,7 @@ const CustomerFormPage = () => {
 
           {/* Tab Content */}
           <div className="p-6">
+
             {/* Basic Information Tab */}
             {activeTab === 'basic' && (
               <div className="space-y-4">
@@ -229,8 +281,8 @@ const CustomerFormPage = () => {
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <select
-                      name="status"
-                      value={formData.status}
+                      name="salutation"
+                      value={formData.salutation}
                       onChange={handleChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
@@ -264,6 +316,19 @@ const CustomerFormPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Customer Name
+                    </label>
+                    <input
+                      type="text"
+                      name="customerName"
+                      value={formData.customerName}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter customer name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Company Name
                     </label>
                     <input
@@ -275,7 +340,6 @@ const CustomerFormPage = () => {
                       placeholder="Enter company name"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Display Name
@@ -288,6 +352,20 @@ const CustomerFormPage = () => {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Display name for invoices"
                     />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Status
+                    </label>
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="ACTIVE">Active</option>
+                      <option value="INACTIVE">Inactive</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -312,9 +390,7 @@ const CustomerFormPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
                   <input
                     type="tel"
                     name="phone"
@@ -326,9 +402,7 @@ const CustomerFormPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mobile
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Mobile</label>
                   <input
                     type="tel"
                     name="mobile"
@@ -340,9 +414,7 @@ const CustomerFormPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Website
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
                   <input
                     type="text"
                     name="website"
@@ -526,9 +598,7 @@ const CustomerFormPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Credit Limit
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Credit Limit</label>
                   <input
                     type="number"
                     name="creditLimit"
@@ -542,9 +612,7 @@ const CustomerFormPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Currency
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
                   <select
                     name="currency"
                     value={formData.currency}
@@ -559,9 +627,7 @@ const CustomerFormPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Opening Balance
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Opening Balance</label>
                   <input
                     type="number"
                     name="openingBalance"
@@ -578,9 +644,7 @@ const CustomerFormPage = () => {
             {/* Additional Tab */}
             {activeTab === 'additional' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notes
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
                 <textarea
                   name="notes"
                   value={formData.notes}

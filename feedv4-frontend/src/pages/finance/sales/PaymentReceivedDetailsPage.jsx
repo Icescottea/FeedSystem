@@ -7,7 +7,7 @@ const PaymentReceivedDetailsPage = () => {
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
   useEffect(() => {
     fetchPaymentDetails();

@@ -8,6 +8,8 @@ const CustomerDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
 
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
   useEffect(() => {
     fetchCustomerDetails();
   }, [id]);
@@ -15,92 +17,47 @@ const CustomerDetailsPage = () => {
   const fetchCustomerDetails = async () => {
     try {
       setLoading(true);
-      // TODO Replace with actual API call
-      // const response = await fetch(`/api/customers/${id}`);
-      // const data = await response.json();
-      
-      // Mock data
-      const mockData = {
-        id: 1,
-        customerType: 'BUSINESS',
-        customerName: 'ABC Farms Ltd',
-        companyName: 'ABC Farms Ltd',
-        displayName: 'ABC Farms',
-        email: 'contact@abcfarms.com',
-        phone: '+94 11 234 5678',
-        mobile: '+94 77 123 4567',
-        website: 'www.abcfarms.com',
-        billingAddress: {
-          street: '123 Main Street',
-          city: 'Colombo',
-          state: 'Western',
-          zip: '00100',
-          country: 'Sri Lanka'
-        },
-        shippingAddress: {
-          street: '123 Main Street',
-          city: 'Colombo',
-          state: 'Western',
-          zip: '00100',
-          country: 'Sri Lanka'
-        },
-        paymentTerms: '30',
-        creditLimit: 500000,
-        currency: 'LKR',
-        openingBalance: 0,
-        outstandingBalance: 125000,
-        notes: 'Regular customer since 2024',
-        status: 'ACTIVE',
-        createdDate: '2024-01-15',
-        transactions: [
-          {
-            id: 1,
-            type: 'Invoice',
-            number: 'INV-2024-001',
-            date: '2024-12-01',
-            dueDate: '2024-12-31',
-            amount: 150000,
-            status: 'Unpaid'
-          },
-          {
-            id: 2,
-            type: 'Payment',
-            number: 'PAY-2024-005',
-            date: '2024-11-25',
-            amount: 75000,
-            status: 'Completed'
-          },
-          {
-            id: 3,
-            type: 'Invoice',
-            number: 'INV-2024-002',
-            date: '2024-11-15',
-            dueDate: '2024-12-15',
-            amount: 95000,
-            status: 'Paid'
-          }
-        ]
-      };
-      
-      setCustomer(mockData);
-      setLoading(false);
+      const response = await fetch(`${API_BASE_URL}/customers/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch customer');
+      const data = await response.json();
+      setCustomer(data);
     } catch (error) {
       console.error('Error fetching customer details:', error);
+      alert('Error loading customer details. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
 
-  /*const handleEdit = () => {
+  const handleEdit = () => {
     navigate(`/finance/sales/customers/${id}/edit`);
   };
 
-  const handleDelete = () => {
-    if (window.confirm('Are you sure you want to deactivate this customer?')) {
-      // TODO: Implement delete/deactivate API call
-      console.log('Deactivating customer:', id);
-      navigate('/finance/sales/customers');
+  const handleToggleStatus = async () => {
+    const newStatus = customer.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    const action = newStatus === 'INACTIVE' ? 'deactivate' : 'reactivate';
+
+    if (!window.confirm(`Are you sure you want to ${action} this customer?`)) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/customers/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...customer, status: newStatus })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Failed to ${action} customer`);
+      }
+
+      const updated = await response.json();
+      setCustomer(updated);
+    } catch (error) {
+      console.error(`Error updating customer status:`, error);
+      alert(`Error updating customer status: ` + error.message);
     }
-  };*/
+  };
 
   const handleCreateInvoice = () => {
     navigate(`/finance/sales/invoices/new?customerId=${id}`);
@@ -126,6 +83,27 @@ const CustomerDetailsPage = () => {
     );
   }
 
+  // Normalise address fields — backend sends flat fields, so fall back gracefully
+  const billingAddress = {
+    street: customer.billingStreet || '',
+    city: customer.billingCity || '',
+    state: customer.billingState || '',
+    zip: customer.billingZip || '',
+    country: customer.billingCountry || ''
+  };
+
+  const shippingAddress = {
+    street: customer.shippingStreet || '',
+    city: customer.shippingCity || '',
+    state: customer.shippingState || '',
+    zip: customer.shippingZip || '',
+    country: customer.shippingCountry || ''
+  };
+
+  const outstandingBalance = customer.outstandingBalance ?? customer.receivables ?? 0;
+  const creditLimit = customer.creditLimit ?? 0;
+  const availableCredit = creditLimit - outstandingBalance;
+
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'transactions', label: 'Transactions' },
@@ -146,16 +124,24 @@ const CustomerDetailsPage = () => {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">{customer.customerName}</h1>
-            <p className="text-gray-600 mt-1">{customer.companyName}</p>
+            {customer.companyName && (
+              <p className="text-gray-600 mt-1">{customer.companyName}</p>
+            )}
           </div>
+          <button
+            onClick={handleEdit}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Edit Customer
+          </button>
         </div>
       </div>
 
       {/* Status Badge */}
       <div className="mb-6">
         <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${
-          customer.status === 'ACTIVE' 
-            ? 'bg-green-100 text-green-800' 
+          customer.status === 'ACTIVE'
+            ? 'bg-green-100 text-green-800'
             : 'bg-gray-100 text-gray-800'
         }`}>
           {customer.status}
@@ -167,24 +153,26 @@ const CustomerDetailsPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Outstanding Balance</p>
           <p className="text-2xl font-bold text-orange-600 mt-1">
-            {customer.currency} {customer.outstandingBalance.toLocaleString()}
+            {customer.currency || 'LKR'} {outstandingBalance.toLocaleString()}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Credit Limit</p>
           <p className="text-2xl font-bold text-gray-800 mt-1">
-            {customer.currency} {customer.creditLimit.toLocaleString()}
+            {customer.currency || 'LKR'} {creditLimit.toLocaleString()}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Available Credit</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">
-            {customer.currency} {(customer.creditLimit - customer.outstandingBalance).toLocaleString()}
+          <p className={`text-2xl font-bold mt-1 ${availableCredit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {customer.currency || 'LKR'} {availableCredit.toLocaleString()}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Payment Terms</p>
-          <p className="text-2xl font-bold text-gray-800 mt-1">Net {customer.paymentTerms}</p>
+          <p className="text-2xl font-bold text-gray-800 mt-1">
+            {customer.paymentTerms ? `Net ${customer.paymentTerms}` : '—'}
+          </p>
         </div>
       </div>
 
@@ -192,18 +180,28 @@ const CustomerDetailsPage = () => {
       <div className="mb-6">
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <h3 className="text-sm font-medium text-gray-700 mb-3">Quick Actions</h3>
-          <div className="flex flex-wrap gap-5">
+          <div className="flex flex-wrap gap-3">
             <button
               onClick={handleCreateInvoice}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Clone
+              New Invoice
             </button>
             <button
               onClick={handleRecordPayment}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
-              Mark As Inactive
+              Record Payment
+            </button>
+            <button
+              onClick={handleToggleStatus}
+              className={`px-4 py-2 rounded-lg border transition-colors ${
+                customer.status === 'ACTIVE'
+                  ? 'border-orange-300 text-orange-700 hover:bg-orange-50'
+                  : 'border-green-300 text-green-700 hover:bg-green-50'
+              }`}
+            >
+              {customer.status === 'ACTIVE' ? 'Mark as Inactive' : 'Mark as Active'}
             </button>
             <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
               Generate Statement
@@ -235,6 +233,7 @@ const CustomerDetailsPage = () => {
 
         {/* Tab Content */}
         <div className="p-6">
+
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
@@ -244,43 +243,57 @@ const CustomerDetailsPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Email</p>
-                    <p className="text-gray-800">{customer.email}</p>
+                    <p className="text-gray-800">{customer.email || '—'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Phone</p>
-                    <p className="text-gray-800">{customer.phone}</p>
+                    <p className="text-gray-800">{customer.phone || '—'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Mobile</p>
-                    <p className="text-gray-800">{customer.mobile}</p>
+                    <p className="text-gray-800">{customer.mobile || '—'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Website</p>
-                    <p className="text-gray-800">{customer.website}</p>
+                    <p className="text-gray-800">{customer.website || '—'}</p>
                   </div>
                 </div>
               </div>
 
               {/* Addresses */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Billing Address */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 mb-3">Billing Address</h3>
-                  <div className="text-gray-700">
-                    <p>{customer.billingAddress.street}</p>
-                    <p>{customer.billingAddress.city}, {customer.billingAddress.state} {customer.billingAddress.zip}</p>
-                    <p>{customer.billingAddress.country}</p>
-                  </div>
+                  {billingAddress.street || billingAddress.city ? (
+                    <div className="text-gray-700">
+                      {billingAddress.street && <p>{billingAddress.street}</p>}
+                      <p>
+                        {[billingAddress.city, billingAddress.state, billingAddress.zip]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </p>
+                      {billingAddress.country && <p>{billingAddress.country}</p>}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No billing address on file</p>
+                  )}
                 </div>
 
-                {/* Shipping Address */}
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 mb-3">Shipping Address</h3>
-                  <div className="text-gray-700">
-                    <p>{customer.shippingAddress.street}</p>
-                    <p>{customer.shippingAddress.city}, {customer.shippingAddress.state} {customer.shippingAddress.zip}</p>
-                    <p>{customer.shippingAddress.country}</p>
-                  </div>
+                  {shippingAddress.street || shippingAddress.city ? (
+                    <div className="text-gray-700">
+                      {shippingAddress.street && <p>{shippingAddress.street}</p>}
+                      <p>
+                        {[shippingAddress.city, shippingAddress.state, shippingAddress.zip]
+                          .filter(Boolean)
+                          .join(', ')}
+                      </p>
+                      {shippingAddress.country && <p>{shippingAddress.country}</p>}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">No shipping address on file</p>
+                  )}
                 </div>
               </div>
 
@@ -290,19 +303,25 @@ const CustomerDetailsPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Payment Terms</p>
-                    <p className="text-gray-800">Net {customer.paymentTerms} days</p>
+                    <p className="text-gray-800">
+                      {customer.paymentTerms ? `Net ${customer.paymentTerms} days` : '—'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Credit Limit</p>
-                    <p className="text-gray-800">{customer.currency} {customer.creditLimit.toLocaleString()}</p>
+                    <p className="text-gray-800">
+                      {customer.currency || 'LKR'} {creditLimit.toLocaleString()}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Currency</p>
-                    <p className="text-gray-800">{customer.currency}</p>
+                    <p className="text-gray-800">{customer.currency || '—'}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Opening Balance</p>
-                    <p className="text-gray-800">{customer.currency} {customer.openingBalance.toLocaleString()}</p>
+                    <p className="text-gray-800">
+                      {customer.currency || 'LKR'} {(customer.openingBalance ?? 0).toLocaleString()}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -311,7 +330,7 @@ const CustomerDetailsPage = () => {
               {customer.notes && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 mb-3">Notes</h3>
-                  <p className="text-gray-700">{customer.notes}</p>
+                  <p className="text-gray-700 whitespace-pre-wrap">{customer.notes}</p>
                 </div>
               )}
 
@@ -321,12 +340,16 @@ const CustomerDetailsPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Customer Type</p>
-                    <p className="text-gray-800">{customer.customerType}</p>
+                    <p className="text-gray-800">{customer.customerType || '—'}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Created Date</p>
-                    <p className="text-gray-800">{new Date(customer.createdDate).toLocaleDateString()}</p>
-                  </div>
+                  {customer.createdDate && (
+                    <div>
+                      <p className="text-sm text-gray-600">Created Date</p>
+                      <p className="text-gray-800">
+                        {new Date(customer.createdDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -334,68 +357,8 @@ const CustomerDetailsPage = () => {
 
           {/* Transactions Tab */}
           {activeTab === 'transactions' && (
-            <div>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">Transaction History</h3>
-                <div className="flex gap-2">
-                  <select className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                    <option>All Types</option>
-                    <option>Invoices</option>
-                    <option>Payments</option>
-                  </select>
-                </div>
-              </div>
-
-              {customer.transactions.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">No transactions yet</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Number</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Due Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {customer.transactions.map((transaction) => (
-                        <tr key={transaction.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 text-sm text-gray-800">
-                            {new Date(transaction.date).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-800">{transaction.type}</td>
-                          <td className="px-6 py-4 text-sm font-medium text-blue-600">{transaction.number}</td>
-                          <td className="px-6 py-4 text-sm text-gray-800">
-                            {transaction.dueDate ? new Date(transaction.dueDate).toLocaleDateString() : '-'}
-                          </td>
-                          <td className="px-6 py-4 text-sm font-medium text-gray-800">
-                            {customer.currency} {transaction.amount.toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                              transaction.status === 'Paid' || transaction.status === 'Completed'
-                                ? 'bg-green-100 text-green-800'
-                                : transaction.status === 'Unpaid'
-                                ? 'bg-orange-100 text-orange-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {transaction.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm">
-                            <button className="text-blue-600 hover:text-blue-800 font-medium">View</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+            <div className="text-center py-8 text-gray-500">
+              <p>Transaction history coming soon</p>
             </div>
           )}
 
