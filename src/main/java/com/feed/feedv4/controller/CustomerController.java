@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,15 +18,16 @@ import com.feed.feedv4.dto.CustomerDTO;
 import com.feed.feedv4.service.CustomerService;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/customers")
-@RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class CustomerController {
     
     private final CustomerService customerService;
+
+    public CustomerController(CustomerService customerService) {
+        this.customerService = customerService;
+    }
     
     @GetMapping
     public ResponseEntity<List<CustomerDTO>> getAllCustomers() {
