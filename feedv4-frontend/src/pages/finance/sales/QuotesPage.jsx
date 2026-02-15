@@ -19,23 +19,23 @@ const QuotesPage = () => {
   const fetchQuotes = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/quotes`);
+      const response = await fetch(`${API_BASE_URL}/quotes`);
       if (!response.ok) throw new Error('Failed to fetch quotes');
       const data = await response.json();
       setQuotes(data);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching quotes:', error);
-    } finally {
       setLoading(false);
     }
   };
 
   const filteredQuotes = quotes.filter(quote => {
     const matchesSearch = 
-      quote.quoteNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      quote.referenceNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      quote.customerName?.toLowerCase().includes(searchQuery.toLowerCase());
-
+      quote.quoteNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (quote.referenceNumber && quote.referenceNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (quote.customerName && quote.customerName.toLowerCase().includes(searchQuery.toLowerCase()));
+    
     const matchesStatus = statusFilter === 'all' || quote.status === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -47,35 +47,43 @@ const QuotesPage = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'DRAFT': return 'bg-gray-100 text-gray-800';
-      case 'SENT': return 'bg-blue-100 text-blue-800';
-      case 'ACCEPTED': return 'bg-green-100 text-green-800';
-      case 'DECLINED': return 'bg-red-100 text-red-800';
-      case 'EXPIRED': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'DRAFT':
+        return 'bg-gray-100 text-gray-800';
+      case 'SENT':
+        return 'bg-blue-100 text-blue-800';
+      case 'ACCEPTED':
+        return 'bg-green-100 text-green-800';
+      case 'DECLINED':
+        return 'bg-red-100 text-red-800';
+      case 'EXPIRED':
+        return 'bg-orange-100 text-orange-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleView = (id) => navigate(`/finance/sales/quotes/${id}`);
-  const handleEdit = (id) => navigate(`/finance/sales/quotes/${id}/edit`);
+  const handleView = (id) => {
+    navigate(`/finance/sales/quotes/${id}`);
+  };
+
+  const handleEdit = (id) => {
+    navigate(`/finance/sales/quotes/${id}/edit`);
+  };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this quote?')) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/quotes/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || 'Failed to delete quote');
+    if (window.confirm('Are you sure you want to delete this quote?')) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/quotes/${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete quote');
+        
+        fetchQuotes();
+      } catch (error) {
+        console.error('Error deleting quote:', error);
+        alert('Error deleting quote: ' + error.message);
       }
-
-      fetchQuotes();
-    } catch (error) {
-      console.error('Error deleting quote:', error);
-      alert(error.message);
     }
   };
 
@@ -96,108 +104,197 @@ const QuotesPage = () => {
         </button>
       </div>
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Total Quotes" value={quotes.length} />
-        <StatCard title="Accepted" value={quotes.filter(q => q.status === 'ACCEPTED').length} color="text-green-600" />
-        <StatCard title="Pending" value={quotes.filter(q => q.status === 'SENT').length} color="text-blue-600" />
-        <StatCard title="Total Value" value={`LKR ${quotes.reduce((sum, q) => sum + (q.total || 0), 0).toLocaleString()}`} />
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <p className="text-gray-600 text-sm">Total Quotes</p>
+          <p className="text-2xl font-bold text-gray-800 mt-1">{quotes.length}</p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <p className="text-gray-600 text-sm">Accepted</p>
+          <p className="text-2xl font-bold text-green-600 mt-1">
+            {quotes.filter(q => q.status === 'ACCEPTED').length}
+          </p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <p className="text-gray-600 text-sm">Pending</p>
+          <p className="text-2xl font-bold text-blue-600 mt-1">
+            {quotes.filter(q => q.status === 'SENT').length}
+          </p>
+        </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+          <p className="text-gray-600 text-sm">Total Value</p>
+          <p className="text-2xl font-bold text-gray-800 mt-1">
+            LKR {quotes.reduce((sum, q) => sum + (q.total || 0), 0).toLocaleString()}
+          </p>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4 flex gap-4 flex-col md:flex-row">
-        <input
-          type="text"
-          placeholder="Search by quote, reference or customer..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1 px-4 py-2 border rounded-lg"
-        />
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="w-full md:w-48 px-4 py-2 border rounded-lg"
-        >
-          <option value="all">All Status</option>
-          <option value="DRAFT">Draft</option>
-          <option value="SENT">Sent</option>
-          <option value="ACCEPTED">Accepted</option>
-          <option value="DECLINED">Declined</option>
-          <option value="EXPIRED">Expired</option>
-        </select>
+      {/* Filters and Search */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Search by quote number, reference, or customer..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="w-full md:w-48">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Status</option>
+              <option value="DRAFT">Draft</option>
+              <option value="SENT">Sent</option>
+              <option value="ACCEPTED">Accepted</option>
+              <option value="DECLINED">Declined</option>
+              <option value="EXPIRED">Expired</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      {/* Table */}
+      {/* Quotes Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center">Loading quotes...</div>
+          <div className="p-8 text-center text-gray-500">Loading quotes...</div>
         ) : paginatedQuotes.length === 0 ? (
-          <div className="p-8 text-center">No quotes found.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <TableHeader>Date</TableHeader>
-                  <TableHeader>Quote #</TableHeader>
-                  <TableHeader>Reference</TableHeader>
-                  <TableHeader>Customer</TableHeader>
-                  <TableHeader>Status</TableHeader>
-                  <TableHeader>Amount</TableHeader>
-                  <TableHeader>Actions</TableHeader>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {paginatedQuotes.map(q => (
-                  <tr key={q.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4">{new Date(q.quoteDate).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 font-medium text-blue-600">{q.quoteNumber}</td>
-                    <td className="px-6 py-4">{q.referenceNumber || '-'}</td>
-                    <td className="px-6 py-4">{q.customerName || '-'}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(q.status)}`}>
-                        {q.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 font-medium">
-                      LKR {(q.total || 0).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 flex gap-2">
-                      <ActionBtn onClick={() => handleView(q.id)} text="View" color="text-blue-600" />
-                      <ActionBtn onClick={() => handleEdit(q.id)} text="Edit" color="text-green-600" />
-                      <ActionBtn onClick={() => handleDelete(q.id)} text="Delete" color="text-red-600" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="p-8 text-center text-gray-500">
+            {searchQuery || statusFilter !== 'all' ? 'No quotes found matching your filters.' : 'No quotes yet. Create your first quote!'}
           </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Quote Number
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Reference Number
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Customer Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {paginatedQuotes.map((quote) => (
+                    <tr key={quote.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-800">
+                          {new Date(quote.quoteDate).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-blue-600">{quote.quoteNumber}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-600">{quote.referenceNumber || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{quote.customerName || 'N/A'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(quote.status)}`}>
+                          {quote.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          LKR {quote.total.toLocaleString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleView(quote.id)}
+                            className="text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => handleEdit(quote.id)}
+                            className="text-green-600 hover:text-green-800 font-medium"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(quote.id)}
+                            className="text-red-600 hover:text-red-800 font-medium"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredQuotes.length)} of {filteredQuotes.length} quotes
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <div className="flex gap-1">
+                    {[...Array(totalPages)].map((_, i) => (
+                      <button
+                        key={i + 1}
+                        onClick={() => setCurrentPage(i + 1)}
+                        className={`px-3 py-1 border rounded ${
+                          currentPage === i + 1
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
   );
 };
-
-/* Small UI Helpers */
-
-const StatCard = ({ title, value, color = 'text-gray-800' }) => (
-  <div className="bg-white p-4 rounded-lg shadow-sm border">
-    <p className="text-gray-600 text-sm">{title}</p>
-    <p className={`text-2xl font-bold mt-1 ${color}`}>{value}</p>
-  </div>
-);
-
-const TableHeader = ({ children }) => (
-  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-    {children}
-  </th>
-);
-
-const ActionBtn = ({ onClick, text, color }) => (
-  <button onClick={onClick} className={`${color} hover:underline font-medium`}>
-    {text}
-  </button>
-);
 
 export default QuotesPage;

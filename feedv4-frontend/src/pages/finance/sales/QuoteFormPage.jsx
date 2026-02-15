@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
-
 const QuoteFormPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -29,161 +27,202 @@ const QuoteFormPage = () => {
 
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState([]);
 
   useEffect(() => {
     fetchCustomers();
-    if (isEditMode) fetchQuote();
-    else generateQuoteNumber();
-  }, [id]);
-
-  // ---------------- API ----------------
+    if (isEditMode) {
+      fetchQuote();
+    } else {
+      generateQuoteNumber();
+    }
+  }, [id, isEditMode]);
 
   const fetchCustomers = async () => {
-    const res = await fetch(`${API_BASE_URL}/api/customers`);
-    const data = await res.json();
-    setCustomers(data);
+    // TODO: Replace with actual API call
+    const mockCustomers = [
+      { id: 1, name: 'ABC Farms Ltd' },
+      { id: 2, name: 'Green Valley Poultry' },
+      { id: 3, name: 'Royal Livestock Co.' }
+    ];
+    setCustomers(mockCustomers);
   };
 
   const generateQuoteNumber = () => {
+    // TODO: Replace with actual API call to get next quote number
     const year = new Date().getFullYear();
-    const rand = Math.floor(1000 + Math.random() * 9000);
-    setFormData(prev => ({ ...prev, quoteNumber: `QT-${year}-${rand}` }));
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    setFormData(prev => ({ ...prev, quoteNumber: `QT-${year}-${random}` }));
   };
 
   const fetchQuote = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/api/quotes/${id}`);
-      const data = await res.json();
+      // TODO: Replace with actual API call
+      const mockData = {
+        customerId: '1',
+        customerName: 'ABC Farms Ltd',
+        quoteNumber: 'QT-2024-001',
+        referenceNumber: 'REF-001',
+        date: '2024-12-15',
+        expiryDate: '2025-01-15',
+        salesPerson: 'John Doe',
+        subject: 'Feed Supply Quote',
+        shippingCharges: 5000,
+        customerNotes: 'Please confirm delivery date',
+        termsAndConditions: 'Payment due within 30 days',
+        status: 'DRAFT'
+      };
 
-      setFormData({
-        customerId: data.customerId?.toString() || '',
-        customerName: data.customerName || '',
-        quoteNumber: data.quoteNumber || '',
-        referenceNumber: data.referenceNumber || '',
-        date: data.quoteDate || '',
-        expiryDate: data.expiryDate || '',
-        salesPerson: data.salesPerson || '',
-        subject: data.subject || '',
-        shippingCharges: data.adjustment || 0,
-        customerNotes: data.customerNotes || '',
-        termsAndConditions: data.termsAndConditions || '',
-        status: data.status || 'DRAFT'
-      });
+      const mockItems = [
+        { id: 1, itemName: 'Broiler Feed - Starter', quantity: 100, rate: 1500, tax: 0, amount: 150000 },
+        { id: 2, itemName: 'Layer Feed - Grower', quantity: 50, rate: 1800, tax: 0, amount: 90000 }
+      ];
 
-      setItems(data.items.map(item => ({
-        id: item.id,
-        itemName: item.itemName,
-        quantity: item.quantity,
-        rate: item.rate,
-        tax: item.taxRate,
-        amount: item.amount
-      })));
-
-    } catch (err) {
-      console.error('Fetch quote failed:', err);
-    } finally {
+      setFormData(mockData);
+      setItems(mockItems);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching quote:', error);
       setLoading(false);
     }
   };
 
-  // ---------------- HANDLERS ----------------
-
-  const handleChange = e => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
 
+    // Update customer name when customer is selected
     if (name === 'customerId') {
-      const cust = customers.find(c => c.id.toString() === value);
-      setFormData(prev => ({ ...prev, customerName: cust?.customerName || '' }));
+      const customer = customers.find(c => c.id.toString() === value);
+      setFormData(prev => ({
+        ...prev,
+        customerName: customer ? customer.name : ''
+      }));
     }
   };
 
   const handleItemChange = (index, field, value) => {
-    const updated = [...items];
-    updated[index][field] = value;
+    const newItems = [...items];
+    newItems[index][field] = value;
 
-    if (['quantity', 'rate', 'tax'].includes(field)) {
-      const q = Number(updated[index].quantity || 0);
-      const r = Number(updated[index].rate || 0);
-      const t = Number(updated[index].tax || 0);
-      const sub = q * r;
-      updated[index].amount = sub + (sub * t) / 100;
+    // Calculate amount for the item
+    if (field === 'quantity' || field === 'rate' || field === 'tax') {
+      const qty = parseFloat(newItems[index].quantity) || 0;
+      const rate = parseFloat(newItems[index].rate) || 0;
+      const tax = parseFloat(newItems[index].tax) || 0;
+      const subtotal = qty * rate;
+      newItems[index].amount = subtotal + (subtotal * tax / 100);
     }
 
-    setItems(updated);
+    setItems(newItems);
   };
 
   const addItem = () => {
-    setItems([...items, { id: Date.now(), itemName: '', quantity: 1, rate: 0, tax: 0, amount: 0 }]);
+    setItems([...items, { 
+      id: Date.now(), 
+      itemName: '', 
+      quantity: 1, 
+      rate: 0, 
+      tax: 0, 
+      amount: 0 
+    }]);
   };
 
-  const removeItem = idx => {
-    if (items.length > 1) setItems(items.filter((_, i) => i !== idx));
+  const removeItem = (index) => {
+    if (items.length > 1) {
+      setItems(items.filter((_, i) => i !== index));
+    }
   };
 
-  // ---------------- TOTALS ----------------
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    setAttachedFiles(prev => [...prev, ...files]);
+  };
 
-  const subTotal = items.reduce((s, i) => s + (Number(i.quantity) * Number(i.rate)), 0);
-  const totalTax = items.reduce((s, i) => s + ((Number(i.quantity) * Number(i.rate)) * Number(i.tax) / 100), 0);
-  const shipping = Number(formData.shippingCharges || 0);
-  const total = subTotal + totalTax + shipping;
+  const removeFile = (index) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
-  // ---------------- SUBMIT ----------------
+  // Calculate totals
+  const subTotal = items.reduce((sum, item) => {
+    const qty = parseFloat(item.quantity) || 0;
+    const rate = parseFloat(item.rate) || 0;
+    return sum + (qty * rate);
+  }, 0);
 
-  const handleSubmit = async (type) => {
+  const totalTax = items.reduce((sum, item) => {
+    const qty = parseFloat(item.quantity) || 0;
+    const rate = parseFloat(item.rate) || 0;
+    const tax = parseFloat(item.tax) || 0;
+    return sum + ((qty * rate) * tax / 100);
+  }, 0);
+
+  const shippingCharges = parseFloat(formData.shippingCharges) || 0;
+  const total = subTotal + totalTax + shippingCharges;
+
+  const handleSubmit = async (saveType) => {
     try {
       setLoading(true);
 
-      const payload = {
+      const quoteData = {
         id: isEditMode ? Number(id) : null,
+            
         quoteNumber: formData.quoteNumber,
         referenceNumber: formData.referenceNumber,
+            
         customerId: Number(formData.customerId),
         customerName: formData.customerName,
+            
         quoteDate: formData.date,
-        expiryDate: formData.expiryDate || null,
+        expiryDate: formData.expiryDate,
+            
         subject: formData.subject,
         salesPerson: formData.salesPerson,
+            
         taxInclusive: false,
+            
         subtotal: subTotal,
         discount: 0,
         discountType: null,
+            
         tax: totalTax,
-        adjustment: shipping,
+        adjustment: shippingCharges,
+            
         total,
-        status: type === 'send' ? 'SENT' : 'DRAFT',
+        status: saveType === 'send' ? 'SENT' : 'DRAFT',
+            
         customerNotes: formData.customerNotes,
         termsAndConditions: formData.termsAndConditions,
-        attachments: '',
-        items: items.map((i, idx) => ({
-          itemName: i.itemName,
+            
+        attachments: attachedFiles.map(f => f.name).join(','),
+            
+        items: items.map((item, index) => ({
+          itemName: item.itemName,
           description: null,
-          quantity: Number(i.quantity),
-          rate: Number(i.rate),
-          taxRate: Number(i.tax),
-          amount: Number(i.amount),
-          sequence: idx + 1
+          quantity: Number(item.quantity),
+          rate: Number(item.rate),
+          taxRate: Number(item.tax),
+          amount: Number(item.amount),
+          sequence: index + 1
         }))
       };
 
-      const url = isEditMode
-        ? `${API_BASE_URL}/api/quotes/${id}`
-        : `${API_BASE_URL}/api/quotes`;
+      // TODO: Replace with actual API call
+      console.log('Saving quote:', quoteData);
+      console.log('Attached files:', attachedFiles);
 
-      const res = await fetch(url, {
-        method: isEditMode ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      if (!res.ok) throw new Error(await res.text());
-
+      alert(saveType === 'send' ? 'Quote saved and sent!' : 'Quote saved as draft!');
       navigate('/finance/sales/quotes');
 
-    } catch (err) {
-      console.error('Save failed:', err);
-      alert('Save failed. Check console.');
+    } catch (error) {
+      console.error('Error saving quote:', error);
+      alert('Error saving quote. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -191,46 +230,342 @@ const QuoteFormPage = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">
-        {isEditMode ? 'Edit Quote' : 'New Quote'}
-      </h1>
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">
+          {isEditMode ? 'Edit Quote' : 'New Quote'}
+        </h1>
+        <p className="text-gray-600 mt-1">
+          {isEditMode ? 'Update quote information' : 'Create a new sales quote'}
+        </p>
+      </div>
 
-      <div className="bg-white p-6 rounded shadow space-y-6">
+      {/* Form */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="p-6 space-y-6">
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Customer Name <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="customerId"
+                value={formData.customerId}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select a customer</option>
+                {customers.map(customer => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <select name="customerId" value={formData.customerId} onChange={handleChange} className="w-full border p-2 rounded">
-          <option value="">Select Customer</option>
-          {customers.map(c => (
-            <option key={c.id} value={c.id}>{c.customerName}</option>
-          ))}
-        </select>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Quote Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="quoteNumber"
+                value={formData.quoteNumber}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                readOnly
+              />
+            </div>
 
-        {items.map((item, idx) => (
-          <div key={item.id} className="grid grid-cols-6 gap-2">
-            <input value={item.itemName} onChange={e => handleItemChange(idx, 'itemName', e.target.value)} className="border p-2 rounded col-span-2" />
-            <input type="number" value={item.quantity} onChange={e => handleItemChange(idx, 'quantity', e.target.value)} className="border p-2 rounded" />
-            <input type="number" value={item.rate} onChange={e => handleItemChange(idx, 'rate', e.target.value)} className="border p-2 rounded" />
-            <input type="number" value={item.tax} onChange={e => handleItemChange(idx, 'tax', e.target.value)} className="border p-2 rounded" />
-            <div className="p-2">{item.amount.toFixed(2)}</div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reference Number
+              </label>
+              <input
+                type="text"
+                name="referenceNumber"
+                value={formData.referenceNumber}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter reference number"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                name="date"
+                value={formData.date}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Expiry Date
+              </label>
+              <input
+                type="date"
+                name="expiryDate"
+                value={formData.expiryDate}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sales Person
+              </label>
+              <input
+                type="text"
+                name="salesPerson"
+                value={formData.salesPerson}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter sales person name"
+              />
+            </div>
           </div>
-        ))}
 
-        <button onClick={addItem} className="text-blue-600">+ Add Item</button>
+          {/* Subject */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Subject
+            </label>
+            <input
+              type="text"
+              name="subject"
+              value={formData.subject}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter subject"
+            />
+          </div>
 
-        <div className="text-right space-y-1">
-          <div>Subtotal: {subTotal.toFixed(2)}</div>
-          <div>Tax: {totalTax.toFixed(2)}</div>
-          <div>Total: {total.toFixed(2)}</div>
+          {/* Items Table */}
+          <div>
+            <div className="flex justify-between items-center mb-3">
+              <label className="block text-sm font-medium text-gray-700">
+                Items <span className="text-red-500">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={addItem}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                + Add Item
+              </button>
+            </div>
+            
+            <div className="overflow-x-auto border border-gray-300 rounded-lg">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item Name</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tax (%)</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {items.map((item, index) => (
+                    <tr key={item.id}>
+                      <td className="px-4 py-2">
+                        <input
+                          type="text"
+                          value={item.itemName}
+                          onChange={(e) => handleItemChange(index, 'itemName', e.target.value)}
+                          className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Item name"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                          className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          min="1"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <input
+                          type="number"
+                          value={item.rate}
+                          onChange={(e) => handleItemChange(index, 'rate', e.target.value)}
+                          className="w-32 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          min="0"
+                          step="0.01"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <input
+                          type="number"
+                          value={item.tax}
+                          onChange={(e) => handleItemChange(index, 'tax', e.target.value)}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          min="0"
+                          step="0.01"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className="font-medium">LKR {item.amount.toLocaleString()}</span>
+                      </td>
+                      <td className="px-4 py-2">
+                        <button
+                          type="button"
+                          onClick={() => removeItem(index)}
+                          disabled={items.length === 1}
+                          className="text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Total Calculation */}
+          <div className="flex justify-end">
+            <div className="w-full md:w-1/2 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Sub Total:</span>
+                <span className="font-medium">LKR {subTotal.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Total Tax:</span>
+                <span className="font-medium">LKR {totalTax.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Shipping Charges:</span>
+                <input
+                  type="number"
+                  name="shippingCharges"
+                  value={formData.shippingCharges}
+                  onChange={handleChange}
+                  className="w-32 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div className="border-t pt-3 flex justify-between items-center">
+                <span className="text-lg font-semibold text-gray-800">Total:</span>
+                <span className="text-lg font-bold text-blue-600">LKR {total.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Customer Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Customer Notes
+            </label>
+            <textarea
+              name="customerNotes"
+              value={formData.customerNotes}
+              onChange={handleChange}
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Notes visible to customer"
+            />
+          </div>
+
+          {/* Terms and Conditions */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Terms and Conditions
+            </label>
+            <textarea
+              name="termsAndConditions"
+              value={formData.termsAndConditions}
+              onChange={handleChange}
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter terms and conditions"
+            />
+          </div>
+
+          {/* File Attachment */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Attachments
+            </label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+              <input
+                type="file"
+                onChange={handleFileChange}
+                multiple
+                className="hidden"
+                id="file-upload"
+              />
+              <label
+                htmlFor="file-upload"
+                className="cursor-pointer flex flex-col items-center"
+              >
+                <span className="text-blue-600 hover:text-blue-800">Click to upload files</span>
+                <span className="text-sm text-gray-500 mt-1">or drag and drop</span>
+              </label>
+              
+              {attachedFiles.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {attachedFiles.map((file, index) => (
+                    <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                      <span className="text-sm text-gray-700">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="flex justify-end gap-2">
-          <button onClick={() => handleSubmit('draft')} className="px-4 py-2 border rounded">
-            Save Draft
+        {/* Form Actions */}
+        <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/finance/sales/quotes')}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            Cancel
           </button>
-          <button onClick={() => handleSubmit('send')} className="px-4 py-2 bg-blue-600 text-white rounded">
-            Save & Send
+          <button
+            type="button"
+            onClick={() => handleSubmit('draft')}
+            disabled={loading}
+            className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Saving...' : 'Save as Draft'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSubmit('send')}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Saving...' : 'Save and Send'}
           </button>
         </div>
-
       </div>
     </div>
   );
