@@ -17,7 +17,7 @@ const CustomerDetailsPage = () => {
   const fetchCustomerDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/customers/${id}`);
+      const response = await fetch(`${API_BASE_URL}/api/customers/${id}`);
       if (!response.ok) throw new Error('Failed to fetch customer');
       const data = await response.json();
       setCustomer(data);
@@ -40,7 +40,7 @@ const CustomerDetailsPage = () => {
     if (!window.confirm(`Are you sure you want to ${action} this customer?`)) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/customers/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/customers/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...customer, status: newStatus })

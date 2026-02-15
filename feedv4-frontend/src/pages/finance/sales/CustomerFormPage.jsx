@@ -55,7 +55,7 @@ const CustomerFormPage = () => {
   const fetchCustomer = async () => {
     try {
       setFetchLoading(true);
-      const response = await fetch(`${API_BASE_URL}/customers/${id}`);
+      const response = await fetch(`${API_BASE_URL}/api/customers/${id}`);
       if (!response.ok) throw new Error('Failed to fetch customer');
       const data = await response.json();
 
