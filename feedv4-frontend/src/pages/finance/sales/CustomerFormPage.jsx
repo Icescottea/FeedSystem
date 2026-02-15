@@ -196,7 +196,7 @@ const CustomerFormPage = () => {
 
     try {
       setLoading(true);
-      const url    = isEditMode ? `${API_BASE_URL}/customers/${id}` : `${API_BASE_URL}/customers`;
+      const url    = isEditMode ? `${API_BASE_URL}/api/customers/${id}` : `${API_BASE_URL}/api/customers`;
       const method = isEditMode ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
