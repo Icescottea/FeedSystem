@@ -25,40 +25,34 @@ const SalesOrderFormPage = () => {
   });
 
   const [items, setItems] = useState([
-    { id: 1, itemName: '', quantity: 1, rate: 0, tax: 0, amount: 0 }
+    { id: Date.now(), itemName: '', quantity: 1, rate: 0, tax: 0, amount: 0 }
   ]);
 
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState([]);
 
   useEffect(() => {
     fetchCustomers();
-    if (isEditMode) {
-      fetchSalesOrder();
-    } else {
-      generateSalesOrderNumber();
-    }
+    if (isEditMode) fetchSalesOrder();
   }, [id]);
-
-  // ---------------- API ----------------
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/customers`);
-      const data = await res.json();
-      setCustomers(data);
-    } catch (err) {
-      console.error('Customer load error:', err);
-    }
-  };
+      const res = await fetch(`${API_BASE_URL}/api/sales-orders`);
+      if (!res.ok) throw new Error('Failed to fetch customers');
 
-  const generateSalesOrderNumber = async () => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/sales-orders/next-number`);
-      const data = await res.text();
-      setFormData(prev => ({ ...prev, salesOrderNumber: data }));
+      const data = await res.json();
+
+      const normalized = data.map(c => ({
+        id: c.id,
+        name: c.name || c.customerName || c.companyName
+      }));
+
+      setCustomers(normalized);
     } catch (err) {
-      console.error('SO number error:', err);
+      console.error('Fetch customers error:', err);
+      alert('Failed to load customers');
     }
   };
 
@@ -66,55 +60,74 @@ const SalesOrderFormPage = () => {
     try {
       setLoading(true);
       const res = await fetch(`${API_BASE_URL}/api/sales-orders/${id}`);
+      if (!res.ok) throw new Error('Failed to fetch sales order');
+
       const data = await res.json();
 
-      setFormData(data);
-      setItems(data.items || []);
+      setFormData({
+        customerId: data.customerId.toString(),
+        customerName: data.customerName,
+        salesOrderNumber: data.salesOrderNumber,
+        referenceNumber: data.referenceNumber || '',
+        date: data.salesOrderDate,
+        expectedShipmentDate: data.expectedShipmentDate || '',
+        paymentTerms: data.paymentTerms || '',
+        deliveryMethod: data.deliveryMethod || '',
+        salesPerson: data.salesPerson || '',
+        shippingCharges: data.adjustment || 0,
+        customerNotes: data.customerNotes || '',
+        termsAndConditions: data.termsAndConditions || '',
+        status: data.status
+      });
+
+      setItems(data.items.map((item, i) => ({
+        id: item.id || i,
+        itemName: item.itemName,
+        quantity: item.quantity,
+        rate: item.rate,
+        tax: item.taxRate,
+        amount: item.amount
+      })));
+
     } catch (err) {
-      console.error('Load sales order error:', err);
+      console.error(err);
+      alert('Failed to load sales order');
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------------- HANDLERS ----------------
-
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData(prev => ({ ...prev, [name]: value }));
 
     if (name === 'customerId') {
-      const selected = customers.find(c => c.id.toString() === value);
-      setFormData(prev => ({
-        ...prev,
-        customerName: selected?.name || ''
-      }));
+      const customer = customers.find(c => c.id.toString() === value);
+      setFormData(prev => ({ ...prev, customerName: customer ? customer.name : '' }));
     }
   };
 
   const handleItemChange = (index, field, value) => {
-    const updated = [...items];
-    updated[index][field] = value;
+    const newItems = [...items];
+    newItems[index][field] = value;
 
-    const qty = parseFloat(updated[index].quantity || 0);
-    const rate = parseFloat(updated[index].rate || 0);
-    const tax = parseFloat(updated[index].tax || 0);
+    const qty = Number(newItems[index].quantity) || 0;
+    const rate = Number(newItems[index].rate) || 0;
+    const tax = Number(newItems[index].tax) || 0;
+    const subtotal = qty * rate;
 
-    const base = qty * rate;
-    updated[index].amount = base + (base * tax / 100);
-
-    setItems(updated);
+    newItems[index].amount = subtotal + (subtotal * tax / 100);
+    setItems(newItems);
   };
 
   const addItem = () => {
-    setItems([...items, {
-      id: Date.now(),
-      itemName: '',
-      quantity: 1,
-      rate: 0,
-      tax: 0,
-      amount: 0
+    setItems([...items, { 
+      id: Date.now(), 
+      itemName: '', 
+      quantity: 1, 
+      rate: 0, 
+      tax: 0, 
+      amount: 0 
     }]);
   };
 
@@ -124,29 +137,53 @@ const SalesOrderFormPage = () => {
     }
   };
 
-  // ---------------- TOTALS ----------------
-
   const subTotal = items.reduce((sum, i) => sum + (i.quantity * i.rate), 0);
   const totalTax = items.reduce((sum, i) => sum + ((i.quantity * i.rate) * i.tax / 100), 0);
-  const shippingCharges = Number(formData.shippingCharges || 0);
-  const total = subTotal + totalTax + shippingCharges;
+  const total = subTotal + totalTax + Number(formData.shippingCharges || 0);
 
-  // ---------------- SUBMIT ----------------
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    setAttachedFiles(prev => [...prev, ...files]);
+  };
 
-  const handleSubmit = async (saveType) => {
+  const removeFile = (index) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (type) => {
     try {
       setLoading(true);
 
       const payload = {
-        ...formData,
-        items,
-        subTotal,
-        totalTax,
+        referenceNumber: formData.referenceNumber,
+        customerId: Number(formData.customerId),
+        customerName: formData.customerName,
+        salesOrderDate: formData.date,
+        expectedShipmentDate: formData.expectedShipmentDate || null,
+        salesPerson: formData.salesPerson,
+        subtotal: subTotal,
+        tax: totalTax,
+        discount: 0,
+        discountType: null,
+        adjustment: Number(formData.shippingCharges || 0),
         total,
-        status: saveType === 'send' ? 'CONFIRMED' : 'DRAFT'
+        status: type === 'send' ? 'SENT' : 'DRAFT',
+        invoicedStatus: type === 'not_invoiced' ? 'NOT_INVOICED' : 'FULLY_INVOICED',
+        paymentStatus: type === 'pending' ? 'PENDING' : 'SHIPPED',
+        customerNotes: formData.customerNotes,
+        termsAndConditions: formData.termsAndConditions,
+        attachments: null,
+        items: items.map((item, i) => ({
+          itemName: item.itemName,
+          quantity: Number(item.quantity),
+          rate: Number(item.rate),
+          taxRate: Number(item.tax),
+          amount: Number(item.amount),
+          sequence: i + 1
+        }))
       };
 
-      const url = isEditMode
+      const url = isEditMode 
         ? `${API_BASE_URL}/api/sales-orders/${id}`
         : `${API_BASE_URL}/api/sales-orders`;
 
@@ -154,159 +191,389 @@ const SalesOrderFormPage = () => {
 
       const res = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText);
-      }
+      if (!res.ok) throw new Error('Save failed');
 
-      alert(saveType === 'send'
-        ? 'Sales order confirmed successfully!'
-        : 'Sales order saved as draft.'
-      );
+      const savedSalesOrder = await res.json();
 
+      setFormData(prev => ({ ...prev, salesOrderNumber: savedSalesOrder.salesOrderNumber}));
+
+      alert(saveType === 'send' ? 'Sales order confirmed and sent!' : 'Sales order saved as draft!');
       navigate('/finance/sales/sales-orders');
 
     } catch (err) {
-      console.error('Save error:', err);
-      alert('Failed to save sales order.');
+      console.error(err);
+      alert('Error saving sales order. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------------- UI ----------------
-
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">
-        {isEditMode ? 'Edit Sales Order' : 'New Sales Order'}
-      </h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-        <select
-          name="customerId"
-          value={formData.customerId}
-          onChange={handleChange}
-          className="border p-2 rounded"
-        >
-          <option value="">Select Customer</option>
-          {customers.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-
-        <input
-          value={formData.salesOrderNumber}
-          readOnly
-          className="border p-2 rounded bg-gray-100"
-        />
-
-        <input
-          name="referenceNumber"
-          value={formData.referenceNumber}
-          onChange={handleChange}
-          placeholder="Reference Number"
-          className="border p-2 rounded"
-        />
-
-        <input
-          type="date"
-          name="salesOrderDate"
-          value={formData.salesOrderDate}
-          onChange={handleChange}
-          className="border p-2 rounded"
-        />
-
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">
+          {isEditMode ? 'Edit Sales Order' : 'New Sales Order'}
+        </h1>
+        <p className="text-gray-600 mt-1">
+          {isEditMode ? 'Update sales order information' : 'Create a new sales order'}
+        </p>
       </div>
 
-      {/* Items */}
-      <div className="mt-6">
-        <button onClick={addItem} className="text-blue-600 mb-2">+ Add Item</button>
+      {/* Form */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="p-6 space-y-6">
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Customer Name <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="customerId"
+                value={formData.customerId}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select a customer</option>
+                {customers.map(customer => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <table className="w-full border">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="border p-2">Item</th>
-              <th className="border p-2">Qty</th>
-              <th className="border p-2">Rate</th>
-              <th className="border p-2">Tax %</th>
-              <th className="border p-2">Amount</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, idx) => (
-              <tr key={item.id}>
-                <td className="border p-1">
-                  <input
-                    value={item.itemName}
-                    onChange={e => handleItemChange(idx, 'itemName', e.target.value)}
-                    className="w-full border p-1"
-                  />
-                </td>
-                <td className="border p-1">
-                  <input
-                    type="number"
-                    value={item.quantity}
-                    onChange={e => handleItemChange(idx, 'quantity', e.target.value)}
-                    className="w-20 border p-1"
-                  />
-                </td>
-                <td className="border p-1">
-                  <input
-                    type="number"
-                    value={item.rate}
-                    onChange={e => handleItemChange(idx, 'rate', e.target.value)}
-                    className="w-24 border p-1"
-                  />
-                </td>
-                <td className="border p-1">
-                  <input
-                    type="number"
-                    value={item.tax}
-                    onChange={e => handleItemChange(idx, 'tax', e.target.value)}
-                    className="w-16 border p-1"
-                  />
-                </td>
-                <td className="border p-1 text-right">
-                  {item.amount.toFixed(2)}
-                </td>
-                <td className="p-1">
-                  <button onClick={() => removeItem(idx)} className="text-red-600">X</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sales Order Number <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="salesOrderNumber"
+                value={formData.salesOrderNumber}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 cursor-not-allowed"
+                readOnly
+              />
+            </div>
 
-      {/* Totals */}
-      <div className="mt-6 text-right space-y-1">
-        <div>SubTotal: {subTotal.toFixed(2)}</div>
-        <div>Tax: {totalTax.toFixed(2)}</div>
-        <div>Total: <strong>{total.toFixed(2)}</strong></div>
-      </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reference Number
+              </label>
+              <input
+                type="text"
+                name="referenceNumber"
+                value={formData.referenceNumber}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter reference number"
+              />
+            </div>
 
-      {/* Actions */}
-      <div className="mt-6 flex justify-end gap-2">
-        <button
-          onClick={() => handleSubmit('draft')}
-          className="border px-4 py-2 rounded"
-        >
-          Save Draft
-        </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sales Order Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                name="salesOrderDate"
+                value={formData.salesOrderDate}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
 
-        <button
-          onClick={() => handleSubmit('send')}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          Confirm Order
-        </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Expected Shipment Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                name="expectedShipmentDate"
+                value={formData.expectedShipmentDate}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Payment Terms (Days)
+              </label>
+              <select
+                name="paymentTerms"
+                value={formData.paymentTerms}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="0">Due on Receipt</option>
+                <option value="7">Net 7</option>
+                <option value="15">Net 15</option>
+                <option value="30">Net 30</option>
+                <option value="45">Net 45</option>
+                <option value="60">Net 60</option>
+                <option value="90">Net 90</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Delivery Method <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="deliveryMethod"
+                value={formData.deliveryMethod}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="COURIER">Courier</option>
+                <option value="DELIVERY">Delivery</option>
+                <option value="PICKUP">Customer Pickup</option>
+                <option value="FREIGHT">Freight</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sales Person
+              </label>
+              <input
+                type="text"
+                name="salesPerson"
+                value={formData.salesPerson}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter sales person name"
+              />
+            </div>
+          </div>
+
+          {/* Items Table */}
+          <div>
+            <div className="flex justify-between items-center mb-3">
+              <label className="block text-sm font-medium text-gray-700">
+                Items <span className="text-red-500">*</span>
+              </label>
+              <button
+                type="button"
+                onClick={addItem}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                + Add Item
+              </button>
+            </div>
+            
+            <div className="overflow-x-auto border border-gray-300 rounded-lg">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item Name</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tax (%)</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {items.map((item, index) => (
+                    <tr key={item.id}>
+                      <td className="px-4 py-2">
+                        <input
+                          type="text"
+                          value={item.itemName}
+                          onChange={(e) => handleItemChange(index, 'itemName', e.target.value)}
+                          className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Item name"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                          className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          min="1"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <input
+                          type="number"
+                          value={item.rate}
+                          onChange={(e) => handleItemChange(index, 'rate', e.target.value)}
+                          className="w-32 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          min="0"
+                          step="0.01"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <input
+                          type="number"
+                          value={item.tax}
+                          onChange={(e) => handleItemChange(index, 'tax', e.target.value)}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          min="0"
+                          step="0.01"
+                        />
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className="font-medium">LKR {item.amount.toLocaleString()}</span>
+                      </td>
+                      <td className="px-4 py-2">
+                        <button
+                          type="button"
+                          onClick={() => removeItem(index)}
+                          disabled={items.length === 1}
+                          className="text-red-600 hover:text-red-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Total Calculation */}
+          <div className="flex justify-end">
+            <div className="w-full md:w-1/2 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Sub Total:</span>
+                <span className="font-medium">LKR {subTotal.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Total Tax:</span>
+                <span className="font-medium">LKR {totalTax.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Shipping Charges:</span>
+                <input
+                  type="number"
+                  name="shippingCharges"
+                  value={formData.shippingCharges}
+                  onChange={handleChange}
+                  className="w-32 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div className="border-t pt-3 flex justify-between items-center">
+                <span className="text-lg font-semibold text-gray-800">Total:</span>
+                <span className="text-lg font-bold text-blue-600">LKR {total.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Customer Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Customer Notes
+            </label>
+            <textarea
+              name="customerNotes"
+              value={formData.customerNotes}
+              onChange={handleChange}
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Notes visible to customer"
+            />
+          </div>
+
+          {/* Terms and Conditions */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Terms and Conditions
+            </label>
+            <textarea
+              name="termsAndConditions"
+              value={formData.termsAndConditions}
+              onChange={handleChange}
+              rows={3}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter terms and conditions"
+            />
+          </div>
+
+          {/* File Attachment */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Attachments
+            </label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+              <input
+                type="file"
+                onChange={handleFileChange}
+                multiple
+                className="hidden"
+                id="file-upload"
+              />
+              <label
+                htmlFor="file-upload"
+                className="cursor-pointer flex flex-col items-center"
+              >
+                <span className="text-blue-600 hover:text-blue-800">Click to upload files</span>
+                <span className="text-sm text-gray-500 mt-1">or drag and drop</span>
+              </label>
+              
+              {attachedFiles.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {attachedFiles.map((file, index) => (
+                    <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                      <span className="text-sm text-gray-700">{file.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Form Actions */}
+        <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('/finance/sales/sales-orders')}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSubmit('draft')}
+            disabled={loading}
+            className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Saving...' : 'Save as Draft'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSubmit('send')}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Saving...' : 'Confirm Order'}
+          </button>
+        </div>
       </div>
     </div>
   );
