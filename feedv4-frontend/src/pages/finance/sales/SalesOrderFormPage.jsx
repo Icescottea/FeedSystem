@@ -201,7 +201,7 @@ const SalesOrderFormPage = () => {
 
       setFormData(prev => ({ ...prev, salesOrderNumber: savedSalesOrder.salesOrderNumber}));
 
-      alert(saveType === 'send' ? 'Sales order confirmed and sent!' : 'Sales order saved as draft!');
+      alert(type === 'send' ? 'Sales order confirmed and sent!' : 'Sales order saved as draft!');
       navigate('/finance/sales/sales-orders');
 
     } catch (err) {
