@@ -4,12 +4,13 @@ import lombok.*;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 
-@Entity
-@Table(name = "sales_order_items")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Entity
+@Table(name = "sales_order_items")
 public class SalesOrderItem {
     
     @Id
