@@ -242,7 +242,7 @@ const SalesOrderFormPage = () => {
               >
                 <option value="">Select a customer</option>
                 {customers.map(customer => (
-                  <option key={customer.id} value={customer.id}>
+                  <option key={customer.id} value={customer.id.toString}>
                     {customer.name}
                   </option>
                 ))}
