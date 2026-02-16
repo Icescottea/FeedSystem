@@ -19,7 +19,7 @@ const QuotesPage = () => {
   const fetchQuotes = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/quotes`);
+      const response = await fetch(`${API_BASE_URL}/api/quotes`);
       if (!response.ok) throw new Error('Failed to fetch quotes');
       const data = await response.json();
       setQuotes(data);
@@ -73,7 +73,7 @@ const QuotesPage = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this quote?')) {
       try {
-        const response = await fetch(`${API_BASE_URL}/quotes/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/api/quotes/${id}`, {
           method: 'DELETE',
         });
         
