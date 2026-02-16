@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 const QuoteFormPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -22,7 +24,7 @@ const QuoteFormPage = () => {
   });
 
   const [items, setItems] = useState([
-    { id: 1, itemName: '', quantity: 1, rate: 0, tax: 0, amount: 0 }
+    { id: Date.now(), itemName: '', quantity: 1, rate: 0, tax: 0, amount: 0 }
   ]);
 
   const [customers, setCustomers] = useState([]);
@@ -31,77 +33,67 @@ const QuoteFormPage = () => {
 
   useEffect(() => {
     fetchCustomers();
-    if (isEditMode) {
-      fetchQuote();
-    } else {
-      generateQuoteNumber();
-    }
-  }, [id, isEditMode]);
+    if (isEditMode) fetchQuote();
+  }, [id]);
 
   const fetchCustomers = async () => {
-    // TODO: Replace with actual API call
-    const mockCustomers = [
-      { id: 1, name: 'ABC Farms Ltd' },
-      { id: 2, name: 'Green Valley Poultry' },
-      { id: 3, name: 'Royal Livestock Co.' }
-    ];
-    setCustomers(mockCustomers);
-  };
-
-  const generateQuoteNumber = () => {
-    // TODO: Replace with actual API call to get next quote number
-    const year = new Date().getFullYear();
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    setFormData(prev => ({ ...prev, quoteNumber: `QT-${year}-${random}` }));
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/customers`);
+      if (!res.ok) throw new Error('Failed to fetch customers');
+      setCustomers(await res.json());
+    } catch (err) {
+      console.error(err);
+      alert('Failed to load customers');
+    }
   };
 
   const fetchQuote = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      const mockData = {
-        customerId: '1',
-        customerName: 'ABC Farms Ltd',
-        quoteNumber: 'QT-2024-001',
-        referenceNumber: 'REF-001',
-        date: '2024-12-15',
-        expiryDate: '2025-01-15',
-        salesPerson: 'John Doe',
-        subject: 'Feed Supply Quote',
-        shippingCharges: 5000,
-        customerNotes: 'Please confirm delivery date',
-        termsAndConditions: 'Payment due within 30 days',
-        status: 'DRAFT'
-      };
+      const res = await fetch(`${API_BASE_URL}/api/quotes/${id}`);
+      if (!res.ok) throw new Error('Failed to fetch quote');
 
-      const mockItems = [
-        { id: 1, itemName: 'Broiler Feed - Starter', quantity: 100, rate: 1500, tax: 0, amount: 150000 },
-        { id: 2, itemName: 'Layer Feed - Grower', quantity: 50, rate: 1800, tax: 0, amount: 90000 }
-      ];
+      const data = await res.json();
 
-      setFormData(mockData);
-      setItems(mockItems);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching quote:', error);
+      setFormData({
+        customerId: data.customerId.toString(),
+        customerName: data.customerName,
+        quoteNumber: data.quoteNumber,
+        referenceNumber: data.referenceNumber || '',
+        date: data.quoteDate,
+        expiryDate: data.expiryDate || '',
+        salesPerson: data.salesPerson || '',
+        subject: data.subject || '',
+        shippingCharges: data.adjustment || 0,
+        customerNotes: data.customerNotes || '',
+        termsAndConditions: data.termsAndConditions || '',
+        status: data.status
+      });
+
+      setItems(data.items.map((item, i) => ({
+        id: item.id || i,
+        itemName: item.itemName,
+        quantity: item.quantity,
+        rate: item.rate,
+        tax: item.taxRate,
+        amount: item.amount
+      })));
+
+    } catch (err) {
+      console.error(err);
+      alert('Failed to load quote');
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
+  const handleChange = e => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
 
-    // Update customer name when customer is selected
     if (name === 'customerId') {
-      const customer = customers.find(c => c.id.toString() === value);
-      setFormData(prev => ({
-        ...prev,
-        customerName: customer ? customer.name : ''
-      }));
+      const c = customers.find(x => x.id.toString() === value);
+      setFormData(prev => ({ ...prev, customerName: c ? c.name : '' }));
     }
   };
 
@@ -109,120 +101,73 @@ const QuoteFormPage = () => {
     const newItems = [...items];
     newItems[index][field] = value;
 
-    // Calculate amount for the item
-    if (field === 'quantity' || field === 'rate' || field === 'tax') {
-      const qty = parseFloat(newItems[index].quantity) || 0;
-      const rate = parseFloat(newItems[index].rate) || 0;
-      const tax = parseFloat(newItems[index].tax) || 0;
-      const subtotal = qty * rate;
-      newItems[index].amount = subtotal + (subtotal * tax / 100);
-    }
+    const qty = Number(newItems[index].quantity) || 0;
+    const rate = Number(newItems[index].rate) || 0;
+    const tax = Number(newItems[index].tax) || 0;
+    const subtotal = qty * rate;
 
+    newItems[index].amount = subtotal + (subtotal * tax / 100);
     setItems(newItems);
   };
 
-  const addItem = () => {
-    setItems([...items, { 
-      id: Date.now(), 
-      itemName: '', 
-      quantity: 1, 
-      rate: 0, 
-      tax: 0, 
-      amount: 0 
-    }]);
-  };
+  const addItem = () => setItems([...items, { id: Date.now(), itemName: '', quantity: 1, rate: 0, tax: 0, amount: 0 }]);
 
-  const removeItem = (index) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index));
-    }
-  };
+  const removeItem = index => items.length > 1 && setItems(items.filter((_, i) => i !== index));
 
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    setAttachedFiles(prev => [...prev, ...files]);
-  };
+  const subTotal = items.reduce((sum, i) => sum + (i.quantity * i.rate), 0);
+  const totalTax = items.reduce((sum, i) => sum + ((i.quantity * i.rate) * i.tax / 100), 0);
+  const total = subTotal + totalTax + Number(formData.shippingCharges || 0);
 
-  const removeFile = (index) => {
-    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // Calculate totals
-  const subTotal = items.reduce((sum, item) => {
-    const qty = parseFloat(item.quantity) || 0;
-    const rate = parseFloat(item.rate) || 0;
-    return sum + (qty * rate);
-  }, 0);
-
-  const totalTax = items.reduce((sum, item) => {
-    const qty = parseFloat(item.quantity) || 0;
-    const rate = parseFloat(item.rate) || 0;
-    const tax = parseFloat(item.tax) || 0;
-    return sum + ((qty * rate) * tax / 100);
-  }, 0);
-
-  const shippingCharges = parseFloat(formData.shippingCharges) || 0;
-  const total = subTotal + totalTax + shippingCharges;
-
-  const handleSubmit = async (saveType) => {
+  const handleSubmit = async (type) => {
     try {
       setLoading(true);
 
-      const quoteData = {
-        id: isEditMode ? Number(id) : null,
-            
+      const payload = {
         quoteNumber: formData.quoteNumber,
         referenceNumber: formData.referenceNumber,
-            
         customerId: Number(formData.customerId),
         customerName: formData.customerName,
-            
         quoteDate: formData.date,
         expiryDate: formData.expiryDate,
-            
         subject: formData.subject,
         salesPerson: formData.salesPerson,
-            
-        taxInclusive: false,
-            
         subtotal: subTotal,
-        discount: 0,
-        discountType: null,
-            
         tax: totalTax,
-        adjustment: shippingCharges,
-            
+        adjustment: Number(formData.shippingCharges),
         total,
-        status: saveType === 'send' ? 'SENT' : 'DRAFT',
-            
+        status: type === 'send' ? 'SENT' : 'DRAFT',
         customerNotes: formData.customerNotes,
         termsAndConditions: formData.termsAndConditions,
-            
-        attachments: attachedFiles.map(f => f.name).join(','),
-            
-        items: items.map((item, index) => ({
+        items: items.map((item, i) => ({
           itemName: item.itemName,
-          description: null,
           quantity: Number(item.quantity),
           rate: Number(item.rate),
           taxRate: Number(item.tax),
           amount: Number(item.amount),
-          sequence: index + 1
+          sequence: i + 1
         }))
       };
 
-      // TODO: Replace with actual API call
-      console.log('Saving quote:', quoteData);
-      console.log('Attached files:', attachedFiles);
+      const url = isEditMode
+        ? `${API_BASE_URL}/api/quotes/${id}`
+        : `${API_BASE_URL}/api/quotes`;
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const method = isEditMode ? 'PUT' : 'POST';
 
-      alert(saveType === 'send' ? 'Quote saved and sent!' : 'Quote saved as draft!');
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('Save failed');
+
+      alert(type === 'send' ? 'Quote saved & sent!' : 'Quote saved as draft');
       navigate('/finance/sales/quotes');
 
-    } catch (error) {
-      console.error('Error saving quote:', error);
-      alert('Error saving quote. Please try again.');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save quote');
     } finally {
       setLoading(false);
     }
