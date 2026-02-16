@@ -132,21 +132,24 @@ const QuoteFormPage = () => {
       setLoading(true);
 
       const payload = {
-        quoteNumber: formData.quoteNumber,
         referenceNumber: formData.referenceNumber,
         customerId: Number(formData.customerId),
         customerName: formData.customerName,
         quoteDate: formData.date,
-        expiryDate: formData.expiryDate,
+        expiryDate: formData.expiryDate || null,
         subject: formData.subject,
         salesPerson: formData.salesPerson,
+        taxInclusive: false,
         subtotal: subTotal,
         tax: totalTax,
-        adjustment: Number(formData.shippingCharges),
+        discount: 0,
+        discountType: null,
+        adjustment: Number(formData.shippingCharges || 0),
         total,
         status: type === 'send' ? 'SENT' : 'DRAFT',
         customerNotes: formData.customerNotes,
         termsAndConditions: formData.termsAndConditions,
+        attachments: null,
         items: items.map((item, i) => ({
           itemName: item.itemName,
           quantity: Number(item.quantity),
@@ -233,9 +236,8 @@ const QuoteFormPage = () => {
               <input
                 type="text"
                 name="quoteNumber"
-                value={formData.quoteNumber}
+                value={formData.quoteNumber || 'Auto Generated'}
                 onChange={handleChange}
-                required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 cursor-not-allowed"
                 readOnly
               />

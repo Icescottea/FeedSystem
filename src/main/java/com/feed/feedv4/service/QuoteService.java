@@ -1,19 +1,21 @@
 package com.feed.feedv4.service;
 
-import com.feed.feedv4.dto.QuoteDTO;
-import com.feed.feedv4.dto.QuoteItemDTO;
-import com.feed.feedv4.model.Quote;
-import com.feed.feedv4.model.QuoteItem;
-import com.feed.feedv4.repository.QuoteRepository;
-import com.feed.feedv4.repository.QuoteItemRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.feed.feedv4.dto.QuoteDTO;
+import com.feed.feedv4.dto.QuoteItemDTO;
+import com.feed.feedv4.model.Quote;
+import com.feed.feedv4.model.QuoteItem;
+import com.feed.feedv4.repository.QuoteItemRepository;
+import com.feed.feedv4.repository.QuoteRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -36,10 +38,14 @@ public class QuoteService {
     }
     
     public QuoteDTO createQuote(QuoteDTO dto) {
-        if (dto.getQuoteNumber() == null || dto.getQuoteNumber().isEmpty()) {
-            dto.setQuoteNumber(generateQuoteNumber());
-        }
-        
+        dto.setQuoteNumber(generateQuoteNumber());
+
+        if (dto.getDiscount() == null) dto.setDiscount(BigDecimal.ZERO);
+
+        if (dto.getTaxInclusive() == null) dto.setTaxInclusive(false);
+
+        if (dto.getAdjustment() == null) dto.setAdjustment(BigDecimal.ZERO);
+
         if (quoteRepository.existsByQuoteNumber(dto.getQuoteNumber())) {
             throw new RuntimeException("Quote number " + dto.getQuoteNumber() + " already exists");
         }
