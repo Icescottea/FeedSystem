@@ -13,61 +13,59 @@ const SalesOrderDetailsPage = () => {
     fetchSalesOrderDetails();
   }, [id]);
 
+  const API_BASE = 'https://feedv4-backend.onrender.com/api/sales-orders';
+
   const fetchSalesOrderDetails = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
+    
+      const res = await fetch(`${API_BASE}/${id}`);
+      if (!res.ok) throw new Error('Failed to fetch sales order');
+    
+      const data = await res.json();
+    
+      const normalized = {
+        id: data.id,
+        salesOrderNumber: data.salesOrderNumber,
+        referenceNumber: data.referenceNumber || '-',
+        salesOrderDate: data.orderDate || data.createdAt,
+        expectedShipmentDate: data.expectedShipmentDate,
+        customerName: data.customer?.name || data.customerName || '—',
+        customerId: data.customerId,
+        salesPerson: data.salesPerson || '-',
+        status: data.status,
+        invoiced: data.invoiceStatus || 'NOT_INVOICED',
+        payment: data.paymentStatus || 'UNPAID',
+        orderStatus: data.orderStatus || 'PENDING',
+        deliveryMethod: data.deliveryMethod || '-',
+        paymentTerms: data.paymentTerms || 0,
+        isLocked: data.isLocked || false,
       
-      const mockData = {
-        id: 1,
-        salesOrderNumber: 'SO-2024-001',
-        referenceNumber: 'REF-SO-001',
-        salesOrderDate: '2024-12-20',
-        expectedShipmentDate: '2024-12-25',
-        customerName: 'ABC Farms Ltd',
-        customerId: 1,
-        salesPerson: 'John Doe',
-        status: 'CONFIRMED',
-        invoiced: 'NOT_INVOICED',
-        payment: 'UNPAID',
-        orderStatus: 'PROCESSING',
-        deliveryMethod: 'COURIER',
-        paymentTerms: '30',
-        isLocked: false,
-        items: [
-          {
-            id: 1,
-            itemName: 'Broiler Feed - Starter',
-            quantity: 100,
-            rate: 1500,
-            tax: 0,
-            amount: 150000,
-            cancelled: false
-          },
-          {
-            id: 2,
-            itemName: 'Layer Feed - Grower',
-            quantity: 50,
-            rate: 1800,
-            tax: 0,
-            amount: 90000,
-            cancelled: false
-          }
-        ],
-        subTotal: 240000,
-        totalTax: 0,
-        shippingCharges: 5000,
-        total: 245000,
-        customerNotes: 'Please confirm before shipping',
-        termsAndConditions: 'Payment due within 30 days. Delivery within 7 days of order confirmation.',
-        attachments: [
-          { id: 1, name: 'order_specifications.pdf', size: '1.2 MB' }
-        ],
-        createdDate: '2024-12-20',
-        modifiedDate: '2024-12-20'
+        items: data.items.map(i => ({
+          id: i.id,
+          itemName: i.itemName || i.productName,
+          quantity: i.quantity,
+          rate: i.rate,
+          tax: i.tax || 0,
+          amount: i.amount,
+          cancelled: i.cancelled || false
+        })),
+      
+        subTotal: data.subTotal,
+        totalTax: data.totalTax || 0,
+        shippingCharges: data.shippingCharges || 0,
+        total: data.total,
+      
+        customerNotes: data.customerNotes,
+        termsAndConditions: data.termsAndConditions,
+      
+        attachments: data.attachments || [],
+      
+        createdDate: data.createdAt,
+        modifiedDate: data.updatedAt
       };
-      
-      setSalesOrder(mockData);
+    
+      setSalesOrder(normalized);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching sales order details:', error);
@@ -124,19 +122,24 @@ const SalesOrderDetailsPage = () => {
 
   const handleVoid = async () => {
     if (salesOrder.isLocked) {
-      alert('This sales order is locked and cannot be voided.');
+      alert('Locked orders cannot be voided.');
       return;
     }
-    if (window.confirm('Are you sure you want to void this sales order? This action cannot be undone.')) {
-      try {
-        // TODO: Implement void API call
-        console.log('Voiding sales order:', id);
-        setSalesOrder(prev => ({ ...prev, status: 'VOID' }));
-        alert('Sales order voided successfully!');
-      } catch (error) {
-        console.error('Error voiding sales order:', error);
-        alert('Error voiding sales order.');
-      }
+
+    if (!window.confirm('Are you sure you want to void this sales order?')) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/${id}/void`, {
+        method: 'PUT'
+      });
+
+      if (!res.ok) throw new Error('Void failed');
+
+      fetchSalesOrderDetails();
+      alert('Sales order voided');
+    } catch (error) {
+      console.error('Void error:', error);
+      alert('Failed to void sales order');
     }
   };
 
@@ -152,31 +155,38 @@ const SalesOrderDetailsPage = () => {
       alert('This sales order is locked and cannot be deleted.');
       return;
     }
-    if (window.confirm('Are you sure you want to delete this sales order? This action cannot be undone.')) {
-      try {
-        // TODO: Implement delete API call
-        console.log('Deleting sales order:', id);
-        alert('Sales order deleted successfully!');
-        navigate('/finance/sales/sales-orders');
-      } catch (error) {
-        console.error('Error deleting sales order:', error);
-        alert('Error deleting sales order.');
-      }
+
+    if (!window.confirm('Are you sure you want to delete this sales order?')) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+
+      alert('Sales order deleted');
+      navigate('/finance/sales/sales-orders');
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete sales order');
     }
   };
 
   const handleLock = async () => {
-    const action = salesOrder.isLocked ? 'unlock' : 'lock';
-    if (window.confirm(`Are you sure you want to ${action} this sales order?`)) {
-      try {
-        // TODO: Implement lock/unlock API call
-        console.log(`${action}ing sales order:`, id);
-        setSalesOrder(prev => ({ ...prev, isLocked: !prev.isLocked }));
-        alert(`Sales order ${action}ed successfully!`);
-      } catch (error) {
-        console.error(`Error ${action}ing sales order:`, error);
-        alert(`Error ${action}ing sales order.`);
-      }
+    const endpoint = salesOrder.isLocked ? 'unlock' : 'lock';
+    
+    if (!window.confirm(`Are you sure you want to ${endpoint} this sales order?`)) return;
+    
+    try {
+      const res = await fetch(`${API_BASE}/${id}/${endpoint}`, {
+        method: 'PUT'
+      });
+    
+      if (!res.ok) throw new Error('Lock toggle failed');
+    
+      fetchSalesOrderDetails();
+      alert(`Sales order ${endpoint}ed successfully`);
+    } catch (error) {
+      console.error('Lock error:', error);
+      alert('Failed to update lock status');
     }
   };
 
