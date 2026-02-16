@@ -219,7 +219,7 @@ const QuoteFormPage = () => {
               >
                 <option value="">Select a customer</option>
                 {customers.map(customer => (
-                  <option key={customer.id} value={customer.id}>
+                  <option key={customer.id} value={customer.id.toString()}>
                     {customer.name}
                   </option>
                 ))}
@@ -236,7 +236,7 @@ const QuoteFormPage = () => {
                 value={formData.quoteNumber}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 cursor-not-allowed"
                 readOnly
               />
             </div>
