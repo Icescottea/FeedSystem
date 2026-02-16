@@ -452,7 +452,7 @@ const QuoteFormPage = () => {
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
               <input
                 type="file"
-                onChange={handleFileChange}
+                //onChange={handleFileChange}
                 multiple
                 className="hidden"
                 id="file-upload"
@@ -472,7 +472,7 @@ const QuoteFormPage = () => {
                       <span className="text-sm text-gray-700">{file.name}</span>
                       <button
                         type="button"
-                        onClick={() => removeFile(index)}
+                        //onClick={() => removeFile(index)}
                         className="text-red-600 hover:text-red-800 text-sm"
                       >
                         Remove
