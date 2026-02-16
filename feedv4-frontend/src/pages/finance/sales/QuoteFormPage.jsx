@@ -40,9 +40,18 @@ const QuoteFormPage = () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/customers`);
       if (!res.ok) throw new Error('Failed to fetch customers');
-      setCustomers(await res.json());
+
+      const data = await res.json();
+
+      // Normalize backend fields → frontend format
+      const normalized = data.map(c => ({
+        id: c.id,
+        name: c.name || c.customerName || c.companyName
+      }));
+
+      setCustomers(normalized);
     } catch (err) {
-      console.error(err);
+      console.error('Fetch customers error:', err);
       alert('Failed to load customers');
     }
   };
@@ -161,6 +170,13 @@ const QuoteFormPage = () => {
       });
 
       if (!res.ok) throw new Error('Save failed');
+
+      const savedQuote = await res.json();
+
+      setFormData(prev => ({
+        ...prev,
+        quoteNumber: savedQuote.quoteNumber
+      }));
 
       alert(type === 'send' ? 'Quote saved & sent!' : 'Quote saved as draft');
       navigate('/finance/sales/quotes');
