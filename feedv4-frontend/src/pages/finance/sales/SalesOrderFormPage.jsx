@@ -39,7 +39,7 @@ const SalesOrderFormPage = () => {
 
   const fetchCustomers = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/sales-orders`);
+      const res = await fetch(`${API_BASE_URL}/api/customers`);
       if (!res.ok) throw new Error('Failed to fetch customers');
 
       const data = await res.json();
@@ -158,26 +158,34 @@ const SalesOrderFormPage = () => {
         referenceNumber: formData.referenceNumber,
         customerId: Number(formData.customerId),
         customerName: formData.customerName,
-        salesOrderDate: formData.date,
+            
+        salesOrderDate: formData.salesOrderDate,
         expectedShipmentDate: formData.expectedShipmentDate || null,
+            
+        paymentTerms: formData.paymentTerms,
+        deliveryMethod: formData.deliveryMethod,
         salesPerson: formData.salesPerson,
+            
+        shippingCharges: Number(formData.shippingCharges || 0),
+            
         subtotal: subTotal,
-        tax: totalTax,
-        discount: 0,
-        discountType: null,
-        adjustment: Number(formData.shippingCharges || 0),
-        total,
-        status: type === 'send' ? 'SENT' : 'DRAFT',
-        invoicedStatus: type === 'not_invoiced' ? 'NOT_INVOICED' : 'FULLY_INVOICED',
-        paymentStatus: type === 'pending' ? 'PENDING' : 'SHIPPED',
+        total: total,
+            
+        status: type === 'send' ? 'CONFIRMED' : 'DRAFT',
+        orderStatus: type === 'send' ? 'PROCESSING' : 'PENDING',
+            
+        paymentStatus: 'UNPAID',
+        invoicedStatus: 'NOT_INVOICED',
+            
         customerNotes: formData.customerNotes,
         termsAndConditions: formData.termsAndConditions,
         attachments: null,
+            
         items: items.map((item, i) => ({
           itemName: item.itemName,
           quantity: Number(item.quantity),
           rate: Number(item.rate),
-          taxRate: Number(item.tax),
+          tax: Number(item.tax),
           amount: Number(item.amount),
           sequence: i + 1
         }))
