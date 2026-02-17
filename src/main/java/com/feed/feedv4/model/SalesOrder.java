@@ -75,6 +75,8 @@ public class SalesOrder {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
+
+    @Builder.Default
     private List<SalesOrderItem> items = new ArrayList<>();
 
     /* ---------------- Helper Methods ---------------- */

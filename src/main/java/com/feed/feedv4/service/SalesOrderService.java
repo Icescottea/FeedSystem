@@ -88,7 +88,7 @@ public class SalesOrderService {
                 .build();
 
         if (dto.getItems() != null) {
-            List<SalesOrderItem> items = dto.getItems().stream()
+            dto.getItems().stream()
                     .map(i -> SalesOrderItem.builder()
                             .itemName(i.getItemName())
                             .quantity(i.getQuantity())
@@ -98,9 +98,8 @@ public class SalesOrderService {
                             .sequence(i.getSequence())
                             .salesOrder(order)
                             .build())
-                    .toList();
+                    .forEach(order::addItem);
 
-            order.setItems(items);
         }
 
         return order;
@@ -131,7 +130,7 @@ public class SalesOrderService {
                 .customerNotes(order.getCustomerNotes())
                 .termsAndConditions(order.getTermsAndConditions())
                 .attachments(order.getAttachments())
-                .items(order.getItems().stream()
+                .items(order.getItems() == null ? List.of() : order.getItems().stream()
                         .map(i -> SalesOrderItemDTO.builder()
                                 .id(i.getId())
                                 .itemName(i.getItemName())
@@ -171,7 +170,7 @@ public class SalesOrderService {
         order.getItems().clear();
 
         if (dto.getItems() != null) {
-            List<SalesOrderItem> items = dto.getItems().stream()
+            dto.getItems().stream()
                     .map(i -> SalesOrderItem.builder()
                             .itemName(i.getItemName())
                             .quantity(i.getQuantity())
@@ -181,9 +180,7 @@ public class SalesOrderService {
                             .sequence(i.getSequence())
                             .salesOrder(order)
                             .build())
-                    .toList();
-
-            order.setItems(items);
+                    .forEach(order::addItem); 
         }
     }
 
