@@ -33,7 +33,7 @@ const SalesOrderDetailsPage = () => {
         createdDate: data.createdAt,
         items: data.items.map(item => ({
           ...item,
-          tax: item.taxRate || 0,
+          tax: item.tax || 0,
           amount: item.amount || 0
         })),
         isLocked: data.status === 'ACCEPTED' || data.status === 'DECLINED'

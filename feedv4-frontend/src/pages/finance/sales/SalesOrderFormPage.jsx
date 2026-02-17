@@ -69,12 +69,12 @@ const SalesOrderFormPage = () => {
         customerName: data.customerName,
         salesOrderNumber: data.salesOrderNumber,
         referenceNumber: data.referenceNumber || '',
-        date: data.salesOrderDate,
+        salesOrderDate: data.salesOrderDate,
         expectedShipmentDate: data.expectedShipmentDate || '',
         paymentTerms: data.paymentTerms || '',
         deliveryMethod: data.deliveryMethod || '',
         salesPerson: data.salesPerson || '',
-        shippingCharges: data.adjustment || 0,
+        shippingCharges: data.shippingCharges || 0,
         customerNotes: data.customerNotes || '',
         termsAndConditions: data.termsAndConditions || '',
         status: data.status
@@ -85,7 +85,7 @@ const SalesOrderFormPage = () => {
         itemName: item.itemName,
         quantity: item.quantity,
         rate: item.rate,
-        tax: item.taxRate,
+        tax: item.tax,
         amount: item.amount
       })));
 
@@ -99,12 +99,14 @@ const SalesOrderFormPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-
-    if (name === 'customerId') {
-      const customer = customers.find(c => c.id.toString() === value);
-      setFormData(prev => ({ ...prev, customerName: customer ? customer.name : '' }));
-    }
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      if (name === 'customerId') {
+        const customer = customers.find(c => c.id.toString() === value);
+        updated.customerName = customer ? customer.name : '';
+      }
+      return updated;
+    });
   };
 
   const handleItemChange = (index, field, value) => {
@@ -169,10 +171,11 @@ const SalesOrderFormPage = () => {
         shippingCharges: Number(formData.shippingCharges || 0),
 
         subtotal: subTotal,
+        tax: totalTax,
         total: total,
 
         status: type === 'send' ? 'CONFIRMED' : 'DRAFT',
-        orderStatus: type === 'send' ? 'PROCESSING' : 'PENDING',
+        orderStatus: type === 'send' ? 'OPEN' : 'OPEN',
 
         paymentStatus: 'UNPAID',
         invoicedStatus: 'NOT_INVOICED',
