@@ -56,6 +56,10 @@ public class SalesOrder {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at", nullable = false, updatable = false)
+    @CreationTimestamp
+    private LocalDateTime updatedAt;
+
     @Enumerated(EnumType.STRING)
     private SalesOrderStatus status;
 
