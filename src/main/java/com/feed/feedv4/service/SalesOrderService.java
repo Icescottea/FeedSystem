@@ -23,237 +23,171 @@ import lombok.RequiredArgsConstructor;
 public class SalesOrderService {
 
     private final SalesOrderRepository salesOrderRepository;
-    private final SalesOrderItemRepository salesOrderItemRepository;
 
     /* -------------------- CRUD -------------------- */
 
     public List<SalesOrderDTO> getAllSalesOrders() {
         return salesOrderRepository.findAll()
                 .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+                .map(this::mapToDTO)
+                .toList();
     }
 
     public SalesOrderDTO getSalesOrderById(Long id) {
         SalesOrder order = salesOrderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sales order not found: " + id));
-        return convertToDTO(order);
+        return mapToDTO(order);
     }
 
     public SalesOrderDTO createSalesOrder(SalesOrderDTO dto) {
-        dto.setSalesOrderNumber(generateSalesOrderNumber());
-
-        SalesOrder order = convertToEntity(dto);
-        calculateTotals(order);
+        SalesOrder order = mapToEntity(dto);
+        order.setSalesOrderNumber(generateSalesOrderNumber());
 
         SalesOrder saved = salesOrderRepository.save(order);
-        return convertToDTO(saved);
+        return mapToDTO(saved);
     }
 
     public SalesOrderDTO updateSalesOrder(Long id, SalesOrderDTO dto) {
         SalesOrder existing = salesOrderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sales order not found: " + id));
 
-        if (existing.getStatus() == SalesOrder.SalesOrderStatus.VOID) {
-            throw new RuntimeException("Cannot update a voided sales order");
-        }
-
         updateFields(existing, dto);
-        calculateTotals(existing);
 
-        return convertToDTO(salesOrderRepository.save(existing));
+        return mapToDTO(salesOrderRepository.save(existing));
     }
 
     public void deleteSalesOrder(Long id) {
-        SalesOrder order = salesOrderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Sales order not found: " + id));
-
-        if (order.getStatus() != SalesOrder.SalesOrderStatus.DRAFT) {
-            throw new RuntimeException("Only draft sales orders can be deleted");
-        }
-
-        salesOrderRepository.delete(order);
+        salesOrderRepository.deleteById(id);
     }
 
-    /* -------------------- BUSINESS ACTIONS -------------------- */
+    /* -------------------- MAPPING -------------------- */
 
-    public SalesOrderDTO cloneSalesOrder(Long id) {
-        SalesOrder original = salesOrderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Sales order not found: " + id));
+    private SalesOrder mapToEntity(SalesOrderDTO dto) {
 
-        SalesOrder cloned = SalesOrder.builder()
-                .salesOrderNumber(generateSalesOrderNumber())
-                .referenceNumber(original.getReferenceNumber())
-                .customerId(original.getCustomerId())
-                .salesOrderDate(LocalDate.now())
-                .expectedShipmentDate(original.getExpectedShipmentDate())
-                .paymentTerms(original.getPaymentTerms())
-                .deliveryMethod(original.getDeliveryMethod())
-                .salesPerson(original.getSalesPerson())
-                .shippingCharges(original.getShippingCharges())
-                .customerNotes(original.getCustomerNotes())
-                .termsAndConditions(original.getTermsAndConditions())
-                .attachments(original.getAttachments())
-                .status(SalesOrder.SalesOrderStatus.DRAFT)
-                .invoicedStatus(SalesOrder.InvoicedStatus.NOT_INVOICED)
-                .paymentStatus(SalesOrder.PaymentStatus.UNPAID)
-                .orderStatus(SalesOrder.OrderStatus.PENDING)
+        SalesOrder order = SalesOrder.builder()
+                .referenceNumber(dto.getReferenceNumber())
+                .customerId(dto.getCustomerId())
+                .customerName(dto.getCustomerName())
+                .salesOrderDate(dto.getSalesOrderDate())
+                .expectedShipmentDate(dto.getExpectedShipmentDate())
+                .paymentTerms(dto.getPaymentTerms())
+                .deliveryMethod(dto.getDeliveryMethod())
+                .salesPerson(dto.getSalesPerson())
+                .shippingCharges(dto.getShippingCharges())
+                .subtotal(dto.getSubtotal())
+                .tax(dto.getTax())
+                .discount(dto.getDiscount())
+                .total(dto.getTotal())
+                .status(dto.getStatus())
+                .orderStatus(dto.getOrderStatus())
+                .paymentStatus(dto.getPaymentStatus())
+                .invoicedStatus(dto.getInvoicedStatus())
+                .customerNotes(dto.getCustomerNotes())
+                .termsAndConditions(dto.getTermsAndConditions())
+                .attachments(dto.getAttachments())
                 .build();
 
-        for (SalesOrderItem item : original.getItems()) {
-            SalesOrderItem clonedItem = SalesOrderItem.builder()
-                    .itemName(item.getItemName())
-                    .quantity(item.getQuantity())
-                    .rate(item.getRate())
-                    .tax(item.getTax())
-                    .sequence(item.getSequence())
-                    .build();
-            cloned.addItem(clonedItem);
+        if (dto.getItems() != null) {
+            List<SalesOrderItem> items = dto.getItems().stream()
+                    .map(i -> SalesOrderItem.builder()
+                            .itemName(i.getItemName())
+                            .quantity(i.getQuantity())
+                            .rate(i.getRate())
+                            .tax(i.getTax())
+                            .amount(i.getAmount())
+                            .sequence(i.getSequence())
+                            .salesOrder(order)
+                            .build())
+                    .toList();
+
+            order.setItems(items);
         }
 
-        calculateTotals(cloned);
-        return convertToDTO(salesOrderRepository.save(cloned));
+        return order;
     }
 
-    public SalesOrderDTO voidSalesOrder(Long id) {
-        SalesOrder order = salesOrderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Sales order not found: " + id));
-
-        order.voidOrder();
-        return convertToDTO(salesOrderRepository.save(order));
-    }
-
-    /* -------------------- HELPERS -------------------- */
-
-    private void calculateTotals(SalesOrder order) {
-        BigDecimal subtotal = order.getItems().stream()
-                .map(item -> {
-                    item.calculateAmount();
-                    return item.getAmount();
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        order.setSubtotal(subtotal);
-
-        BigDecimal taxTotal = order.getItems().stream()
-                .map(i -> i.getAmount()
-                        .multiply(i.getTax())
-                        .divide(BigDecimal.valueOf(100)))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        order.setTotal(subtotal
-                .add(taxTotal)
-                .add(order.getShippingCharges()));
-    }
-
-    private String generateSalesOrderNumber() {
-        Long count = salesOrderRepository.count() + 1;
-        String year = String.valueOf(LocalDate.now().getYear());
-        return String.format("SO-%s-%04d", year, count);
-    }
-
-    /* -------------------- DTO MAPPING -------------------- */
-
-    private SalesOrderDTO convertToDTO(SalesOrder order) {
-        List<SalesOrderItemDTO> items = order.getItems().stream()
-                .map(this::convertItemToDTO)
-                .collect(Collectors.toList());
+    private SalesOrderDTO mapToDTO(SalesOrder order) {
 
         return SalesOrderDTO.builder()
                 .id(order.getId())
                 .salesOrderNumber(order.getSalesOrderNumber())
                 .referenceNumber(order.getReferenceNumber())
                 .customerId(order.getCustomerId())
+                .customerName(order.getCustomerName())
                 .salesOrderDate(order.getSalesOrderDate())
                 .expectedShipmentDate(order.getExpectedShipmentDate())
                 .paymentTerms(order.getPaymentTerms())
-                .deliveryMethod(order.getDeliveryMethod().name())
+                .deliveryMethod(order.getDeliveryMethod())
                 .salesPerson(order.getSalesPerson())
                 .shippingCharges(order.getShippingCharges())
                 .subtotal(order.getSubtotal())
+                .tax(order.getTax())
+                .discount(order.getDiscount())
                 .total(order.getTotal())
-                .status(order.getStatus().name())
-                .invoicedStatus(order.getInvoicedStatus().name())
-                .paymentStatus(order.getPaymentStatus().name())
-                .orderStatus(order.getOrderStatus().name())
+                .status(order.getStatus())
+                .orderStatus(order.getOrderStatus())
+                .paymentStatus(order.getPaymentStatus())
+                .invoicedStatus(order.getInvoicedStatus())
                 .customerNotes(order.getCustomerNotes())
                 .termsAndConditions(order.getTermsAndConditions())
                 .attachments(order.getAttachments())
-                .items(items)
-                .createdBy(order.getCreatedBy())
-                .createdAt(order.getCreatedAt())
-                .updatedAt(order.getUpdatedAt())
-                .build();
-    }
-
-    private SalesOrderItemDTO convertItemToDTO(SalesOrderItem item) {
-        return SalesOrderItemDTO.builder()
-                .id(item.getId())
-                .itemName(item.getItemName())
-                .quantity(item.getQuantity())
-                .rate(item.getRate())
-                .tax(item.getTax())
-                .amount(item.getAmount())
-                .sequence(item.getSequence())
-                .build();
-    }
-
-    private SalesOrder convertToEntity(SalesOrderDTO dto) {
-        SalesOrder order = SalesOrder.builder()
-                .salesOrderNumber(dto.getSalesOrderNumber())
-                .referenceNumber(dto.getReferenceNumber())
-                .customerId(dto.getCustomerId())
-                .salesOrderDate(dto.getSalesOrderDate())
-                .expectedShipmentDate(dto.getExpectedShipmentDate())
-                .paymentTerms(dto.getPaymentTerms())
-                .deliveryMethod(SalesOrder.DeliveryMethod.valueOf(dto.getDeliveryMethod()))
-                .salesPerson(dto.getSalesPerson())
-                .shippingCharges(dto.getShippingCharges() != null ? dto.getShippingCharges() : BigDecimal.ZERO)
-                .customerNotes(dto.getCustomerNotes())
-                .termsAndConditions(dto.getTermsAndConditions())
-                .attachments(dto.getAttachments())
-                .createdBy(dto.getCreatedBy())
-                .build();
-
-        if (dto.getItems() != null) {
-            for (SalesOrderItemDTO itemDTO : dto.getItems()) {
-                SalesOrderItem item = convertItemToEntity(itemDTO);
-                order.addItem(item);
-            }
-        }
-
-        return order;
-    }
-
-    private SalesOrderItem convertItemToEntity(SalesOrderItemDTO dto) {
-        return SalesOrderItem.builder()
-                .itemName(dto.getItemName())
-                .quantity(dto.getQuantity())
-                .rate(dto.getRate())
-                .tax(dto.getTax())
-                .amount(dto.getAmount())
-                .sequence(dto.getSequence())
+                .items(order.getItems().stream()
+                        .map(i -> SalesOrderItemDTO.builder()
+                                .id(i.getId())
+                                .itemName(i.getItemName())
+                                .quantity(i.getQuantity())
+                                .rate(i.getRate())
+                                .tax(i.getTax())
+                                .amount(i.getAmount())
+                                .sequence(i.getSequence())
+                                .build())
+                        .toList())
                 .build();
     }
 
     private void updateFields(SalesOrder order, SalesOrderDTO dto) {
+
         order.setReferenceNumber(dto.getReferenceNumber());
         order.setCustomerId(dto.getCustomerId());
+        order.setCustomerName(dto.getCustomerName());
         order.setSalesOrderDate(dto.getSalesOrderDate());
         order.setExpectedShipmentDate(dto.getExpectedShipmentDate());
         order.setPaymentTerms(dto.getPaymentTerms());
-        order.setDeliveryMethod(SalesOrder.DeliveryMethod.valueOf(dto.getDeliveryMethod()));
+        order.setDeliveryMethod(dto.getDeliveryMethod());
         order.setSalesPerson(dto.getSalesPerson());
         order.setShippingCharges(dto.getShippingCharges());
+        order.setSubtotal(dto.getSubtotal());
+        order.setTax(dto.getTax());
+        order.setDiscount(dto.getDiscount());
+        order.setTotal(dto.getTotal());
+        order.setStatus(dto.getStatus());
+        order.setOrderStatus(dto.getOrderStatus());
+        order.setPaymentStatus(dto.getPaymentStatus());
+        order.setInvoicedStatus(dto.getInvoicedStatus());
         order.setCustomerNotes(dto.getCustomerNotes());
         order.setTermsAndConditions(dto.getTermsAndConditions());
         order.setAttachments(dto.getAttachments());
 
         order.getItems().clear();
+
         if (dto.getItems() != null) {
-            for (SalesOrderItemDTO itemDTO : dto.getItems()) {
-                order.addItem(convertItemToEntity(itemDTO));
-            }
+            List<SalesOrderItem> items = dto.getItems().stream()
+                    .map(i -> SalesOrderItem.builder()
+                            .itemName(i.getItemName())
+                            .quantity(i.getQuantity())
+                            .rate(i.getRate())
+                            .tax(i.getTax())
+                            .amount(i.getAmount())
+                            .sequence(i.getSequence())
+                            .salesOrder(order)
+                            .build())
+                    .toList();
+
+            order.setItems(items);
         }
+    }
+
+    private String generateSalesOrderNumber() {
+        return "SO-" + System.currentTimeMillis();
     }
 }

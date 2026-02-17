@@ -57,16 +57,4 @@ public class SalesOrderController {
         salesOrderService.deleteSalesOrder(id);
         return ResponseEntity.noContent().build();
     }
-
-    @PostMapping("/{id}/clone")
-    public ResponseEntity<SalesOrderDTO> clone(@PathVariable Long id) {
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(salesOrderService.cloneSalesOrder(id));
-    }
-
-    @PostMapping("/{id}/void")
-    public ResponseEntity<SalesOrderDTO> voidOrder(@PathVariable Long id) {
-        return ResponseEntity.ok(salesOrderService.voidSalesOrder(id));
-    }
 }
