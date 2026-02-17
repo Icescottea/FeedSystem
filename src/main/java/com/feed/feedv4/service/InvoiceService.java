@@ -1,6 +1,8 @@
 package com.feed.feedv4.service;
 
 import com.feed.feedv4.dto.InvoiceDTO;
+import com.feed.feedv4.model.InvoiceStatus;
+import com.feed.feedv4.model.PaymentStatus;
 import com.feed.feedv4.dto.InvoiceItemDTO;
 import com.feed.feedv4.model.Invoice;
 import com.feed.feedv4.model.InvoiceItem;
@@ -37,7 +39,7 @@ public class InvoiceService {
     public InvoiceDTO createInvoice(InvoiceDTO dto) {
         Invoice invoice = mapToEntity(dto);
         invoice.setInvoiceNumber(generateInvoiceNumber());
-        invoice.setPaymentStatus(Invoice.PaymentStatus.UNPAID);
+        invoice.setPaymentStatus(PaymentStatus.UNPAID);
         if (invoice.getBalanceDue() == null) {
             invoice.setBalanceDue(invoice.getTotal());
         }
@@ -60,7 +62,7 @@ public class InvoiceService {
     public InvoiceDTO voidInvoice(Long id) {
         Invoice invoice = invoiceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Invoice not found: " + id));
-        invoice.setStatus(Invoice.InvoiceStatus.VOID);
+        invoice.setStatus(InvoiceStatus.VOID);
         return mapToDTO(invoiceRepository.save(invoice));
     }
 
@@ -74,16 +76,15 @@ public class InvoiceService {
                 .orderNumber(original.getOrderNumber())
                 .invoiceDate(original.getInvoiceDate())
                 .terms(original.getTerms())
-                .dueDate(original.getDueDate())
-                .salesPerson(original.getSalesPerson())
+                .dueDate(original.getDueDate())                .salesPerson(original.getSalesPerson())
                 .subject(original.getSubject())
                 .shippingCharges(original.getShippingCharges())
                 .subtotal(original.getSubtotal())
                 .tax(original.getTax())
                 .total(original.getTotal())
                 .balanceDue(original.getTotal())
-                .status(Invoice.InvoiceStatus.DRAFT)
-                .paymentStatus(Invoice.PaymentStatus.UNPAID)
+                .status(InvoiceStatus.DRAFT)
+                .paymentStatus(PaymentStatus.UNPAID)
                 .customerNotes(original.getCustomerNotes())
                 .termsAndConditions(original.getTermsAndConditions())
                 .build();
@@ -108,7 +109,7 @@ public class InvoiceService {
         Invoice invoice = invoiceRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Invoice not found: " + id));
 
-        if (invoice.getStatus() == Invoice.InvoiceStatus.VOID) {
+        if (invoice.getStatus() == InvoiceStatus.VOID) {
             throw new RuntimeException("Cannot record payment on a voided invoice");
         }
 
@@ -124,9 +125,9 @@ public class InvoiceService {
         invoice.setBalanceDue(newBalance);
 
         if (newBalance.compareTo(BigDecimal.ZERO) == 0) {
-            invoice.setPaymentStatus(Invoice.PaymentStatus.PAID);
+            invoice.setPaymentStatus(PaymentStatus.PAID);
         } else {
-            invoice.setPaymentStatus(Invoice.PaymentStatus.PARTIALLY_PAID);
+            invoice.setPaymentStatus(PaymentStatus.PARTIALLY_PAID);
         }
 
         return mapToDTO(invoiceRepository.save(invoice));

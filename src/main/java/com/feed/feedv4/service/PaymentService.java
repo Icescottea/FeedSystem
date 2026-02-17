@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.feed.feedv4.model.Invoice;
 import com.feed.feedv4.repository.InvoiceRepository;
+import com.feed.feedv4.model.InvoiceStatus;
 
 import lombok.RequiredArgsConstructor;
 
@@ -62,14 +63,14 @@ public class PaymentService {
         status.put("amountPaid", invoice.getAmountPaid());
         status.put("balanceDue", invoice.getBalanceDue());
         status.put("status", invoice.getStatus().name());
-        status.put("isPaid", invoice.getStatus() == Invoice.InvoiceStatus.PAID);
-        status.put("isPartiallyPaid", invoice.getStatus() == Invoice.InvoiceStatus.PARTIALLY_PAID);
+        status.put("isPaid", invoice.getStatus() == InvoiceStatus.PAID);
+        status.put("isPartiallyPaid", invoice.getStatus() == InvoiceStatus.PARTIALLY_PAID);
         
         return status;
     }
     
     public List<Map<String, Object>> getOutstandingInvoices(Long customerId) {
-        List<Invoice> invoices = invoiceRepository.findOutstandingInvoicesByCustomerId(customerId);
+        List<Invoice> invoices = invoiceRepository.findByCustomerIdAndBalanceDueGreaterThan(customerId, BigDecimal.ZERO);
         
         List<Map<String, Object>> result = new ArrayList<>();
         for (Invoice invoice : invoices) {

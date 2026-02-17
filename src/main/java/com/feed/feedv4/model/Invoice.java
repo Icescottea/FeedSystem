@@ -52,6 +52,8 @@ public class Invoice {
 
     private BigDecimal balanceDue;
 
+    private BigDecimal amountPaid = BigDecimal.ZERO;
+
     @Enumerated(EnumType.STRING)
     private InvoiceStatus status;
 
@@ -88,11 +90,61 @@ public class Invoice {
         item.setInvoice(null);
     }
 
-    public enum InvoiceStatus {
-        DRAFT, SENT, VOID
+    public void recordPayment(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Payment amount must be positive");
+        }
+    
+        if (this.amountPaid == null) {
+            this.amountPaid = BigDecimal.ZERO;
+        }
+    
+        this.amountPaid = this.amountPaid.add(amount);
+    
+        updatePaymentStatus();
+    }
+    
+    public void reversePayment(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Reverse amount must be positive");
+        }
+    
+        if (this.amountPaid == null) {
+            this.amountPaid = BigDecimal.ZERO;
+        }
+    
+        this.amountPaid = this.amountPaid.subtract(amount);
+    
+        if (this.amountPaid.compareTo(BigDecimal.ZERO) < 0) {
+            this.amountPaid = BigDecimal.ZERO;
+        }
+    
+        updatePaymentStatus();
+    }
+    
+    public BigDecimal getAmountPaid() {
+        return amountPaid == null ? BigDecimal.ZERO : amountPaid;
+    }
+    
+    private void updatePaymentStatus() {
+        if (total == null) {
+            this.paymentStatus = PaymentStatus.UNPAID;
+            return;
+        }
+    
+        if (amountPaid.compareTo(BigDecimal.ZERO) == 0) {
+            this.paymentStatus = PaymentStatus.UNPAID;
+        } else if (amountPaid.compareTo(total) < 0) {
+            this.paymentStatus = PaymentStatus.PARTIALLY_PAID;
+        } else {
+            this.paymentStatus = PaymentStatus.PAID;
+            this.status = InvoiceStatus.SENT;
+            this.balanceDue = BigDecimal.ZERO;
+        }
+    
+        if (balanceDue != null) {
+            this.balanceDue = total.subtract(amountPaid);
+        }
     }
 
-    public enum PaymentStatus {
-        UNPAID, PARTIALLY_PAID, PAID
-    }
 }

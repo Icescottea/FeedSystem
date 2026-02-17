@@ -1,6 +1,8 @@
 package com.feed.feedv4.dto;
 
 import com.feed.feedv4.model.Invoice.*;
+import com.feed.feedv4.model.InvoiceStatus;
+import com.feed.feedv4.model.PaymentStatus;
 import jakarta.validation.constraints.*;
 import lombok.*;
 

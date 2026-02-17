@@ -1,17 +1,18 @@
 package com.feed.feedv4.repository;
 
-import com.feed.feedv4.model.Invoice;
-import com.feed.feedv4.model.Invoice.InvoiceStatus;
-import com.feed.feedv4.model.Invoice.PaymentStatus;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
+import com.feed.feedv4.model.Invoice;
+import com.feed.feedv4.model.InvoiceStatus;
+import com.feed.feedv4.model.PaymentStatus;
 
 @Repository
 public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
@@ -25,6 +26,16 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
     List<Invoice> findByPaymentStatus(PaymentStatus paymentStatus);
 
     boolean existsByInvoiceNumber(String invoiceNumber);
+
+    boolean existsByCustomerId(Long customerId);
+
+    @Query("""
+        SELECT COALESCE(SUM(i.balanceDue), 0)
+        FROM Invoice i
+        WHERE i.customerId = :customerId
+          AND i.balanceDue > 0
+    """)
+    BigDecimal sumOutstandingByCustomerId(@Param("customerId") Long customerId);
 
     @Query("SELECT i FROM Invoice i WHERE " +
            "LOWER(i.invoiceNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
@@ -42,4 +53,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     @Query("SELECT COUNT(i) FROM Invoice i WHERE i.status = :status")
     Long countByStatus(@Param("status") InvoiceStatus status);
+
+    List<Invoice> findByCustomerIdAndBalanceDueGreaterThan(Long customerId, BigDecimal amount);
 }
