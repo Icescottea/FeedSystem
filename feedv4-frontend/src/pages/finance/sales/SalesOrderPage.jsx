@@ -248,8 +248,8 @@ const SalesOrdersPage = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getInvoiceStatusColor(order.invoiced)}`}>
-                          {order.invoiced.replace('_', ' ')}
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getInvoiceStatusColor(order.invoicedStatus)}`}>
+                          {order.invoicedStatus?.replace('_', ' ')}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
