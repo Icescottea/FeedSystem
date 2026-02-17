@@ -19,7 +19,7 @@ const InvoicesPage = () => {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/invoices`);
+      const response = await fetch(`${API_BASE_URL}/api/invoices`);
       if (!response.ok) throw new Error('Failed to fetch invoices');
       const data = await response.json();
       setInvoices(data);
@@ -76,7 +76,7 @@ const InvoicesPage = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this invoice?')) {
       try {
-        const response = await fetch(`${API_BASE_URL}/invoices/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/api/invoices/${id}`, {
           method: 'DELETE',
         });
         
