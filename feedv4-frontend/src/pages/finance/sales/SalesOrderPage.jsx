@@ -259,7 +259,7 @@ const SalesOrdersPage = () => {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          LKR {order.amount.toLocaleString()}
+                          LKR {order.total?.toLocaleString()}
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">
