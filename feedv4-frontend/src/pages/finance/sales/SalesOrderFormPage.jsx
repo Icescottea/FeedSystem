@@ -158,29 +158,29 @@ const SalesOrderFormPage = () => {
         referenceNumber: formData.referenceNumber,
         customerId: Number(formData.customerId),
         customerName: formData.customerName,
-            
+
         salesOrderDate: formData.salesOrderDate,
         expectedShipmentDate: formData.expectedShipmentDate || null,
-            
+
         paymentTerms: formData.paymentTerms,
         deliveryMethod: formData.deliveryMethod,
         salesPerson: formData.salesPerson,
-            
+
         shippingCharges: Number(formData.shippingCharges || 0),
-            
+
         subtotal: subTotal,
         total: total,
-            
+
         status: type === 'send' ? 'CONFIRMED' : 'DRAFT',
         orderStatus: type === 'send' ? 'PROCESSING' : 'PENDING',
-            
+
         paymentStatus: 'UNPAID',
         invoicedStatus: 'NOT_INVOICED',
-            
+
         customerNotes: formData.customerNotes,
         termsAndConditions: formData.termsAndConditions,
         attachments: null,
-            
+
         items: items.map((item, i) => ({
           itemName: item.itemName,
           quantity: Number(item.quantity),
@@ -264,9 +264,8 @@ const SalesOrderFormPage = () => {
               <input
                 type="text"
                 name="salesOrderNumber"
-                value={formData.salesOrderNumber}
+                value={formData.salesOrderNumber || 'Auto Generated'}
                 onChange={handleChange}
-                required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 cursor-not-allowed"
                 readOnly
               />
