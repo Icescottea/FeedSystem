@@ -1,45 +1,64 @@
 package com.feed.feedv4.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.feed.feedv4.model.Invoice.*;
+import jakarta.validation.constraints.*;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class InvoiceDTO {
-    
+
     private Long id;
+
     private String invoiceNumber;
-    private String orderNumber;
+
+    @NotNull
     private Long customerId;
+
     private String customerName;
-    private Long salesOrderId;
+
+    private String orderNumber;
+
+    @NotNull
     private LocalDate invoiceDate;
+
+    private String terms;
+
     private LocalDate dueDate;
-    private String paymentTerms;
+
+    private String salesPerson;
+
     private String subject;
-    private Boolean taxInclusive;
+
+    private BigDecimal shippingCharges;
+
     private BigDecimal subtotal;
-    private BigDecimal discount;
-    private String discountType;
+
     private BigDecimal tax;
+
     private BigDecimal total;
-    private BigDecimal amountPaid;
+
     private BigDecimal balanceDue;
-    private String status;
+
+    private InvoiceStatus status;
+
+    private PaymentStatus paymentStatus;
+
     private String customerNotes;
+
     private String termsAndConditions;
+
     private String attachments;
-    private List<InvoiceItemDTO> items;
-    private String createdBy;
+
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+
+    private List<InvoiceItemDTO> items;
 }

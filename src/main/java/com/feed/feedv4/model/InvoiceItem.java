@@ -1,50 +1,36 @@
 package com.feed.feedv4.model;
 
-import lombok.*;
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.math.BigDecimal;
 
-@Entity
-@Table(name = "invoice_items")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Entity
+@Table(name = "invoice_items")
 public class InvoiceItem {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
+    private String itemName;
+
+    private BigDecimal quantity;
+
+    private BigDecimal rate;
+
+    private BigDecimal tax;
+
+    private BigDecimal amount;
+
+    private Integer sequence;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "invoice_id", nullable = false)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
+    @JoinColumn(name = "invoice_id")
     private Invoice invoice;
-    
-    @Column(nullable = false, length = 500)
-    private String itemDetails;
-    
-    @Column(nullable = false, length = 100)
-    private String account;
-    
-    @Column(precision = 15, scale = 2, nullable = false)
-    private BigDecimal quantity = BigDecimal.ZERO;
-    
-    @Column(precision = 15, scale = 2, nullable = false)
-    private BigDecimal rate = BigDecimal.ZERO;
-    
-    @Column(precision = 5, scale = 2, nullable = false)
-    private BigDecimal taxRate = BigDecimal.ZERO;
-    
-    @Column(precision = 15, scale = 2, nullable = false)
-    private BigDecimal amount = BigDecimal.ZERO;
-    
-    @Column(nullable = false)
-    private Integer sequence = 0;
-    
-    // Helper method to calculate amount
-    public void calculateAmount() {
-        this.amount = this.quantity.multiply(this.rate);
-    }
 }

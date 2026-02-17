@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 const InvoiceFormPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -25,7 +27,7 @@ const InvoiceFormPage = () => {
   });
 
   const [items, setItems] = useState([
-    { id: 1, itemName: '', quantity: 1, rate: 0, tax: 0, amount: 0 }
+    { id: Date.now(), itemName: '', quantity: 1, rate: 0, tax: 0, amount: 0 }
   ]);
 
   const [customers, setCustomers] = useState([]);
@@ -38,13 +40,10 @@ const InvoiceFormPage = () => {
       fetchInvoice();
     } else if (salesOrderId) {
       loadFromSalesOrder(salesOrderId);
-    } else {
-      generateInvoiceNumber();
     }
-  }, [id, salesOrderId, isEditMode]);
+  }, [id, salesOrderId]);
 
   useEffect(() => {
-    // Calculate due date when invoice date or terms change
     if (formData.invoiceDate && formData.terms) {
       const invoiceDate = new Date(formData.invoiceDate);
       const daysToAdd = parseInt(formData.terms);
@@ -55,125 +54,129 @@ const InvoiceFormPage = () => {
   }, [formData.invoiceDate, formData.terms]);
 
   const fetchCustomers = async () => {
-    // TODO: Replace with actual API call
-    const mockCustomers = [
-      { id: 1, name: 'ABC Farms Ltd' },
-      { id: 2, name: 'Green Valley Poultry' },
-      { id: 3, name: 'Royal Livestock Co.' }
-    ];
-    setCustomers(mockCustomers);
-  };
-
-  const generateInvoiceNumber = () => {
-    // TODO: Replace with actual API call to get next invoice number
-    const year = new Date().getFullYear();
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    setFormData(prev => ({ ...prev, invoiceNumber: `INV-${year}-${random}` }));
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/customers`);
+      if (!res.ok) throw new Error('Failed to fetch customers');
+      const data = await res.json();
+      const normalized = data.map(c => ({
+        id: c.id,
+        name: c.name || c.customerName || c.companyName
+      }));
+      setCustomers(normalized);
+    } catch (err) {
+      console.error('Fetch customers error:', err);
+      alert('Failed to load customers');
+    }
   };
 
   const loadFromSalesOrder = async (soId) => {
     try {
-      // TODO: Replace with actual API call to fetch sales order
-      console.log('Loading from sales order:', soId);
-      
-      const mockSOData = {
-        customerId: '1',
-        customerName: 'ABC Farms Ltd',
-        orderNumber: 'SO-2024-001',
-        salesPerson: 'John Doe',
-        items: [
-          { id: 1, itemName: 'Broiler Feed - Starter', quantity: 100, rate: 1500, tax: 0, amount: 150000 },
-          { id: 2, itemName: 'Layer Feed - Grower', quantity: 50, rate: 1800, tax: 0, amount: 90000 }
-        ]
-      };
+      setLoading(true);
+      const res = await fetch(`${API_BASE_URL}/api/sales-orders/${soId}`);
+      if (!res.ok) throw new Error('Failed to fetch sales order');
+      const data = await res.json();
 
-      generateInvoiceNumber();
       setFormData(prev => ({
         ...prev,
-        customerId: mockSOData.customerId,
-        customerName: mockSOData.customerName,
-        orderNumber: mockSOData.orderNumber,
-        salesPerson: mockSOData.salesPerson
+        customerId: data.customerId?.toString() || '',
+        customerName: data.customerName || '',
+        orderNumber: data.salesOrderNumber || '',
+        salesPerson: data.salesPerson || '',
+        paymentTerms: data.paymentTerms || prev.terms,
+        customerNotes: data.customerNotes || '',
+        termsAndConditions: data.termsAndConditions || ''
       }));
-      setItems(mockSOData.items);
-    } catch (error) {
-      console.error('Error loading sales order:', error);
+
+      if (data.items && data.items.length > 0) {
+        setItems(data.items.map((item, i) => ({
+          id: item.id || i,
+          itemName: item.itemName,
+          quantity: item.quantity,
+          rate: item.rate,
+          tax: item.tax || 0,
+          amount: item.amount
+        })));
+      }
+    } catch (err) {
+      console.error('Error loading sales order:', err);
+      alert('Failed to load sales order data');
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchInvoice = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      const mockData = {
-        customerId: '1',
-        customerName: 'ABC Farms Ltd',
-        invoiceNumber: 'INV-2024-001',
-        orderNumber: 'SO-2024-001',
-        invoiceDate: '2024-12-20',
-        terms: '30',
-        dueDate: '2025-01-19',
-        salesPerson: 'John Doe',
-        subject: 'Feed Supply Invoice',
-        shippingCharges: 5000,
-        customerNotes: 'Thank you for your business',
-        termsAndConditions: 'Payment due within 30 days',
-        status: 'DRAFT'
-      };
+      const res = await fetch(`${API_BASE_URL}/api/invoices/${id}`);
+      if (!res.ok) throw new Error('Failed to fetch invoice');
+      const data = await res.json();
 
-      const mockItems = [
-        { id: 1, itemName: 'Broiler Feed - Starter', quantity: 100, rate: 1500, tax: 0, amount: 150000 },
-        { id: 2, itemName: 'Layer Feed - Grower', quantity: 50, rate: 1800, tax: 0, amount: 90000 }
-      ];
+      setFormData({
+        customerId: data.customerId?.toString() || '',
+        customerName: data.customerName || '',
+        invoiceNumber: data.invoiceNumber || '',
+        orderNumber: data.orderNumber || '',
+        invoiceDate: data.invoiceDate || '',
+        terms: data.terms || '30',
+        dueDate: data.dueDate || '',
+        salesPerson: data.salesPerson || '',
+        subject: data.subject || '',
+        shippingCharges: data.shippingCharges || 0,
+        customerNotes: data.customerNotes || '',
+        termsAndConditions: data.termsAndConditions || '',
+        status: data.status || 'DRAFT'
+      });
 
-      setFormData(mockData);
-      setItems(mockItems);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching invoice:', error);
+      if (data.items && data.items.length > 0) {
+        setItems(data.items.map((item, i) => ({
+          id: item.id || i,
+          itemName: item.itemName,
+          quantity: item.quantity,
+          rate: item.rate,
+          tax: item.tax || 0,
+          amount: item.amount
+        })));
+      }
+    } catch (err) {
+      console.error('Error fetching invoice:', err);
+      alert('Failed to load invoice');
+    } finally {
       setLoading(false);
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    if (name === 'customerId') {
-      const customer = customers.find(c => c.id.toString() === value);
-      setFormData(prev => ({
-        ...prev,
-        customerName: customer ? customer.name : ''
-      }));
-    }
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
+      if (name === 'customerId') {
+        const customer = customers.find(c => c.id.toString() === value);
+        updated.customerName = customer ? customer.name : '';
+      }
+      return updated;
+    });
   };
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
     newItems[index][field] = value;
-
-    if (field === 'quantity' || field === 'rate' || field === 'tax') {
-      const qty = parseFloat(newItems[index].quantity) || 0;
-      const rate = parseFloat(newItems[index].rate) || 0;
-      const tax = parseFloat(newItems[index].tax) || 0;
-      const subtotal = qty * rate;
-      newItems[index].amount = subtotal + (subtotal * tax / 100);
-    }
-
+    const qty = Number(newItems[index].quantity) || 0;
+    const rate = Number(newItems[index].rate) || 0;
+    const tax = Number(newItems[index].tax) || 0;
+    const subtotal = qty * rate;
+    newItems[index].amount = subtotal + (subtotal * tax / 100);
     setItems(newItems);
   };
 
   const addItem = () => {
-    setItems([...items, { 
-      id: Date.now(), 
-      itemName: '', 
-      quantity: 1, 
-      rate: 0, 
-      tax: 0, 
-      amount: 0 
+    setItems([...items, {
+      id: Date.now(),
+      itemName: '',
+      quantity: 1,
+      rate: 0,
+      tax: 0,
+      amount: 0
     }]);
   };
 
@@ -192,48 +195,64 @@ const InvoiceFormPage = () => {
     setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Calculate totals
-  const subTotal = items.reduce((sum, item) => {
-    const qty = parseFloat(item.quantity) || 0;
-    const rate = parseFloat(item.rate) || 0;
-    return sum + (qty * rate);
-  }, 0);
-
-  const totalTax = items.reduce((sum, item) => {
-    const qty = parseFloat(item.quantity) || 0;
-    const rate = parseFloat(item.rate) || 0;
-    const tax = parseFloat(item.tax) || 0;
-    return sum + ((qty * rate) * tax / 100);
-  }, 0);
-
-  const shippingCharges = parseFloat(formData.shippingCharges) || 0;
-  const total = subTotal + totalTax + shippingCharges;
+  const subTotal = items.reduce((sum, i) => sum + (Number(i.quantity) * Number(i.rate)), 0);
+  const totalTax = items.reduce((sum, i) => sum + ((Number(i.quantity) * Number(i.rate)) * Number(i.tax) / 100), 0);
+  const total = subTotal + totalTax + Number(formData.shippingCharges || 0);
 
   const handleSubmit = async (saveType) => {
     try {
       setLoading(true);
 
-      const invoiceData = {
-        ...formData,
-        items,
-        subTotal,
-        totalTax,
-        total,
+      const payload = {
+        customerId: Number(formData.customerId),
+        customerName: formData.customerName,
+        orderNumber: formData.orderNumber,
+        invoiceDate: formData.invoiceDate,
+        terms: formData.terms,
+        dueDate: formData.dueDate || null,
+        salesPerson: formData.salesPerson,
+        subject: formData.subject,
+        shippingCharges: Number(formData.shippingCharges || 0),
+        subtotal: subTotal,
+        tax: totalTax,
+        total: total,
         balanceDue: total,
-        status: saveType === 'send' ? 'SENT' : 'DRAFT'
+        status: saveType === 'send' ? 'SENT' : 'DRAFT',
+        customerNotes: formData.customerNotes,
+        termsAndConditions: formData.termsAndConditions,
+        attachments: null,
+        items: items.map((item, i) => ({
+          itemName: item.itemName,
+          quantity: Number(item.quantity),
+          rate: Number(item.rate),
+          tax: Number(item.tax),
+          amount: Number(item.amount),
+          sequence: i + 1
+        }))
       };
 
-      // TODO: Replace with actual API call
-      console.log('Saving invoice:', invoiceData);
-      console.log('Attached files:', attachedFiles);
+      const url = isEditMode
+        ? `${API_BASE_URL}/api/invoices/${id}`
+        : `${API_BASE_URL}/api/invoices`;
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('Save failed');
+
+      const saved = await res.json();
+      setFormData(prev => ({ ...prev, invoiceNumber: saved.invoiceNumber }));
 
       alert(saveType === 'send' ? 'Invoice saved and sent!' : 'Invoice saved as draft!');
       navigate('/finance/sales/invoices');
 
-    } catch (error) {
-      console.error('Error saving invoice:', error);
+    } catch (err) {
+      console.error(err);
       alert('Error saving invoice. Please try again.');
     } finally {
       setLoading(false);
@@ -242,7 +261,6 @@ const InvoiceFormPage = () => {
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">
           {isEditMode ? 'Edit Invoice' : 'New Invoice'}
@@ -252,10 +270,8 @@ const InvoiceFormPage = () => {
         </p>
       </div>
 
-      {/* Form */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 space-y-6">
-          {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -270,7 +286,7 @@ const InvoiceFormPage = () => {
               >
                 <option value="">Select a customer</option>
                 {customers.map(customer => (
-                  <option key={customer.id} value={customer.id}>
+                  <option key={customer.id} value={customer.id.toString()}>
                     {customer.name}
                   </option>
                 ))}
@@ -284,10 +300,9 @@ const InvoiceFormPage = () => {
               <input
                 type="text"
                 name="invoiceNumber"
-                value={formData.invoiceNumber}
+                value={formData.invoiceNumber || 'Auto Generated'}
                 onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 cursor-not-allowed"
                 readOnly
               />
             </div>
@@ -369,7 +384,6 @@ const InvoiceFormPage = () => {
             </div>
           </div>
 
-          {/* Subject */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Subject
@@ -398,7 +412,7 @@ const InvoiceFormPage = () => {
                 + Add Item
               </button>
             </div>
-            
+
             <div className="overflow-x-auto border border-gray-300 rounded-lg">
               <table className="w-full">
                 <thead className="bg-gray-50">
@@ -453,7 +467,7 @@ const InvoiceFormPage = () => {
                         />
                       </td>
                       <td className="px-4 py-2">
-                        <span className="font-medium">LKR {item.amount.toLocaleString()}</span>
+                        <span className="font-medium">LKR {Number(item.amount).toLocaleString()}</span>
                       </td>
                       <td className="px-4 py-2">
                         <button
@@ -472,7 +486,7 @@ const InvoiceFormPage = () => {
             </div>
           </div>
 
-          {/* Total Calculation */}
+          {/* Totals */}
           <div className="flex justify-end">
             <div className="w-full md:w-1/2 space-y-3">
               <div className="flex justify-between items-center">
@@ -502,11 +516,8 @@ const InvoiceFormPage = () => {
             </div>
           </div>
 
-          {/* Customer Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Customer Notes
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Customer Notes</label>
             <textarea
               name="customerNotes"
               value={formData.customerNotes}
@@ -517,11 +528,8 @@ const InvoiceFormPage = () => {
             />
           </div>
 
-          {/* Terms and Conditions */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Terms and Conditions
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Terms and Conditions</label>
             <textarea
               name="termsAndConditions"
               value={formData.termsAndConditions}
@@ -532,11 +540,8 @@ const InvoiceFormPage = () => {
             />
           </div>
 
-          {/* File Attachment */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Attachments
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Attachments</label>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
               <input
                 type="file"
@@ -545,14 +550,10 @@ const InvoiceFormPage = () => {
                 className="hidden"
                 id="file-upload"
               />
-              <label
-                htmlFor="file-upload"
-                className="cursor-pointer flex flex-col items-center"
-              >
+              <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
                 <span className="text-blue-600 hover:text-blue-800">Click to upload files</span>
                 <span className="text-sm text-gray-500 mt-1">or drag and drop</span>
               </label>
-              
               {attachedFiles.length > 0 && (
                 <div className="mt-4 space-y-2">
                   {attachedFiles.map((file, index) => (
@@ -573,7 +574,6 @@ const InvoiceFormPage = () => {
           </div>
         </div>
 
-        {/* Form Actions */}
         <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
           <button
             type="button"

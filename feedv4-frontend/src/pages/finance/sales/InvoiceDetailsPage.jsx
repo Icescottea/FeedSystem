@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+
 const InvoiceDetailsPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -8,6 +10,7 @@ const InvoiceDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     fetchInvoiceDetails();
@@ -16,88 +19,39 @@ const InvoiceDetailsPage = () => {
   const fetchInvoiceDetails = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      
-      const mockData = {
-        id: 1,
-        invoiceNumber: 'INV-2024-001',
-        orderNumber: 'SO-2024-001',
-        invoiceDate: '2024-12-20',
-        dueDate: '2025-01-19',
-        customerName: 'ABC Farms Ltd',
-        customerId: 1,
-        salesPerson: 'John Doe',
-        subject: 'Feed Supply Invoice for December',
-        status: 'SENT',
-        isLocked: false,
-        items: [
-          {
-            id: 1,
-            itemName: 'Broiler Feed - Starter',
-            quantity: 100,
-            rate: 1500,
-            tax: 0,
-            amount: 150000
-          },
-          {
-            id: 2,
-            itemName: 'Layer Feed - Grower',
-            quantity: 50,
-            rate: 1800,
-            tax: 0,
-            amount: 90000
-          }
-        ],
-        subTotal: 240000,
-        totalTax: 0,
-        shippingCharges: 5000,
-        total: 245000,
-        amountPaid: 0,
-        balanceDue: 245000,
-        customerNotes: 'Thank you for your business',
-        termsAndConditions: 'Payment due within 30 days. Late payments may incur interest charges.',
-        attachments: [
-          { id: 1, name: 'invoice_details.pdf', size: '1.5 MB' }
-        ],
-        payments: [],
-        journalEntries: [
-          {
-            id: 1,
-            date: '2024-12-20',
-            account: 'Accounts Receivable',
-            debit: 245000,
-            credit: 0
-          },
-          {
-            id: 2,
-            date: '2024-12-20',
-            account: 'Sales Revenue',
-            debit: 0,
-            credit: 240000
-          },
-          {
-            id: 3,
-            date: '2024-12-20',
-            account: 'Shipping Revenue',
-            debit: 0,
-            credit: 5000
-          }
-        ],
-        createdDate: '2024-12-20',
-        modifiedDate: '2024-12-20'
-      };
-      
-      setInvoice(mockData);
-      setLoading(false);
+      const res = await fetch(`${API_BASE_URL}/api/invoices/${id}`);
+      if (!res.ok) throw new Error('Failed to fetch invoice');
+      const data = await res.json();
+
+      setInvoice({
+        ...data,
+        subtotal:        data.subtotal        ?? 0,
+        tax:             data.tax             ?? 0,
+        shippingCharges: data.shippingCharges ?? 0,
+        total:           data.total           ?? 0,
+        balanceDue:      data.balanceDue      ?? data.total ?? 0,
+        amountPaid:      (data.total ?? 0) - (data.balanceDue ?? data.total ?? 0),
+        items:           (data.items || []).map(item => ({
+          ...item,
+          tax:    item.tax    ?? 0,
+          amount: item.amount ?? 0
+        })),
+        isLocked:       data.status === 'VOID',
+        payments:       data.payments       || [],
+        journalEntries: data.journalEntries || []
+      });
     } catch (error) {
       console.error('Error fetching invoice details:', error);
+    } finally {
       setLoading(false);
     }
   };
 
+  /* ---- Actions ---- */
+
   const handleEdit = () => {
     if (invoice.isLocked) {
-      alert('This invoice is locked and cannot be edited.');
+      alert('This invoice is voided and cannot be edited.');
       return;
     }
     navigate(`/finance/sales/invoices/${id}/edit`);
@@ -112,100 +66,105 @@ const InvoiceDetailsPage = () => {
   };
 
   const handleViewJournal = () => {
-    // Display journal entries in the view
-    const journalSection = document.getElementById('journal-section');
-    if (journalSection) {
-      journalSection.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('journal-section')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleClone = async () => {
+    try {
+      setActionLoading(true);
+      const res = await fetch(`${API_BASE_URL}/api/invoices/${id}/clone`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to clone invoice');
+      const cloned = await res.json();
+      alert('Invoice cloned! Redirecting to new invoice...');
+      navigate(`/finance/sales/invoices/${cloned.id}/edit`);
+    } catch (error) {
+      console.error('Error cloning invoice:', error);
+      alert('Error cloning invoice.');
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleClone = () => {
-    // TODO: Implement clone functionality
-    console.log('Cloning invoice:', id);
-    alert('Invoice cloned! Redirecting to new invoice...');
-    navigate('/finance/sales/invoices/new');
+  const handleVoid = async () => {
+    if (invoice.isLocked) {
+      alert('This invoice is already voided.');
+      return;
+    }
+    if (!window.confirm('Are you sure you want to void this invoice? This action cannot be undone.')) return;
+    try {
+      setActionLoading(true);
+      const res = await fetch(`${API_BASE_URL}/api/invoices/${id}/void`, { method: 'PATCH' });
+      if (!res.ok) throw new Error('Failed to void invoice');
+      setInvoice(prev => ({ ...prev, status: 'VOID', isLocked: true }));
+      alert('Invoice voided successfully!');
+    } catch (error) {
+      console.error('Error voiding invoice:', error);
+      alert('Error voiding invoice.');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleDelete = async () => {
     if (invoice.isLocked) {
-      alert('This invoice is locked and cannot be deleted.');
+      alert('This invoice is voided and cannot be deleted.');
       return;
     }
     if (invoice.amountPaid > 0) {
       alert('Cannot delete an invoice with payments. Please void the invoice instead.');
       return;
     }
-    if (window.confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
-      try {
-        // TODO: Implement delete API call
-        console.log('Deleting invoice:', id);
-        alert('Invoice deleted successfully!');
-        navigate('/finance/sales/invoices');
-      } catch (error) {
-        console.error('Error deleting invoice:', error);
-        alert('Error deleting invoice.');
-      }
-    }
-  };
-
-  const handleLock = async () => {
-    const action = invoice.isLocked ? 'unlock' : 'lock';
-    if (window.confirm(`Are you sure you want to ${action} this invoice?`)) {
-      try {
-        // TODO: Implement lock/unlock API call
-        console.log(`${action}ing invoice:`, id);
-        setInvoice(prev => ({ ...prev, isLocked: !prev.isLocked }));
-        alert(`Invoice ${action}ed successfully!`);
-      } catch (error) {
-        console.error(`Error ${action}ing invoice:`, error);
-        alert(`Error ${action}ing invoice.`);
-      }
+    if (!window.confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) return;
+    try {
+      setActionLoading(true);
+      const res = await fetch(`${API_BASE_URL}/api/invoices/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete invoice');
+      alert('Invoice deleted successfully!');
+      navigate('/finance/sales/invoices');
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      alert('Error deleting invoice.');
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleRecordPayment = () => {
-    setPaymentAmount(invoice.balanceDue.toString());
+    setPaymentAmount(String(invoice.balanceDue));
     setShowPaymentModal(true);
   };
 
   const handlePaymentSubmit = async () => {
     const amount = parseFloat(paymentAmount);
-    
     if (!amount || amount <= 0) {
       alert('Please enter a valid payment amount.');
       return;
     }
-
     if (amount > invoice.balanceDue) {
       alert('Payment amount cannot exceed balance due.');
       return;
     }
-
     try {
-      // TODO: Implement record payment API call
-      console.log('Recording payment:', { invoiceId: id, amount });
-      
-      const newAmountPaid = invoice.amountPaid + amount;
-      const newBalanceDue = invoice.balanceDue - amount;
-      
-      let newStatus = invoice.status;
-      if (newBalanceDue === 0) {
-        newStatus = 'PAID';
-      } else if (newAmountPaid > 0) {
-        newStatus = 'PARTIALLY_PAID';
-      }
+      setActionLoading(true);
+      const res = await fetch(`${API_BASE_URL}/api/invoices/${id}/payment`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount })
+      });
+      if (!res.ok) throw new Error('Failed to record payment');
+      const updated = await res.json();
 
       setInvoice(prev => ({
         ...prev,
-        amountPaid: newAmountPaid,
-        balanceDue: newBalanceDue,
-        status: newStatus,
+        balanceDue:    updated.balanceDue,
+        paymentStatus: updated.paymentStatus,
+        amountPaid:    (updated.total ?? prev.total) - (updated.balanceDue ?? 0),
         payments: [
           ...prev.payments,
           {
-            id: Date.now(),
-            date: new Date().toISOString().split('T')[0],
-            amount: amount,
+            id:     Date.now(),
+            date:   new Date().toISOString().split('T')[0],
+            amount,
             method: 'Bank Transfer'
           }
         ]
@@ -216,58 +175,47 @@ const InvoiceDetailsPage = () => {
     } catch (error) {
       console.error('Error recording payment:', error);
       alert('Error recording payment.');
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleDownloadPDF = () => {
-    // TODO: Implement PDF download
-    console.log('Downloading PDF for invoice:', id);
-    alert('PDF download will be implemented with backend integration.');
-  };
+  const handleDownloadPDF = () => alert('PDF download will be implemented with backend integration.');
+  const handleSendEmail  = () => alert('Email functionality will be implemented with backend integration.');
 
-  const handleSendEmail = () => {
-    // TODO: Implement email functionality
-    console.log('Sending invoice via email:', id);
-    alert('Email functionality will be implemented with backend integration.');
-  };
+  /* ---- Status colours ---- */
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'SENT':
-        return 'bg-blue-100 text-blue-800';
-      case 'PAID':
-        return 'bg-green-100 text-green-800';
-      case 'PARTIALLY_PAID':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'OVERDUE':
-        return 'bg-red-100 text-red-800';
-      case 'VOID':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'DRAFT':          return 'bg-gray-100 text-gray-800';
+      case 'SENT':           return 'bg-blue-100 text-blue-800';
+      case 'VOID':           return 'bg-red-100 text-red-800';
+      default:               return 'bg-gray-100 text-gray-800';
     }
   };
 
+  const getPaymentStatusColor = (status) => {
+    switch (status) {
+      case 'PAID':           return 'bg-green-100 text-green-800';
+      case 'PARTIALLY_PAID': return 'bg-yellow-100 text-yellow-800';
+      case 'UNPAID':         return 'bg-red-100 text-red-800';
+      default:               return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  /* ---- Render ---- */
+
   if (loading) {
-    return (
-      <div className="p-6">
-        <div className="text-center text-gray-500">Loading invoice details...</div>
-      </div>
-    );
+    return <div className="p-6 text-center text-gray-500">Loading invoice details...</div>;
   }
 
   if (!invoice) {
-    return (
-      <div className="p-6">
-        <div className="text-center text-gray-500">Invoice not found</div>
-      </div>
-    );
+    return <div className="p-6 text-center text-gray-500">Invoice not found</div>;
   }
 
   return (
     <div className="p-6">
+
       {/* Header */}
       <div className="mb-6">
         <button
@@ -279,12 +227,12 @@ const InvoiceDetailsPage = () => {
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">{invoice.invoiceNumber}</h1>
-            <p className="text-gray-600 mt-1">{invoice.subject}</p>
+            {invoice.subject && <p className="text-gray-600 mt-1">{invoice.subject}</p>}
           </div>
           <div className="flex gap-2 flex-wrap justify-end">
             <button
               onClick={handleEdit}
-              disabled={invoice.isLocked}
+              disabled={invoice.isLocked || actionLoading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Edit
@@ -294,14 +242,14 @@ const InvoiceDetailsPage = () => {
               disabled={invoice.status === 'DRAFT' || invoice.status === 'VOID'}
               className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Credit Note
+              Credit Note
             </button>
             <button
               onClick={handleCreateDebitNote}
               disabled={invoice.status === 'DRAFT' || invoice.status === 'VOID'}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Debit Note
+              Debit Note
             </button>
             <button
               onClick={handleViewJournal}
@@ -311,19 +259,21 @@ const InvoiceDetailsPage = () => {
             </button>
             <button
               onClick={handleClone}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              disabled={actionLoading}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               Clone
             </button>
             <button
-              onClick={handleLock}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              onClick={handleVoid}
+              disabled={invoice.isLocked || actionLoading}
+              className="px-4 py-2 border border-orange-400 text-orange-600 rounded-lg hover:bg-orange-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {invoice.isLocked ? 'Unlock' : 'Lock'}
+              Void
             </button>
             <button
               onClick={handleDelete}
-              disabled={invoice.isLocked || invoice.amountPaid > 0}
+              disabled={invoice.isLocked || invoice.amountPaid > 0 || actionLoading}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Delete
@@ -332,37 +282,36 @@ const InvoiceDetailsPage = () => {
         </div>
       </div>
 
-      {/* Status and Lock Badge */}
-      <div className="mb-6 flex gap-2">
+      {/* Status badges */}
+      <div className="mb-6 flex gap-2 flex-wrap">
         <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${getStatusColor(invoice.status)}`}>
-          {invoice.status.replace('_', ' ')}
+          {invoice.status}
         </span>
+        {invoice.paymentStatus && (
+          <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${getPaymentStatusColor(invoice.paymentStatus)}`}>
+            {invoice.paymentStatus.replace('_', ' ')}
+          </span>
+        )}
         {invoice.isLocked && (
           <span className="px-3 py-1 inline-flex text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">
-            🔒 LOCKED
+            VOIDED
           </span>
         )}
       </div>
 
-      {/* Payment Summary Cards */}
+      {/* Payment summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Total Amount</p>
-          <p className="text-2xl font-bold text-gray-800 mt-1">
-            LKR {invoice.total.toLocaleString()}
-          </p>
+          <p className="text-2xl font-bold text-gray-800 mt-1">LKR {Number(invoice.total).toLocaleString()}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Amount Paid</p>
-          <p className="text-2xl font-bold text-green-600 mt-1">
-            LKR {invoice.amountPaid.toLocaleString()}
-          </p>
+          <p className="text-2xl font-bold text-green-600 mt-1">LKR {Number(invoice.amountPaid).toLocaleString()}</p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Balance Due</p>
-          <p className="text-2xl font-bold text-red-600 mt-1">
-            LKR {invoice.balanceDue.toLocaleString()}
-          </p>
+          <p className="text-2xl font-bold text-red-600 mt-1">LKR {Number(invoice.balanceDue).toLocaleString()}</p>
         </div>
       </div>
 
@@ -373,7 +322,7 @@ const InvoiceDetailsPage = () => {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={handleRecordPayment}
-              disabled={invoice.balanceDue === 0 || invoice.status === 'VOID'}
+              disabled={Number(invoice.balanceDue) === 0 || invoice.status === 'VOID' || actionLoading}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Record Payment
@@ -402,7 +351,8 @@ const InvoiceDetailsPage = () => {
 
       {/* Invoice Details */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
-        {/* Basic Information */}
+
+        {/* Info grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-3">Invoice Information</h3>
@@ -418,18 +368,22 @@ const InvoiceDetailsPage = () => {
               <div className="flex justify-between">
                 <span className="text-gray-600">Invoice Date:</span>
                 <span className="font-medium text-gray-800">
-                  {new Date(invoice.invoiceDate).toLocaleDateString()}
+                  {invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString() : '-'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Due Date:</span>
                 <span className="font-medium text-gray-800">
-                  {new Date(invoice.dueDate).toLocaleDateString()}
+                  {invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '-'}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Sales Person:</span>
-                <span className="font-medium text-gray-800">{invoice.salesPerson}</span>
+                <span className="font-medium text-gray-800">{invoice.salesPerson || '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Terms:</span>
+                <span className="font-medium text-gray-800">{invoice.terms ? `Net ${invoice.terms}` : '-'}</span>
               </div>
             </div>
           </div>
@@ -441,29 +395,33 @@ const InvoiceDetailsPage = () => {
                 <span className="text-gray-600">Customer Name:</span>
                 <span className="font-medium text-gray-800">{invoice.customerName}</span>
               </div>
-              <div className="mt-4">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Payment Status:</span>
+                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPaymentStatusColor(invoice.paymentStatus)}`}>
+                  {invoice.paymentStatus?.replace('_', ' ') || '-'}
+                </span>
+              </div>
+              <div className="mt-4 space-y-2">
                 <button
                   onClick={() => navigate(`/finance/sales/customers/${invoice.customerId}`)}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  className="block text-blue-600 hover:text-blue-800 text-sm font-medium"
                 >
                   View Customer Details →
                 </button>
-              </div>
-              {invoice.orderNumber && (
-                <div className="mt-2">
+                {invoice.orderNumber && (
                   <button
-                    onClick={() => navigate(`/finance/sales/sales-orders/${invoice.orderNumber.split('-')[2]}`)}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    onClick={() => navigate(`/finance/sales/sales-orders?search=${invoice.orderNumber}`)}
+                    className="block text-blue-600 hover:text-blue-800 text-sm font-medium"
                   >
                     View Related Sales Order →
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Items Table */}
+        {/* Items table */}
         <div>
           <h3 className="text-lg font-semibold text-gray-800 mb-3">Items</h3>
           <div className="overflow-x-auto border border-gray-300 rounded-lg">
@@ -482,10 +440,10 @@ const InvoiceDetailsPage = () => {
                   <tr key={item.id}>
                     <td className="px-4 py-3 text-sm text-gray-800">{item.itemName}</td>
                     <td className="px-4 py-3 text-sm text-gray-800">{item.quantity}</td>
-                    <td className="px-4 py-3 text-sm text-gray-800">LKR {item.rate.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-sm text-gray-800">LKR {Number(item.rate).toLocaleString()}</td>
                     <td className="px-4 py-3 text-sm text-gray-800">{item.tax}%</td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-800">
-                      LKR {item.amount.toLocaleString()}
+                      LKR {Number(item.amount).toLocaleString()}
                     </td>
                   </tr>
                 ))}
@@ -494,24 +452,24 @@ const InvoiceDetailsPage = () => {
           </div>
         </div>
 
-        {/* Total Section */}
+        {/* Totals */}
         <div className="flex justify-end">
           <div className="w-full md:w-1/2 space-y-3 border-t pt-4">
             <div className="flex justify-between items-center">
               <span className="text-gray-700">Sub Total:</span>
-              <span className="font-medium">LKR {invoice.subTotal.toLocaleString()}</span>
+              <span className="font-medium">LKR {Number(invoice.subtotal).toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-700">Total Tax:</span>
-              <span className="font-medium">LKR {invoice.totalTax.toLocaleString()}</span>
+              <span className="font-medium">LKR {Number(invoice.tax).toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-700">Shipping Charges:</span>
-              <span className="font-medium">LKR {invoice.shippingCharges.toLocaleString()}</span>
+              <span className="font-medium">LKR {Number(invoice.shippingCharges).toLocaleString()}</span>
             </div>
             <div className="border-t pt-3 flex justify-between items-center">
               <span className="text-lg font-semibold text-gray-800">Total:</span>
-              <span className="text-lg font-bold text-blue-600">LKR {invoice.total.toLocaleString()}</span>
+              <span className="text-lg font-bold text-blue-600">LKR {Number(invoice.total).toLocaleString()}</span>
             </div>
           </div>
         </div>
@@ -536,7 +494,7 @@ const InvoiceDetailsPage = () => {
                         {new Date(payment.date).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-green-600">
-                        LKR {payment.amount.toLocaleString()}
+                        LKR {Number(payment.amount).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-800">{payment.method}</td>
                     </tr>
@@ -550,34 +508,38 @@ const InvoiceDetailsPage = () => {
         {/* Journal Entries */}
         <div id="journal-section">
           <h3 className="text-lg font-semibold text-gray-800 mb-3">Journal Entries</h3>
-          <div className="overflow-x-auto border border-gray-300 rounded-lg">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Account</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Debit</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Credit</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {invoice.journalEntries.map((entry) => (
-                  <tr key={entry.id}>
-                    <td className="px-4 py-3 text-sm text-gray-800">
-                      {new Date(entry.date).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-800">{entry.account}</td>
-                    <td className="px-4 py-3 text-sm text-gray-800">
-                      {entry.debit > 0 ? `LKR ${entry.debit.toLocaleString()}` : '-'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-800">
-                      {entry.credit > 0 ? `LKR ${entry.credit.toLocaleString()}` : '-'}
-                    </td>
+          {invoice.journalEntries && invoice.journalEntries.length > 0 ? (
+            <div className="overflow-x-auto border border-gray-300 rounded-lg">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Account</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Debit</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Credit</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {invoice.journalEntries.map((entry) => (
+                    <tr key={entry.id}>
+                      <td className="px-4 py-3 text-sm text-gray-800">
+                        {new Date(entry.date).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-800">{entry.account}</td>
+                      <td className="px-4 py-3 text-sm text-gray-800">
+                        {entry.debit > 0 ? `LKR ${Number(entry.debit).toLocaleString()}` : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-800">
+                        {entry.credit > 0 ? `LKR ${Number(entry.credit).toLocaleString()}` : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm bg-gray-50 p-4 rounded-lg">No journal entries yet.</p>
+          )}
         </div>
 
         {/* Customer Notes */}
@@ -596,37 +558,15 @@ const InvoiceDetailsPage = () => {
           </div>
         )}
 
-        {/* Attachments */}
-        {invoice.attachments && invoice.attachments.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Attachments</h3>
-            <div className="space-y-2">
-              {invoice.attachments.map((file) => (
-                <div key={file.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg">
-                  <div>
-                    <span className="text-sm font-medium text-gray-800">{file.name}</span>
-                    <span className="text-xs text-gray-500 ml-2">({file.size})</span>
-                  </div>
-                  <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                    Download
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Audit Information */}
         <div className="border-t pt-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-2">Audit Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
             <div>
               <span>Created: </span>
-              <span className="text-gray-800">{new Date(invoice.createdDate).toLocaleString()}</span>
-            </div>
-            <div>
-              <span>Last Modified: </span>
-              <span className="text-gray-800">{new Date(invoice.modifiedDate).toLocaleString()}</span>
+              <span className="text-gray-800">
+                {invoice.createdAt ? new Date(invoice.createdAt).toLocaleString() : '-'}
+              </span>
             </div>
           </div>
         </div>
@@ -637,7 +577,6 @@ const InvoiceDetailsPage = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Record Payment</h2>
-            
             <div className="space-y-4 mb-6">
               <div>
                 <p className="text-sm text-gray-600">Invoice Number</p>
@@ -645,7 +584,7 @@ const InvoiceDetailsPage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Balance Due</p>
-                <p className="text-lg font-bold text-red-600">LKR {invoice.balanceDue.toLocaleString()}</p>
+                <p className="text-lg font-bold text-red-600">LKR {Number(invoice.balanceDue).toLocaleString()}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -663,7 +602,6 @@ const InvoiceDetailsPage = () => {
                 />
               </div>
             </div>
-
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowPaymentModal(false)}
@@ -673,9 +611,10 @@ const InvoiceDetailsPage = () => {
               </button>
               <button
                 onClick={handlePaymentSubmit}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                disabled={actionLoading}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
               >
-                Record Payment
+                {actionLoading ? 'Processing...' : 'Record Payment'}
               </button>
             </div>
           </div>
