@@ -388,7 +388,7 @@ const SalesOrderDetailsPage = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Invoice Status:</span>
-                <span className="font-medium text-gray-800">{salesOrder.invoiced.replace('_', ' ')}</span>
+                <span className="font-medium text-gray-800">{salesOrder.invoiced?.replace('_', ' ')}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Payment Status:</span>
@@ -429,7 +429,7 @@ const SalesOrderDetailsPage = () => {
                     <td className="px-4 py-3 text-sm text-gray-800">LKR {item.rate.toLocaleString()}</td>
                     <td className="px-4 py-3 text-sm text-gray-800">{item.tax}%</td>
                     <td className="px-4 py-3 text-sm font-medium text-gray-800">
-                      LKR {item.amount.toLocaleString()}
+                      LKR {item.amount?.toLocaleString()}
                     </td>
                     <td className="px-4 py-3">
                       {item.cancelled ? (
@@ -466,7 +466,7 @@ const SalesOrderDetailsPage = () => {
             </div>
             <div className="border-t pt-3 flex justify-between items-center">
               <span className="text-lg font-semibold text-gray-800">Total:</span>
-              <span className="text-lg font-bold text-blue-600">LKR {salesOrder.total.toLocaleString()}</span>
+              <span className="text-lg font-bold text-blue-600">LKR {salesOrder.total?.toLocaleString()}</span>
             </div>
           </div>
         </div>
