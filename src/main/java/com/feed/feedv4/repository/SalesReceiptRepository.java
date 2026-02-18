@@ -1,17 +1,18 @@
 package com.feed.feedv4.repository;
 
-import com.feed.feedv4.model.SalesReceipt;
-import com.feed.feedv4.model.SalesReceipt.SalesReceiptStatus;
-import com.feed.feedv4.model.SalesReceipt.PaymentMode;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
+import com.feed.feedv4.model.SalesReceipt;
+import com.feed.feedv4.model.SalesReceipt.PaymentMode;
+import com.feed.feedv4.model.SalesReceipt.SalesReceiptStatus;
 
 @Repository
 public interface SalesReceiptRepository extends JpaRepository<SalesReceipt, Long> {
@@ -49,4 +50,7 @@ public interface SalesReceiptRepository extends JpaRepository<SalesReceipt, Long
     List<SalesReceipt> findByCreatedBy(@Param("createdBy") String createdBy);
     
     boolean existsBySalesReceiptNumber(String salesReceiptNumber);
+
+    @Query("SELECT COUNT(s) FROM SalesReceipt s WHERE s.salesReceiptNumber LIKE :prefix%")
+    long countByReceiptNumberStartingWith(@Param("prefix") String prefix);
 }

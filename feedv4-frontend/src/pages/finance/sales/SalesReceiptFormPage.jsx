@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+const API_BASE = '/api/sales-receipts';
+
 const SalesReceiptFormPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -15,15 +17,14 @@ const SalesReceiptFormPage = () => {
     shippingCharges: 0,
     notes: '',
     termsAndConditions: '',
-    // Payment Details
     paymentMode: 'BANK_TRANSFER',
     referenceNumber: '',
     depositTo: '',
-    status: 'DRAFT'
+    status: 'DRAFT',
   });
 
   const [items, setItems] = useState([
-    { id: 1, itemName: '', quantity: 1, rate: 0, tax: 0, amount: 0 }
+    { tempId: 1, itemName: '', quantity: 1, rate: 0, tax: 0, amount: 0 },
   ]);
 
   const [customers, setCustomers] = useState([]);
@@ -37,84 +38,98 @@ const SalesReceiptFormPage = () => {
     if (isEditMode) {
       fetchSalesReceipt();
     } else {
-      generateReceiptNumber();
+      fetchNextReceiptNumber();
     }
-  }, [id, isEditMode]);
+  }, [id]);
+
+  // ─── DATA FETCHING ────────────────────────────────────────────────────────
+
+  const fetchNextReceiptNumber = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/next-number`);
+      if (!response.ok) throw new Error('Failed to fetch receipt number');
+      const data = await response.json();
+      setFormData(prev => ({ ...prev, salesReceiptNumber: data.salesReceiptNumber }));
+    } catch (error) {
+      console.error('Error fetching receipt number:', error);
+      // Fallback: generate client-side
+      const year = new Date().getFullYear();
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      setFormData(prev => ({ ...prev, salesReceiptNumber: `SR-${year}-${random}` }));
+    }
+  };
 
   const fetchCustomers = async () => {
-    // TODO: Replace with actual API call
-    const mockCustomers = [
-      { id: 1, name: 'ABC Farms Ltd' },
-      { id: 2, name: 'Green Valley Poultry' },
-      { id: 3, name: 'Royal Livestock Co.' }
-    ];
-    setCustomers(mockCustomers);
+    try {
+      const response = await fetch('/api/customers');
+      if (!response.ok) throw new Error('Failed to fetch customers');
+      const data = await response.json();
+      setCustomers(data);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    }
   };
 
   const fetchAccounts = async () => {
-    // TODO: Replace with actual API call
-    const mockAccounts = [
-      { id: 1, name: 'Cash on Hand' },
-      { id: 2, name: 'Main Bank Account - Commercial Bank' },
-      { id: 3, name: 'Savings Account - Sampath Bank' },
-      { id: 4, name: 'Petty Cash' }
-    ];
-    setAccounts(mockAccounts);
-  };
-
-  const generateReceiptNumber = () => {
-    // TODO: Replace with actual API call to get next receipt number
-    const year = new Date().getFullYear();
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    setFormData(prev => ({ ...prev, salesReceiptNumber: `SR-${year}-${random}` }));
+    try {
+      const response = await fetch('/api/accounts');
+      if (!response.ok) throw new Error('Failed to fetch accounts');
+      const data = await response.json();
+      setAccounts(data);
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+    }
   };
 
   const fetchSalesReceipt = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      const mockData = {
-        customerId: '1',
-        customerName: 'ABC Farms Ltd',
-        receiptDate: '2024-12-20',
-        salesReceiptNumber: 'SR-2024-001',
-        salesPerson: 'John Doe',
-        shippingCharges: 3000,
-        notes: 'Payment received in full',
-        termsAndConditions: 'All sales are final',
-        paymentMode: 'BANK_TRANSFER',
-        referenceNumber: 'TXN123456',
-        depositTo: '2',
-        status: 'DRAFT'
-      };
+      const response = await fetch(`${API_BASE}/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch sales receipt');
+      const data = await response.json();
 
-      const mockItems = [
-        { id: 1, itemName: 'Broiler Feed - Starter', quantity: 50, rate: 1500, tax: 0, amount: 75000 },
-        { id: 2, itemName: 'Layer Feed - Grower', quantity: 25, rate: 1800, tax: 0, amount: 45000 }
-      ];
+      setFormData({
+        customerId: data.customerId?.toString() || '',
+        customerName: data.customerName || '',
+        receiptDate: data.receiptDate || new Date().toISOString().split('T')[0],
+        salesReceiptNumber: data.salesReceiptNumber || '',
+        salesPerson: data.salesPerson || '',
+        shippingCharges: parseFloat(data.shippingCharges) || 0,
+        notes: data.notes || '',
+        termsAndConditions: data.termsAndConditions || '',
+        paymentMode: data.paymentMode || 'BANK_TRANSFER',
+        referenceNumber: data.referenceNumber || '',
+        depositTo: data.depositTo || '',
+        status: data.status || 'DRAFT',
+      });
 
-      setFormData(mockData);
-      setItems(mockItems);
-      setLoading(false);
+      if (data.items && data.items.length > 0) {
+        setItems(data.items.map((item, idx) => ({
+          ...item,
+          tempId: item.id || idx + 1,
+          quantity: parseFloat(item.quantity) || 0,
+          rate: parseFloat(item.rate) || 0,
+          tax: parseFloat(item.tax) || 0,
+          amount: parseFloat(item.amount) || 0,
+        })));
+      }
     } catch (error) {
       console.error('Error fetching sales receipt:', error);
+      alert('Failed to load sales receipt data.');
+    } finally {
       setLoading(false);
     }
   };
 
+  // ─── FORM HANDLERS ────────────────────────────────────────────────────────
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
 
     if (name === 'customerId') {
       const customer = customers.find(c => c.id.toString() === value);
-      setFormData(prev => ({
-        ...prev,
-        customerName: customer ? customer.name : ''
-      }));
+      setFormData(prev => ({ ...prev, customerName: customer ? customer.name : '' }));
     }
   };
 
@@ -134,20 +149,11 @@ const SalesReceiptFormPage = () => {
   };
 
   const addItem = () => {
-    setItems([...items, { 
-      id: Date.now(), 
-      itemName: '', 
-      quantity: 1, 
-      rate: 0, 
-      tax: 0, 
-      amount: 0 
-    }]);
+    setItems([...items, { tempId: Date.now(), itemName: '', quantity: 1, rate: 0, tax: 0, amount: 0 }]);
   };
 
   const removeItem = (index) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index));
-    }
+    if (items.length > 1) setItems(items.filter((_, i) => i !== index));
   };
 
   const handleFileChange = (e) => {
@@ -155,15 +161,12 @@ const SalesReceiptFormPage = () => {
     setAttachedFiles(prev => [...prev, ...files]);
   };
 
-  const removeFile = (index) => {
-    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
-  };
+  const removeFile = (index) => setAttachedFiles(prev => prev.filter((_, i) => i !== index));
 
-  // Calculate totals
+  // ─── TOTALS ───────────────────────────────────────────────────────────────
+
   const subTotal = items.reduce((sum, item) => {
-    const qty = parseFloat(item.quantity) || 0;
-    const rate = parseFloat(item.rate) || 0;
-    return sum + (qty * rate);
+    return sum + ((parseFloat(item.quantity) || 0) * (parseFloat(item.rate) || 0));
   }, 0);
 
   const totalTax = items.reduce((sum, item) => {
@@ -176,42 +179,68 @@ const SalesReceiptFormPage = () => {
   const shippingCharges = parseFloat(formData.shippingCharges) || 0;
   const total = subTotal + totalTax + shippingCharges;
 
+  // ─── SUBMIT ───────────────────────────────────────────────────────────────
+
   const handleSubmit = async (saveType) => {
     try {
       setLoading(true);
 
-      const receiptData = {
+      const status = saveType === 'void' ? 'VOID' : saveType === 'save' ? 'COMPLETED' : 'DRAFT';
+
+      const payload = {
         ...formData,
-        items,
-        subTotal,
-        totalTax,
-        total,
-        status: saveType === 'void' ? 'VOID' : (saveType === 'save' ? 'COMPLETED' : 'DRAFT')
+        customerId: formData.customerId ? parseInt(formData.customerId) : null,
+        shippingCharges: shippingCharges,
+        subtotal: subTotal,
+        total: total,
+        status,
+        items: items.map((item, idx) => ({
+          id: typeof item.id === 'number' ? item.id : undefined, // include DB id on edit
+          itemName: item.itemName,
+          quantity: parseFloat(item.quantity) || 0,
+          rate: parseFloat(item.rate) || 0,
+          tax: parseFloat(item.tax) || 0,
+          amount: parseFloat(item.amount) || 0,
+          sequence: idx,
+        })),
       };
 
-      // TODO: Replace with actual API call
-      console.log('Saving sales receipt:', receiptData);
-      console.log('Attached files:', attachedFiles);
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      if (saveType === 'void') {
-        alert('Sales receipt voided!');
-      } else if (saveType === 'save') {
-        alert('Sales receipt completed and saved!');
+      let response;
+      if (isEditMode) {
+        response = await fetch(`${API_BASE}/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
       } else {
-        alert('Sales receipt saved as draft!');
+        response = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
       }
-      
-      navigate('/finance/sales/sales-receipts');
 
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to save sales receipt');
+      }
+
+      // If void on edit, call the void endpoint additionally
+      if (isEditMode && saveType === 'void') {
+        const voidResponse = await fetch(`${API_BASE}/${id}/void`, { method: 'PATCH' });
+        if (!voidResponse.ok) throw new Error('Failed to void sales receipt');
+      }
+
+      navigate('/finance/sales/sales-receipts');
     } catch (error) {
       console.error('Error saving sales receipt:', error);
-      alert('Error saving sales receipt. Please try again.');
+      alert(error.message || 'Error saving sales receipt. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
+  // ─── RENDER ───────────────────────────────────────────────────────────────
 
   return (
     <div className="p-6">
@@ -228,6 +257,7 @@ const SalesReceiptFormPage = () => {
       {/* Form */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 space-y-6">
+
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -243,9 +273,7 @@ const SalesReceiptFormPage = () => {
               >
                 <option value="">Select a customer</option>
                 {customers.map(customer => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name}
-                  </option>
+                  <option key={customer.id} value={customer.id}>{customer.name}</option>
                 ))}
               </select>
             </div>
@@ -272,17 +300,13 @@ const SalesReceiptFormPage = () => {
                 type="text"
                 name="salesReceiptNumber"
                 value={formData.salesReceiptNumber}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
                 readOnly
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sales Person
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Sales Person</label>
               <input
                 type="text"
                 name="salesPerson"
@@ -300,15 +324,11 @@ const SalesReceiptFormPage = () => {
               <label className="block text-sm font-medium text-gray-700">
                 Items <span className="text-red-500">*</span>
               </label>
-              <button
-                type="button"
-                onClick={addItem}
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-              >
+              <button type="button" onClick={addItem} className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 + Add Item
               </button>
             </div>
-            
+
             <div className="overflow-x-auto border border-gray-300 rounded-lg">
               <table className="w-full">
                 <thead className="bg-gray-50">
@@ -323,7 +343,7 @@ const SalesReceiptFormPage = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {items.map((item, index) => (
-                    <tr key={item.id}>
+                    <tr key={item.tempId || index}>
                       <td className="px-4 py-2">
                         <input
                           type="text"
@@ -363,7 +383,7 @@ const SalesReceiptFormPage = () => {
                         />
                       </td>
                       <td className="px-4 py-2">
-                        <span className="font-medium">LKR {item.amount.toLocaleString()}</span>
+                        <span className="font-medium">LKR {(parseFloat(item.amount) || 0).toLocaleString()}</span>
                       </td>
                       <td className="px-4 py-2">
                         <button
@@ -382,7 +402,7 @@ const SalesReceiptFormPage = () => {
             </div>
           </div>
 
-          {/* Total Calculation */}
+          {/* Totals */}
           <div className="flex justify-end">
             <div className="w-full md:w-1/2 space-y-3">
               <div className="flex justify-between items-center">
@@ -414,9 +434,7 @@ const SalesReceiptFormPage = () => {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
             <textarea
               name="notes"
               value={formData.notes}
@@ -429,9 +447,7 @@ const SalesReceiptFormPage = () => {
 
           {/* Terms and Conditions */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Terms and Conditions
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Terms and Conditions</label>
             <textarea
               name="termsAndConditions"
               value={formData.termsAndConditions}
@@ -444,37 +460,19 @@ const SalesReceiptFormPage = () => {
 
           {/* File Attachment */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Attachments
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Attachments</label>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-              <input
-                type="file"
-                onChange={handleFileChange}
-                multiple
-                className="hidden"
-                id="file-upload"
-              />
-              <label
-                htmlFor="file-upload"
-                className="cursor-pointer flex flex-col items-center"
-              >
+              <input type="file" onChange={handleFileChange} multiple className="hidden" id="file-upload" />
+              <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center">
                 <span className="text-blue-600 hover:text-blue-800">Click to upload files</span>
                 <span className="text-sm text-gray-500 mt-1">or drag and drop</span>
               </label>
-              
               {attachedFiles.length > 0 && (
                 <div className="mt-4 space-y-2">
                   {attachedFiles.map((file, index) => (
                     <div key={index} className="flex justify-between items-center bg-gray-50 p-2 rounded">
                       <span className="text-sm text-gray-700">{file.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeFile(index)}
-                        className="text-red-600 hover:text-red-800 text-sm"
-                      >
-                        Remove
-                      </button>
+                      <button type="button" onClick={() => removeFile(index)} className="text-red-600 hover:text-red-800 text-sm">Remove</button>
                     </div>
                   ))}
                 </div>
@@ -482,10 +480,9 @@ const SalesReceiptFormPage = () => {
             </div>
           </div>
 
-          {/* Payment Details Section */}
+          {/* Payment Details */}
           <div className="border-t pt-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">Payment Details</h2>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -503,15 +500,11 @@ const SalesReceiptFormPage = () => {
                   <option value="CHEQUE">Cheque</option>
                   <option value="CREDIT_CARD">Credit Card</option>
                   <option value="DEBIT_CARD">Debit Card</option>
-                  <option value="MOBILE_PAYMENT">Mobile Payment</option>
-                  <option value="OTHER">Other</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Reference Number
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Reference Number</label>
                 <input
                   type="text"
                   name="referenceNumber"
@@ -535,9 +528,7 @@ const SalesReceiptFormPage = () => {
                 >
                   <option value="">Select account to deposit</option>
                   {accounts.map(account => (
-                    <option key={account.id} value={account.id}>
-                      {account.name}
-                    </option>
+                    <option key={account.id} value={account.name || account.id}>{account.name}</option>
                   ))}
                 </select>
               </div>

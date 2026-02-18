@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE = '/api/sales-receipts';
+
 const SalesReceiptsPage = () => {
   const navigate = useNavigate();
   const [salesReceipts, setSalesReceipts] = useState([]);
@@ -17,85 +19,25 @@ const SalesReceiptsPage = () => {
   const fetchSalesReceipts = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/sales-receipts');
-      // const data = await response.json();
-      
-      // Mock data
-      const mockData = [
-        {
-          id: 1,
-          salesReceiptNumber: 'SR-2024-001',
-          referenceNumber: 'REF-SR-001',
-          date: '2024-12-20',
-          customerName: 'ABC Farms Ltd',
-          paymentMode: 'BANK_TRANSFER',
-          status: 'COMPLETED',
-          amount: 150000,
-          createdBy: 'John Doe'
-        },
-        {
-          id: 2,
-          salesReceiptNumber: 'SR-2024-002',
-          referenceNumber: 'REF-SR-002',
-          date: '2024-12-18',
-          customerName: 'Green Valley Poultry',
-          paymentMode: 'CASH',
-          status: 'DRAFT',
-          amount: 85000,
-          createdBy: 'Jane Smith'
-        },
-        {
-          id: 3,
-          salesReceiptNumber: 'SR-2024-003',
-          referenceNumber: 'REF-SR-003',
-          date: '2024-12-15',
-          customerName: 'Royal Livestock Co.',
-          paymentMode: 'CHEQUE',
-          status: 'COMPLETED',
-          amount: 220000,
-          createdBy: 'Mike Johnson'
-        },
-        {
-          id: 4,
-          salesReceiptNumber: 'SR-2024-004',
-          referenceNumber: 'REF-SR-004',
-          date: '2024-12-12',
-          customerName: 'ABC Farms Ltd',
-          paymentMode: 'CREDIT_CARD',
-          status: 'VOID',
-          amount: 95000,
-          createdBy: 'John Doe'
-        },
-        {
-          id: 5,
-          salesReceiptNumber: 'SR-2024-005',
-          referenceNumber: '',
-          date: '2024-12-10',
-          customerName: 'Green Valley Poultry',
-          paymentMode: 'BANK_TRANSFER',
-          status: 'COMPLETED',
-          amount: 175000,
-          createdBy: 'Jane Smith'
-        }
-      ];
-      
-      setSalesReceipts(mockData);
-      setLoading(false);
+      const response = await fetch(API_BASE);
+      if (!response.ok) throw new Error('Failed to fetch sales receipts');
+      const data = await response.json();
+      setSalesReceipts(data);
     } catch (error) {
       console.error('Error fetching sales receipts:', error);
+    } finally {
       setLoading(false);
     }
   };
 
   const filteredReceipts = salesReceipts.filter(receipt => {
-    const matchesSearch = 
-      receipt.salesReceiptNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      receipt.referenceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      receipt.customerName.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    const matchesSearch =
+      (receipt.salesReceiptNumber || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (receipt.referenceNumber || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (receipt.customerName || '').toLowerCase().includes(searchQuery.toLowerCase());
+
     const matchesStatus = statusFilter === 'all' || receipt.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -105,48 +47,45 @@ const SalesReceiptsPage = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'DRAFT':
-        return 'bg-gray-100 text-gray-800';
-      case 'COMPLETED':
-        return 'bg-green-100 text-green-800';
-      case 'VOID':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'DRAFT':     return 'bg-gray-100 text-gray-800';
+      case 'COMPLETED': return 'bg-green-100 text-green-800';
+      case 'VOID':      return 'bg-red-100 text-red-800';
+      default:          return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getPaymentModeColor = (mode) => {
     switch (mode) {
-      case 'CASH':
-        return 'bg-green-100 text-green-800';
-      case 'BANK_TRANSFER':
-        return 'bg-blue-100 text-blue-800';
-      case 'CHEQUE':
-        return 'bg-purple-100 text-purple-800';
-      case 'CREDIT_CARD':
-        return 'bg-indigo-100 text-indigo-800';
-      case 'DEBIT_CARD':
-        return 'bg-cyan-100 text-cyan-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'CASH':          return 'bg-green-100 text-green-800';
+      case 'BANK_TRANSFER': return 'bg-blue-100 text-blue-800';
+      case 'CHEQUE':        return 'bg-purple-100 text-purple-800';
+      case 'CREDIT_CARD':   return 'bg-indigo-100 text-indigo-800';
+      case 'DEBIT_CARD':    return 'bg-cyan-100 text-cyan-800';
+      default:              return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleView = (id) => {
-    navigate(`/finance/sales/sales-receipts/${id}`);
-  };
+  const handleView = (id) => navigate(`/finance/sales/sales-receipts/${id}`);
+  const handleEdit = (id) => navigate(`/finance/sales/sales-receipts/${id}/edit`);
 
-  const handleEdit = (id) => {
-    navigate(`/finance/sales/sales-receipts/${id}/edit`);
-  };
-
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this sales receipt?')) {
-      // TODO: Implement delete API call
-      console.log('Deleting sales receipt:', id);
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this sales receipt?')) return;
+    try {
+      const response = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to delete sales receipt');
+      }
+      setSalesReceipts(prev => prev.filter(r => r.id !== id));
+    } catch (error) {
+      console.error('Error deleting sales receipt:', error);
+      alert(error.message || 'Error deleting sales receipt.');
     }
   };
+
+  const completedTotal = salesReceipts
+    .filter(r => r.status === 'COMPLETED')
+    .reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0);
 
   return (
     <div className="p-6">
@@ -186,7 +125,7 @@ const SalesReceiptsPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Total Amount</p>
           <p className="text-2xl font-bold text-gray-800 mt-1">
-            LKR {salesReceipts.filter(r => r.status === 'COMPLETED').reduce((sum, r) => sum + r.amount, 0).toLocaleString()}
+            LKR {completedTotal.toLocaleString()}
           </p>
         </div>
       </div>
@@ -224,7 +163,9 @@ const SalesReceiptsPage = () => {
           <div className="p-8 text-center text-gray-500">Loading sales receipts...</div>
         ) : paginatedReceipts.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            {searchQuery || statusFilter !== 'all' ? 'No sales receipts found matching your filters.' : 'No sales receipts yet. Create your first sales receipt!'}
+            {searchQuery || statusFilter !== 'all'
+              ? 'No sales receipts found matching your filters.'
+              : 'No sales receipts yet. Create your first sales receipt!'}
           </div>
         ) : (
           <>
@@ -247,7 +188,7 @@ const SalesReceiptsPage = () => {
                   {paginatedReceipts.map((receipt) => (
                     <tr key={receipt.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                        {new Date(receipt.date).toLocaleDateString()}
+                        {receipt.receiptDate ? new Date(receipt.receiptDate).toLocaleDateString() : '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-blue-600">{receipt.salesReceiptNumber}</div>
@@ -256,11 +197,11 @@ const SalesReceiptsPage = () => {
                         {receipt.referenceNumber || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{receipt.customerName}</div>
+                        <div className="text-sm font-medium text-gray-900">{receipt.customerName || '-'}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getPaymentModeColor(receipt.paymentMode)}`}>
-                          {receipt.paymentMode.replace('_', ' ')}
+                          {(receipt.paymentMode || '').replace('_', ' ')}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -270,32 +211,17 @@ const SalesReceiptsPage = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm font-medium text-gray-900">
-                          LKR {receipt.amount.toLocaleString()}
+                          LKR {parseFloat(receipt.total || 0).toLocaleString()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {receipt.createdBy}
+                        {receipt.createdBy || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => handleView(receipt.id)}
-                            className="text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            View
-                          </button>
-                          <button
-                            onClick={() => handleEdit(receipt.id)}
-                            className="text-green-600 hover:text-green-800 font-medium"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(receipt.id)}
-                            className="text-red-600 hover:text-red-800 font-medium"
-                          >
-                            Delete
-                          </button>
+                          <button onClick={() => handleView(receipt.id)} className="text-blue-600 hover:text-blue-800 font-medium">View</button>
+                          <button onClick={() => handleEdit(receipt.id)} className="text-green-600 hover:text-green-800 font-medium">Edit</button>
+                          <button onClick={() => handleDelete(receipt.id)} className="text-red-600 hover:text-red-800 font-medium">Delete</button>
                         </div>
                       </td>
                     </tr>
