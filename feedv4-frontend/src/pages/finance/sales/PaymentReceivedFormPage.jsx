@@ -78,7 +78,7 @@ const PaymentReceivedFormPage = () => {
   const fetchPayment = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/payments-received/${id}`);
+      const response = await fetch(`${API_BASE_URL}/api/payments-received/${id}`);
       if (!response.ok) throw new Error('Failed to fetch payment');
       const data = await response.json();
       
@@ -173,8 +173,8 @@ const PaymentReceivedFormPage = () => {
       };
 
       const url = isEditMode 
-        ? `${API_BASE_URL}/payments-received/${id}`
-        : `${API_BASE_URL}/payments-received`;
+        ? `${API_BASE_URL}/api/payments-received/${id}`
+        : `${API_BASE_URL}/api/payments-received`;
       
       const method = isEditMode ? 'PUT' : 'POST';
 

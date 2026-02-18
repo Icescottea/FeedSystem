@@ -16,7 +16,7 @@ const PaymentReceivedDetailsPage = () => {
   const fetchPaymentDetails = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/payments-received/${id}`);
+      const response = await fetch(`${API_BASE_URL}/api/payments-received/${id}`);
       if (!response.ok) throw new Error('Failed to fetch payment details');
       const data = await response.json();
       setPayment(data);
@@ -42,7 +42,7 @@ const PaymentReceivedDetailsPage = () => {
     }
     if (window.confirm('Are you sure you want to void this payment? This will reverse all invoice payments.')) {
       try {
-        const response = await fetch(`${API_BASE_URL}/payments-received/${id}/void`, {
+        const response = await fetch(`${API_BASE_URL}/api/payments-received/${id}/void`, {
           method: 'POST',
         });
         
@@ -65,7 +65,7 @@ const PaymentReceivedDetailsPage = () => {
     }
     if (window.confirm('Are you sure you want to delete this payment? This action cannot be undone.')) {
       try {
-        const response = await fetch(`${API_BASE_URL}/payments-received/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/api/payments-received/${id}`, {
           method: 'DELETE',
         });
         
