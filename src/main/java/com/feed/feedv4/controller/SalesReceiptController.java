@@ -5,7 +5,6 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -19,15 +18,15 @@ import org.springframework.web.bind.annotation.RestController;
 import com.feed.feedv4.dto.SalesReceiptDTO;
 import com.feed.feedv4.service.SalesReceiptService;
 
-import lombok.RequiredArgsConstructor;
-
 @RestController
 @RequestMapping("/api/sales-receipts")
-@RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class SalesReceiptController {
 
     private final SalesReceiptService salesReceiptService;
+
+    public SalesReceiptController(SalesReceiptService salesReceiptService) {
+        this.salesReceiptService = salesReceiptService;
+    }
 
     // GET /api/sales-receipts
     @GetMapping
