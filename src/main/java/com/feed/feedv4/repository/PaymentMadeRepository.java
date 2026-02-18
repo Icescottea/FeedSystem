@@ -45,13 +45,6 @@ public interface PaymentMadeRepository extends JpaRepository<PaymentMade, Long> 
     
     boolean existsByPaymentNumber(String paymentNumber);
 
-    @Query("""
-        SELECT COALESCE(SUM(p.excessAmount), 0)
-        FROM PaymentMade p
-        WHERE p.vendorId = :vendorId 
-    """) 
-    BigDecimal sumExcessByVendorId(@Param("vendorId") Long vendorId);
-
     @Query("SELECT COALESCE(SUM(pm.unusedAmount), 0) FROM PaymentMade pm WHERE pm.vendorId = :vendorId AND pm.status != 'VOID'")
     BigDecimal sumExcesByVendorId(@Param("vendorId") Long vendorId);
     
