@@ -29,13 +29,11 @@ const SalesReceiptFormPage = () => {
   ]);
 
   const [customers, setCustomers] = useState([]);
-  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState([]);
 
   useEffect(() => {
     fetchCustomers();
-    fetchAccounts();
     if (isEditMode) {
       fetchSalesReceipt();
     } else {
@@ -65,20 +63,14 @@ const SalesReceiptFormPage = () => {
       const response = await fetch(`${API_BASE_URL}/api/customers`);
       if (!response.ok) throw new Error('Failed to fetch customers');
       const data = await response.json();
-      setCustomers(data);
+      // Normalize — handle whichever field name the API returns
+      const normalized = data.map(c => ({
+        id: c.id,
+        name: c.name || c.customerName || c.companyName || `Customer #${c.id}`,
+      }));
+      setCustomers(normalized);
     } catch (error) {
       console.error('Error fetching customers:', error);
-    }
-  };
-
-  const fetchAccounts = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/accounts`);
-      if (!response.ok) throw new Error('Failed to fetch accounts');
-      const data = await response.json();
-      setAccounts(data);
-    } catch (error) {
-      console.error('Error fetching accounts:', error);
     }
   };
 
@@ -520,18 +512,15 @@ const SalesReceiptFormPage = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Deposit To <span className="text-red-500">*</span>
                 </label>
-                <select
+                <input
+                  type="text"
                   name="depositTo"
                   value={formData.depositTo}
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select account to deposit</option>
-                  {accounts.map(account => (
-                    <option key={account.id} value={account.name || account.id}>{account.name}</option>
-                  ))}
-                </select>
+                  placeholder="e.g. Main Bank Account - Commercial Bank"
+                />
               </div>
             </div>
           </div>
