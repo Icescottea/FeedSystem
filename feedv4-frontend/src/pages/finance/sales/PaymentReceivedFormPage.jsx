@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+const API_BASE = `${API_BASE_URL}/api/payments-received`;
+
 const PaymentReceivedFormPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = Boolean(id);
-  
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
   const [formData, setFormData] = useState({
     customerId: '',
@@ -19,134 +20,149 @@ const PaymentReceivedFormPage = () => {
     referenceNumber: '',
     taxDeducted: false,
     taxAmount: 0,
-    notes: ''
+    notes: '',
   });
 
   const [unpaidInvoices, setUnpaidInvoices] = useState([]);
   const [invoicePayments, setInvoicePayments] = useState({});
   const [customers, setCustomers] = useState([]);
-  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
-    fetchAccounts();
     if (isEditMode) {
       fetchPayment();
+    } else {
+      fetchNextPaymentNumber();
     }
   }, [id, isEditMode]);
 
   useEffect(() => {
     if (formData.customerId) {
       fetchUnpaidInvoices(formData.customerId);
+    } else {
+      setUnpaidInvoices([]);
+      setInvoicePayments({});
     }
   }, [formData.customerId]);
+
+  // ─── DATA FETCHING ────────────────────────────────────────────────────────
+
+  const fetchNextPaymentNumber = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/next-number`);
+      if (!response.ok) throw new Error();
+      const data = await response.json();
+      setFormData(prev => ({ ...prev, paymentNumber: data.paymentNumber }));
+    } catch {
+      // Fallback client-side
+      const year = new Date().getFullYear();
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      setFormData(prev => ({ ...prev, paymentNumber: `PAY-${year}-${random}` }));
+    }
+  };
 
   const fetchCustomers = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/customers`);
       if (!response.ok) throw new Error('Failed to fetch customers');
       const data = await response.json();
-      setCustomers(data);
+      // Normalize — handle whichever field name the API returns
+      const normalized = data.map(c => ({
+        id: c.id,
+        name: c.name || c.customerName || c.companyName || `Customer #${c.id}`,
+      }));
+      setCustomers(normalized);
     } catch (error) {
       console.error('Error fetching customers:', error);
     }
   };
 
-  const fetchAccounts = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/accounts`);
-      if (!response.ok) throw new Error('Failed to fetch accounts');
-      const data = await response.json();
-      setAccounts(data);
-    } catch (error) {
-      console.error('Error fetching accounts:', error);
-    }
-  };
-
   const fetchUnpaidInvoices = async (customerId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/invoices/customer/${customerId}/outstanding`);
+      const response = await fetch(
+        `${API_BASE_URL}/api/invoices/customer/${customerId}/outstanding`
+      );
       if (!response.ok) throw new Error('Failed to fetch unpaid invoices');
       const data = await response.json();
       setUnpaidInvoices(data);
     } catch (error) {
       console.error('Error fetching unpaid invoices:', error);
+      setUnpaidInvoices([]);
     }
   };
 
   const fetchPayment = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/payments-received/${id}`);
+      const response = await fetch(`${API_BASE}/${id}`);
       if (!response.ok) throw new Error('Failed to fetch payment');
       const data = await response.json();
-      
+
       setFormData({
-        customerId: data.customerId,
-        amountReceived: data.amountReceived,
-        bankCharges: data.bankCharges,
-        paymentDate: data.paymentDate,
-        paymentNumber: data.paymentNumber,
-        paymentMode: data.paymentMode,
-        depositTo: data.depositTo,
+        customerId: data.customerId?.toString() || '',
+        amountReceived: parseFloat(data.amountReceived) || 0,
+        bankCharges: parseFloat(data.bankCharges) || 0,
+        paymentDate: data.paymentDate || new Date().toISOString().split('T')[0],
+        paymentNumber: data.paymentNumber || '',
+        paymentMode: data.paymentMode || 'BANK_TRANSFER',
+        depositTo: data.depositTo || '',
         referenceNumber: data.referenceNumber || '',
-        taxDeducted: data.taxDeducted,
-        taxAmount: data.taxAmount,
-        notes: data.notes || ''
+        taxDeducted: data.taxDeducted || false,
+        taxAmount: parseFloat(data.taxAmount) || 0,
+        notes: data.notes || '',
       });
 
-      // Set invoice payments
-      if (data.invoicePayments) {
+      if (data.invoicePayments && data.invoicePayments.length > 0) {
         const payments = {};
         data.invoicePayments.forEach(ip => {
-          payments[ip.invoiceId] = ip.paymentAmount;
+          payments[ip.invoiceId] = parseFloat(ip.paymentAmount) || 0;
         });
         setInvoicePayments(payments);
       }
-
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching payment:', error);
+      alert('Failed to load payment data.');
+    } finally {
       setLoading(false);
     }
   };
+
+  // ─── FORM HANDLERS ────────────────────────────────────────────────────────
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
   const handleInvoicePaymentChange = (invoiceId, amount) => {
     setInvoicePayments(prev => ({
       ...prev,
-      [invoiceId]: parseFloat(amount) || 0
+      [invoiceId]: parseFloat(amount) || 0,
     }));
   };
 
-  const calculateTotals = () => {
-    const totalInvoicePayments = Object.values(invoicePayments).reduce((sum, amount) => sum + amount, 0);
-    const netReceived = parseFloat(formData.amountReceived) - parseFloat(formData.bankCharges) - parseFloat(formData.taxAmount || 0);
-    const unusedAmount = netReceived - totalInvoicePayments;
-    
-    return {
-      totalInvoicePayments,
-      netReceived,
-      unusedAmount
-    };
-  };
+  // ─── TOTALS ───────────────────────────────────────────────────────────────
+
+  const totalInvoicePayments = Object.values(invoicePayments).reduce((sum, a) => sum + a, 0);
+  const netReceived =
+    parseFloat(formData.amountReceived || 0) -
+    parseFloat(formData.bankCharges || 0) -
+    (formData.taxDeducted ? parseFloat(formData.taxAmount || 0) : 0);
+  const unusedAmount = netReceived - totalInvoicePayments;
+
+  // ─── SUBMIT ───────────────────────────────────────────────────────────────
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.customerId) {
       alert('Please select a customer');
       return;
     }
-
     if (parseFloat(formData.amountReceived) <= 0) {
       alert('Amount received must be greater than zero');
       return;
@@ -155,42 +171,38 @@ const PaymentReceivedFormPage = () => {
     try {
       setLoading(true);
 
-      // Prepare invoice payments array
       const invoicePaymentsArray = Object.entries(invoicePayments)
         .filter(([_, amount]) => amount > 0)
         .map(([invoiceId, paymentAmount]) => ({
           invoiceId: parseInt(invoiceId),
           paymentAmount: parseFloat(paymentAmount),
-          paymentDate: formData.paymentDate
+          paymentDate: formData.paymentDate,
         }));
 
-      const paymentData = {
+      const payload = {
         ...formData,
+        customerId: parseInt(formData.customerId),
         amountReceived: parseFloat(formData.amountReceived),
         bankCharges: parseFloat(formData.bankCharges),
         taxAmount: parseFloat(formData.taxAmount || 0),
-        invoicePayments: invoicePaymentsArray
+        invoicePayments: invoicePaymentsArray,
       };
 
-      const url = isEditMode 
-        ? `${API_BASE_URL}/api/payments-received/${id}`
-        : `${API_BASE_URL}/api/payments-received`;
-      
+      const url = isEditMode ? `${API_BASE}/${id}` : API_BASE;
       const method = isEditMode ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(paymentData)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
-      if (!response.ok) throw new Error('Failed to save payment');
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to save payment');
+      }
 
-      alert(isEditMode ? 'Payment updated successfully!' : 'Payment recorded successfully!');
       navigate('/finance/sales/payments-received');
-
     } catch (error) {
       console.error('Error saving payment:', error);
       alert('Error saving payment: ' + error.message);
@@ -199,11 +211,10 @@ const PaymentReceivedFormPage = () => {
     }
   };
 
-  const totals = calculateTotals();
+  // ─── RENDER ───────────────────────────────────────────────────────────────
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">
           {isEditMode ? 'Edit Payment' : 'Record Payment Received'}
@@ -213,12 +224,12 @@ const PaymentReceivedFormPage = () => {
         </p>
       </div>
 
-      {/* Form */}
       <form onSubmit={handleSubmit}>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="p-6 space-y-6">
-            {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+              {/* Customer */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Customer Name <span className="text-red-500">*</span>
@@ -232,46 +243,28 @@ const PaymentReceivedFormPage = () => {
                 >
                   <option value="">Select a customer</option>
                   {customers.map(customer => (
-                    <option key={customer.id} value={customer.id}>
+                    <option key={customer.id} value={customer.id.toString()}>
                       {customer.name}
                     </option>
                   ))}
                 </select>
               </div>
 
+              {/* Payment Number (read-only, auto-generated) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Amount Received <span className="text-red-500">*</span>
+                  Payment Number
                 </label>
                 <input
-                  type="number"
-                  name="amountReceived"
-                  value={formData.amountReceived}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
+                  type="text"
+                  name="paymentNumber"
+                  value={formData.paymentNumber}
+                  readOnly
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 cursor-not-allowed"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bank Charges
-                </label>
-                <input
-                  type="number"
-                  name="bankCharges"
-                  value={formData.bankCharges}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-
+              {/* Payment Date */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Payment Date <span className="text-red-500">*</span>
@@ -286,6 +279,42 @@ const PaymentReceivedFormPage = () => {
                 />
               </div>
 
+              {/* Amount Received */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Amount Received <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  name="amountReceived"
+                  value={formData.amountReceived}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  step="0.01"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="0.00"
+                />
+              </div>
+
+              {/* Bank Charges */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Bank Charges
+                </label>
+                <input
+                  type="number"
+                  name="bankCharges"
+                  value={formData.bankCharges}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="0.00"
+                />
+              </div>
+
+              {/* Payment Mode */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Payment Mode <span className="text-red-500">*</span>
@@ -306,26 +335,23 @@ const PaymentReceivedFormPage = () => {
                 </select>
               </div>
 
+              {/* Deposit To — free text, no /api/accounts call */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Deposit To <span className="text-red-500">*</span>
                 </label>
-                <select
+                <input
+                  type="text"
                   name="depositTo"
                   value={formData.depositTo}
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select account</option>
-                  {accounts.map(account => (
-                    <option key={account.id} value={account.name}>
-                      {account.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="e.g. Main Bank Account - Commercial Bank"
+                />
               </div>
 
+              {/* Reference Number */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Reference Number
@@ -340,6 +366,7 @@ const PaymentReceivedFormPage = () => {
                 />
               </div>
 
+              {/* Tax Deducted checkbox */}
               <div className="flex items-center">
                 <input
                   type="checkbox"
@@ -353,6 +380,7 @@ const PaymentReceivedFormPage = () => {
                 </label>
               </div>
 
+              {/* Tax Amount — shown only when taxDeducted is checked */}
               {formData.taxDeducted && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -363,10 +391,10 @@ const PaymentReceivedFormPage = () => {
                     name="taxAmount"
                     value={formData.taxAmount}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0.00"
                     min="0"
                     step="0.01"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="0.00"
                   />
                 </div>
               )}
@@ -375,10 +403,8 @@ const PaymentReceivedFormPage = () => {
             {/* Unpaid Invoices Section */}
             {unpaidInvoices.length > 0 && (
               <div className="border-t border-gray-200 pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Apply to Invoices
-                </h3>
-                <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Apply to Invoices</h3>
+                <div className="bg-gray-50 rounded-lg p-4 overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="text-left text-sm text-gray-600">
@@ -392,11 +418,15 @@ const PaymentReceivedFormPage = () => {
                     <tbody>
                       {unpaidInvoices.map(invoice => (
                         <tr key={invoice.id} className="border-t border-gray-200">
-                          <td className="py-2 text-sm">{new Date(invoice.invoiceDate).toLocaleDateString()}</td>
+                          <td className="py-2 text-sm">
+                            {new Date(invoice.invoiceDate).toLocaleDateString()}
+                          </td>
                           <td className="py-2 text-sm font-medium">{invoice.invoiceNumber}</td>
-                          <td className="py-2 text-sm">LKR {invoice.total.toLocaleString()}</td>
+                          <td className="py-2 text-sm">
+                            LKR {parseFloat(invoice.total || 0).toLocaleString()}
+                          </td>
                           <td className="py-2 text-sm font-medium text-red-600">
-                            LKR {invoice.balanceDue.toLocaleString()}
+                            LKR {parseFloat(invoice.balanceDue || 0).toLocaleString()}
                           </td>
                           <td className="py-2">
                             <input
@@ -445,13 +475,13 @@ const PaymentReceivedFormPage = () => {
                   <div>
                     <p className="text-sm text-gray-600">Applied to Invoices:</p>
                     <p className="text-lg font-semibold text-green-600">
-                      LKR {totals.totalInvoicePayments.toLocaleString()}
+                      LKR {totalInvoicePayments.toLocaleString()}
                     </p>
                   </div>
                   <div className="col-span-2 border-t border-blue-200 pt-4">
                     <p className="text-sm text-gray-600">Unused Amount:</p>
                     <p className="text-2xl font-bold text-orange-600">
-                      LKR {totals.unusedAmount.toLocaleString()}
+                      LKR {unusedAmount.toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -460,9 +490,7 @@ const PaymentReceivedFormPage = () => {
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Notes
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
               <textarea
                 name="notes"
                 value={formData.notes}
@@ -488,7 +516,7 @@ const PaymentReceivedFormPage = () => {
               disabled={loading}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Saving...' : (isEditMode ? 'Update Payment' : 'Record Payment')}
+              {loading ? 'Saving...' : isEditMode ? 'Update Payment' : 'Record Payment'}
             </button>
           </div>
         </div>

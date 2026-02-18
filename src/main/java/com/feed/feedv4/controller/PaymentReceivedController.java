@@ -2,6 +2,7 @@ package com.feed.feedv4.controller;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -23,70 +24,76 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/payments-received")
-
 public class PaymentReceivedController {
-    
+
     private final PaymentReceivedService paymentReceivedService;
 
     public PaymentReceivedController(PaymentReceivedService paymentReceivedService) {
         this.paymentReceivedService = paymentReceivedService;
     }
-    
+
+    // GET /api/payments-received
     @GetMapping
     public ResponseEntity<List<PaymentReceivedDTO>> getAllPayments() {
-        List<PaymentReceivedDTO> payments = paymentReceivedService.getAllPayments();
-        return ResponseEntity.ok(payments);
+        return ResponseEntity.ok(paymentReceivedService.getAllPayments());
     }
-    
+
+    // GET /api/payments-received/{id}
     @GetMapping("/{id}")
     public ResponseEntity<PaymentReceivedDTO> getPaymentById(@PathVariable Long id) {
-        PaymentReceivedDTO payment = paymentReceivedService.getPaymentById(id);
-        return ResponseEntity.ok(payment);
+        return ResponseEntity.ok(paymentReceivedService.getPaymentById(id));
     }
-    
+
+    // GET /api/payments-received/next-number
+    @GetMapping("/next-number")
+    public ResponseEntity<Map<String, String>> getNextPaymentNumber() {
+        return ResponseEntity.ok(Map.of("paymentNumber", paymentReceivedService.generatePaymentNumber()));
+    }
+
+    // POST /api/payments-received
     @PostMapping
     public ResponseEntity<PaymentReceivedDTO> createPayment(@Valid @RequestBody PaymentReceivedDTO dto) {
-        PaymentReceivedDTO created = paymentReceivedService.createPayment(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        return ResponseEntity.status(HttpStatus.CREATED).body(paymentReceivedService.createPayment(dto));
     }
-    
+
+    // PUT /api/payments-received/{id}
     @PutMapping("/{id}")
     public ResponseEntity<PaymentReceivedDTO> updatePayment(
             @PathVariable Long id,
             @Valid @RequestBody PaymentReceivedDTO dto) {
-        PaymentReceivedDTO updated = paymentReceivedService.updatePayment(id, dto);
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(paymentReceivedService.updatePayment(id, dto));
     }
-    
+
+    // DELETE /api/payments-received/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePayment(@PathVariable Long id) {
         paymentReceivedService.deletePayment(id);
         return ResponseEntity.noContent().build();
     }
-    
+
+    // POST /api/payments-received/{id}/void
     @PostMapping("/{id}/void")
     public ResponseEntity<PaymentReceivedDTO> voidPayment(@PathVariable Long id) {
-        PaymentReceivedDTO voided = paymentReceivedService.voidPayment(id);
-        return ResponseEntity.ok(voided);
+        return ResponseEntity.ok(paymentReceivedService.voidPayment(id));
     }
-    
+
+    // GET /api/payments-received/customer/{customerId}
     @GetMapping("/customer/{customerId}")
     public ResponseEntity<List<PaymentReceivedDTO>> getPaymentsByCustomer(@PathVariable Long customerId) {
-        List<PaymentReceivedDTO> payments = paymentReceivedService.getPaymentsByCustomer(customerId);
-        return ResponseEntity.ok(payments);
+        return ResponseEntity.ok(paymentReceivedService.getPaymentsByCustomer(customerId));
     }
-    
+
+    // GET /api/payments-received/search?query=...
     @GetMapping("/search")
     public ResponseEntity<List<PaymentReceivedDTO>> searchPayments(@RequestParam String query) {
-        List<PaymentReceivedDTO> payments = paymentReceivedService.searchPayments(query);
-        return ResponseEntity.ok(payments);
+        return ResponseEntity.ok(paymentReceivedService.searchPayments(query));
     }
-    
+
+    // GET /api/payments-received/date-range?startDate=...&endDate=...
     @GetMapping("/date-range")
     public ResponseEntity<List<PaymentReceivedDTO>> getPaymentsByDateRange(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        List<PaymentReceivedDTO> payments = paymentReceivedService.getPaymentsByDateRange(startDate, endDate);
-        return ResponseEntity.ok(payments);
+        return ResponseEntity.ok(paymentReceivedService.getPaymentsByDateRange(startDate, endDate));
     }
 }
