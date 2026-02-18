@@ -1,16 +1,17 @@
 package com.feed.feedv4.repository;
 
-import com.feed.feedv4.model.PaymentMade;
-import com.feed.feedv4.model.PaymentMade.PaymentStatus;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
+import com.feed.feedv4.model.PaymentMade;
+import com.feed.feedv4.model.PaymentMade.PaymentStatus;
 
 @Repository
 public interface PaymentMadeRepository extends JpaRepository<PaymentMade, Long> {
@@ -47,7 +48,11 @@ public interface PaymentMadeRepository extends JpaRepository<PaymentMade, Long> 
     @Query("""
         SELECT COALESCE(SUM(p.excessAmount), 0)
         FROM PaymentMade p
-        WHERE p.vendorId = :vendorId
-    """)
+        WHERE p.vendorId = :vendorId 
+    """) 
     BigDecimal sumExcessByVendorId(@Param("vendorId") Long vendorId);
+
+    @Query("SELECT COALESCE(SUM(pm.unusedAmount), 0) FROM PaymentMade pm WHERE pm.vendorId = :vendorId AND pm.status != 'VOID'")
+    BigDecimal sumExcesByVendorId(@Param("vendorId") Long vendorId);
+    
 }

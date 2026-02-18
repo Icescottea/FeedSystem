@@ -1,16 +1,17 @@
 package com.feed.feedv4.repository;
 
-import com.feed.feedv4.model.Bill;
-import com.feed.feedv4.model.Bill.BillStatus;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
+import com.feed.feedv4.model.Bill;
+import com.feed.feedv4.model.Bill.BillStatus;
 
 @Repository
 public interface BillRepository extends JpaRepository<Bill, Long> {
@@ -55,4 +56,7 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
         WHERE b.vendorId = :vendorId
     """)
     BigDecimal sumOutstandingByVendorId(@Param("vendorId") Long vendorId);
+
+    @Query("SELECT COALESCE(SUM(b.balanceDue), 0) FROM Bill b WHERE b.vendorId = :vendorId AND b.balanceDue > 0")
+    BigDecimal sumOutstandinByVendorId(@Param("vendorId") Long vendorId);
 }

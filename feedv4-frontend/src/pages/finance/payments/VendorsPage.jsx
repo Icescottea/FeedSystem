@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+const API_BASE = `${API_BASE_URL}/api/vendors`;
+
 const VendorsPage = () => {
   const navigate = useNavigate();
   const [vendors, setVendors] = useState([]);
@@ -17,102 +20,48 @@ const VendorsPage = () => {
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/vendors');
-      // const data = await response.json();
-      
-      // Mock data
-      const mockData = [
-        {
-          id: 1,
-          name: 'Global Feed Supplies Ltd',
-          companyName: 'Global Feed Supplies Ltd',
-          email: 'info@globalfeed.com',
-          workPhone: '+94 11 234 5678',
-          payables: 450000,
-          unusedCredits: 0,
-          status: 'ACTIVE'
-        },
-        {
-          id: 2,
-          name: 'Premium Ingredients Co.',
-          companyName: 'Premium Ingredients Co.',
-          email: 'contact@premiumingredients.lk',
-          workPhone: '+94 77 123 4567',
-          payables: 280000,
-          unusedCredits: 15000,
-          status: 'ACTIVE'
-        },
-        {
-          id: 3,
-          name: 'ABC Raw Materials',
-          companyName: 'ABC Raw Materials Pvt Ltd',
-          email: 'sales@abcraw.com',
-          workPhone: '+94 31 222 3333',
-          payables: 0,
-          unusedCredits: 0,
-          status: 'ACTIVE'
-        },
-        {
-          id: 4,
-          name: 'Quality Nutrients Inc',
-          companyName: 'Quality Nutrients Inc',
-          email: 'info@qualitynutrients.com',
-          workPhone: '+94 11 567 8901',
-          payables: 125000,
-          unusedCredits: 5000,
-          status: 'INACTIVE'
-        },
-        {
-          id: 5,
-          name: 'Local Supplier Network',
-          companyName: 'Local Supplier Network',
-          email: 'contact@localsupplier.lk',
-          workPhone: '+94 77 999 8888',
-          payables: 95000,
-          unusedCredits: 0,
-          status: 'ACTIVE'
-        }
-      ];
-      
-      setVendors(mockData);
-      setLoading(false);
+      const response = await fetch(API_BASE);
+      if (!response.ok) throw new Error('Failed to fetch vendors');
+      const data = await response.json();
+      setVendors(data);
     } catch (error) {
       console.error('Error fetching vendors:', error);
+    } finally {
       setLoading(false);
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this vendor?')) return;
+    try {
+      const response = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to delete vendor');
+      }
+      fetchVendors();
+    } catch (error) {
+      alert('Error deleting vendor: ' + error.message);
+    }
+  };
+
   const filteredVendors = vendors.filter(vendor => {
-    const matchesSearch = 
-      vendor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vendor.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vendor.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vendor.workPhone.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    const name = vendor.vendorDisplayName || '';
+    const company = vendor.companyName || '';
+    const email = vendor.vendorEmail || '';
+    const phone = vendor.vendorPhone || '';
+    const matchesSearch =
+      name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      phone.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || vendor.status === statusFilter;
-    
     return matchesSearch && matchesStatus;
   });
 
   const totalPages = Math.ceil(filteredVendors.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedVendors = filteredVendors.slice(startIndex, startIndex + itemsPerPage);
-
-  const handleView = (id) => {
-    navigate(`/finance/payments/vendors/${id}`);
-  };
-
-  const handleEdit = (id) => {
-    navigate(`/finance/payments/vendors/${id}/edit`);
-  };
-
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this vendor?')) {
-      // TODO: Implement delete API call
-      console.log('Deleting vendor:', id);
-    }
-  };
 
   return (
     <div className="p-6">
@@ -146,13 +95,13 @@ const VendorsPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Total Payables</p>
           <p className="text-2xl font-bold text-red-600 mt-1">
-            LKR {vendors.reduce((sum, v) => sum + v.payables, 0).toLocaleString()}
+            LKR {vendors.reduce((sum, v) => sum + (parseFloat(v.payables) || 0), 0).toLocaleString()}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Unused Credits</p>
           <p className="text-2xl font-bold text-green-600 mt-1">
-            LKR {vendors.reduce((sum, v) => sum + v.unusedCredits, 0).toLocaleString()}
+            LKR {vendors.reduce((sum, v) => sum + (parseFloat(v.unusedCredits) || 0), 0).toLocaleString()}
           </p>
         </div>
       </div>
@@ -165,14 +114,14 @@ const VendorsPage = () => {
               type="text"
               placeholder="Search by name, company, email, or phone..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <div className="w-full md:w-48">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
@@ -189,7 +138,9 @@ const VendorsPage = () => {
           <div className="p-8 text-center text-gray-500">Loading vendors...</div>
         ) : paginatedVendors.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            {searchQuery || statusFilter !== 'all' ? 'No vendors found matching your filters.' : 'No vendors yet. Create your first vendor!'}
+            {searchQuery || statusFilter !== 'all'
+              ? 'No vendors found matching your filters.'
+              : 'No vendors yet. Create your first vendor!'}
           </div>
         ) : (
           <>
@@ -211,32 +162,30 @@ const VendorsPage = () => {
                   {paginatedVendors.map((vendor) => (
                     <tr key={vendor.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{vendor.name}</div>
+                        <div className="text-sm font-medium text-gray-900">{vendor.vendorDisplayName}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-600">{vendor.companyName}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-600">{vendor.email}</div>
+                        <div className="text-sm text-gray-600">{vendor.vendorEmail}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-600">{vendor.workPhone}</div>
+                        <div className="text-sm text-gray-600">{vendor.vendorPhone}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`text-sm font-medium ${vendor.payables > 0 ? 'text-red-600' : 'text-gray-500'}`}>
-                          LKR {vendor.payables.toLocaleString()}
+                        <div className={`text-sm font-medium ${parseFloat(vendor.payables) > 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                          LKR {(parseFloat(vendor.payables) || 0).toLocaleString()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className={`text-sm font-medium ${vendor.unusedCredits > 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                          LKR {vendor.unusedCredits.toLocaleString()}
+                        <div className={`text-sm font-medium ${parseFloat(vendor.unusedCredits) > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                          LKR {(parseFloat(vendor.unusedCredits) || 0).toLocaleString()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          vendor.status === 'ACTIVE' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-gray-100 text-gray-800'
+                          vendor.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                         }`}>
                           {vendor.status}
                         </span>
@@ -244,13 +193,13 @@ const VendorsPage = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleView(vendor.id)}
+                            onClick={() => navigate(`/finance/payments/vendors/${vendor.id}`)}
                             className="text-blue-600 hover:text-blue-800 font-medium"
                           >
                             View
                           </button>
                           <button
-                            onClick={() => handleEdit(vendor.id)}
+                            onClick={() => navigate(`/finance/payments/vendors/${vendor.id}/edit`)}
                             className="text-green-600 hover:text-green-800 font-medium"
                           >
                             Edit

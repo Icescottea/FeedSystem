@@ -1,21 +1,23 @@
 package com.feed.feedv4.service;
 
-import com.feed.feedv4.dto.VendorDTO;
-import com.feed.feedv4.dto.ContactPersonDTO;
-import com.feed.feedv4.model.Vendor;
-import com.feed.feedv4.model.ContactPerson;
-import com.feed.feedv4.repository.VendorRepository;
-import com.feed.feedv4.repository.ContactPersonRepository;
-import com.feed.feedv4.repository.BillRepository;
-import com.feed.feedv4.repository.PurchaseOrderRepository;
-import com.feed.feedv4.repository.PaymentMadeRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.feed.feedv4.dto.ContactPersonDTO;
+import com.feed.feedv4.dto.VendorDTO;
+import com.feed.feedv4.model.ContactPerson;
+import com.feed.feedv4.model.Vendor;
+import com.feed.feedv4.repository.BillRepository;
+import com.feed.feedv4.repository.ContactPersonRepository;
+import com.feed.feedv4.repository.PaymentMadeRepository;
+import com.feed.feedv4.repository.PurchaseOrderRepository;
+import com.feed.feedv4.repository.VendorRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -148,12 +150,12 @@ public class VendorService {
     
     private BigDecimal calculatePayables(Long vendorId) {
         // Sum all outstanding bills for this vendor
-        return billRepository.sumOutstandingByVendorId(vendorId);
+        return billRepository.sumOutstandinByVendorId(vendorId);
     }
     
     private BigDecimal calculateUnusedCredits(Long vendorId) {
         // Sum all excess payments for this vendor
-        return paymentMadeRepository.sumExcessByVendorId(vendorId);
+        return paymentMadeRepository.sumExcesByVendorId(vendorId);
     }
     
     private VendorDTO convertToDTO(Vendor vendor) {
