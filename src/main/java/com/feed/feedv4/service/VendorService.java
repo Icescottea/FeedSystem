@@ -150,12 +150,12 @@ public class VendorService {
     
     private BigDecimal calculatePayables(Long vendorId) {
         // Sum all outstanding bills for this vendor
-        return billRepository.sumOutstandinByVendorId(vendorId);
+        return billRepository.sumOutstandingByVendorId(vendorId);
     }
     
     private BigDecimal calculateUnusedCredits(Long vendorId) {
         // Sum all excess payments for this vendor
-        return paymentMadeRepository.sumExcesByVendorId(vendorId);
+        return paymentMadeRepository.sumExcessByVendorId(vendorId);
     }
     
     private VendorDTO convertToDTO(Vendor vendor) {

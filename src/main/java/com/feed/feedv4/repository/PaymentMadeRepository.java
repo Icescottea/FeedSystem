@@ -15,37 +15,46 @@ import com.feed.feedv4.model.PaymentMade.PaymentStatus;
 
 @Repository
 public interface PaymentMadeRepository extends JpaRepository<PaymentMade, Long> {
-    
+
     Optional<PaymentMade> findByPaymentNumber(String paymentNumber);
-    
+
     List<PaymentMade> findByVendorId(Long vendorId);
-    
+
     List<PaymentMade> findByStatus(PaymentStatus status);
-    
-    @Query("SELECT pm FROM PaymentMade pm WHERE " +
-           "LOWER(pm.paymentNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(pm.referenceNumber) LIKE LOWER(CONCAT('%', :search, '%'))")
+
+    @Query("""
+        SELECT pm FROM PaymentMade pm WHERE
+        LOWER(pm.paymentNumber) LIKE LOWER(CONCAT('%', :search, '%'))
+        OR LOWER(pm.referenceNumber) LIKE LOWER(CONCAT('%', :search, '%'))
+    """)
     List<PaymentMade> searchPayments(@Param("search") String search);
-    
-    @Query("SELECT pm FROM PaymentMade pm WHERE " +
-           "pm.paymentDate BETWEEN :startDate AND :endDate")
+
+    @Query("""
+        SELECT pm FROM PaymentMade pm
+        WHERE pm.paymentDate BETWEEN :startDate AND :endDate
+    """)
     List<PaymentMade> findByPaymentDateBetween(
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate
     );
-    
+
     @Query("SELECT COUNT(pm) FROM PaymentMade pm WHERE pm.status = :status")
     Long countByStatus(@Param("status") PaymentStatus status);
-    
+
     @Query("SELECT COALESCE(SUM(pm.paymentMade), 0) FROM PaymentMade pm WHERE pm.status = 'PAID'")
     BigDecimal sumTotalPaidPayments();
-    
+
     @Query("SELECT COALESCE(SUM(pm.amountInExcess), 0) FROM PaymentMade pm WHERE pm.status = 'PAID'")
     BigDecimal sumTotalUnusedAmount();
-    
+
     boolean existsByPaymentNumber(String paymentNumber);
 
-    @Query("SELECT COALESCE(SUM(pm.unusedAmount), 0) FROM PaymentMade pm WHERE pm.vendorId = :vendorId AND pm.status != 'VOID'")
-    BigDecimal sumExcesByVendorId(@Param("vendorId") Long vendorId);
-    
+    @Query("""
+        SELECT COALESCE(SUM(pm.amountInExcess), 0)
+        FROM PaymentMade pm
+        WHERE pm.vendorId = :vendorId
+          AND pm.status != 'VOID'
+    """)
+    BigDecimal sumExcessByVendorId(@Param("vendorId") Long vendorId);
+
 }
