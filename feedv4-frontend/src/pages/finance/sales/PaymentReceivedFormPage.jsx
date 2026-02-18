@@ -55,7 +55,7 @@ const PaymentReceivedFormPage = () => {
 
   const fetchAccounts = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/accounts`);
+      const response = await fetch(`${API_BASE_URL}/api/accounts`);
       if (!response.ok) throw new Error('Failed to fetch accounts');
       const data = await response.json();
       setAccounts(data);
