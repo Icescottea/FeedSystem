@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-const API_BASE = '/api/sales-receipts';
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+const API_BASE = `${API_BASE_URL}/api/sales-receipts`;
 
 const SalesReceiptFormPage = () => {
   const navigate = useNavigate();
@@ -61,7 +62,7 @@ const SalesReceiptFormPage = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await fetch('/api/customers');
+      const response = await fetch(`${API_BASE_URL}/api/customers`);
       if (!response.ok) throw new Error('Failed to fetch customers');
       const data = await response.json();
       setCustomers(data);
@@ -72,7 +73,7 @@ const SalesReceiptFormPage = () => {
 
   const fetchAccounts = async () => {
     try {
-      const response = await fetch('/api/accounts');
+      const response = await fetch(`${API_BASE_URL}/api/accounts`);
       if (!response.ok) throw new Error('Failed to fetch accounts');
       const data = await response.json();
       setAccounts(data);
