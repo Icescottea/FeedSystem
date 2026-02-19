@@ -1,19 +1,21 @@
 package com.feed.feedv4.service;
 
-import com.feed.feedv4.dto.BillDTO;
-import com.feed.feedv4.dto.BillItemDTO;
-import com.feed.feedv4.model.Bill;
-import com.feed.feedv4.model.BillItem;
-import com.feed.feedv4.repository.BillRepository;
-import com.feed.feedv4.repository.BillItemRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.feed.feedv4.dto.BillDTO;
+import com.feed.feedv4.dto.BillItemDTO;
+import com.feed.feedv4.model.Bill;
+import com.feed.feedv4.model.BillItem;
+import com.feed.feedv4.repository.BillItemRepository;
+import com.feed.feedv4.repository.BillRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -276,6 +278,9 @@ public class BillService {
     }
     
     private Bill convertToEntity(BillDTO dto) {
+        // Explicitly set all BigDecimal fields to ZERO — Lombok @Builder ignores
+        // @Builder.Default when values are set via builder, so omitting them leaves them null.
+        // @PrePersist calls calculateBalanceDue() (total - amountPaid) which NPEs if either is null.
         Bill bill = Bill.builder()
             .billNumber(dto.getBillNumber())
             .orderNumber(dto.getOrderNumber())
@@ -283,12 +288,17 @@ public class BillService {
             .vendorId(dto.getVendorId())
             .billDate(dto.getBillDate())
             .dueDate(dto.getDueDate())
-            .paymentTerms(dto.getPaymentTerms() != null ? Bill.PaymentTerms.valueOf(dto.getPaymentTerms()) : null)
-            .accountsPayable(dto.getAccountsPayable() != null ? Bill.AccountsPayable.valueOf(dto.getAccountsPayable()) : null)
+            .paymentTerms(dto.getPaymentTerms() != null ? Bill.PaymentTerms.valueOf(dto.getPaymentTerms()) : Bill.PaymentTerms.NET_30)
+            .accountsPayable(dto.getAccountsPayable() != null ? Bill.AccountsPayable.valueOf(dto.getAccountsPayable()) : Bill.AccountsPayable.ACCOUNTS_PAYABLE)
             .subject(dto.getSubject())
-            .taxInclusive(dto.getTaxInclusive())
-            .discount(dto.getDiscount())
-            .discountType(dto.getDiscountType() != null ? Bill.DiscountType.valueOf(dto.getDiscountType()) : null)
+            .taxInclusive(dto.getTaxInclusive() != null ? dto.getTaxInclusive() : false)
+            .subtotal(BigDecimal.ZERO)
+            .discount(dto.getDiscount() != null ? dto.getDiscount() : BigDecimal.ZERO)
+            .discountType(dto.getDiscountType() != null ? Bill.DiscountType.valueOf(dto.getDiscountType()) : Bill.DiscountType.PERCENTAGE)
+            .tax(BigDecimal.ZERO)
+            .total(BigDecimal.ZERO)
+            .amountPaid(BigDecimal.ZERO)
+            .balanceDue(BigDecimal.ZERO)
             .status(dto.getStatus() != null ? Bill.BillStatus.valueOf(dto.getStatus()) : Bill.BillStatus.DRAFT)
             .notes(dto.getNotes())
             .attachments(dto.getAttachments())
@@ -309,12 +319,12 @@ public class BillService {
         return BillItem.builder()
             .itemDetails(dto.getItemDetails())
             .account(dto.getAccount())
-            .quantity(dto.getQuantity())
-            .rate(dto.getRate())
-            .taxRate(dto.getTaxRate())
+            .quantity(dto.getQuantity() != null ? dto.getQuantity() : BigDecimal.ZERO)
+            .rate(dto.getRate() != null ? dto.getRate() : BigDecimal.ZERO)
+            .taxRate(dto.getTaxRate() != null ? dto.getTaxRate() : BigDecimal.ZERO)
             .customerDetails(dto.getCustomerDetails())
-            .amount(dto.getAmount())
-            .sequence(dto.getSequence())
+            .amount(dto.getAmount() != null ? dto.getAmount() : BigDecimal.ZERO)
+            .sequence(dto.getSequence() != null ? dto.getSequence() : 0)
             .build();
     }
     
