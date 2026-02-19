@@ -200,18 +200,37 @@ const BillFormPage = () => {
     try {
       setLoading(true);
 
+      const subtotal = calcSubtotal();
+      const taxAmount = calcTax();
+      const discountVal = parseFloat(formData.discount) || 0;
+      const totalVal = calcTotal();
+
       const payload = {
-        ...formData,
+        // Only include billNumber on edit
+        ...(isEditMode ? { billNumber: formData.billNumber } : {}),
+        orderNumber: formData.orderNumber || '',
+        referenceNumber: formData.referenceNumber || '',
         vendorId: parseInt(formData.vendorId),
-        discount: parseFloat(formData.discount) || 0,
-        subtotal: calcSubtotal(),
-        tax: calcTax(),
-        total: calcTotal(),
+        vendorName: formData.vendorName || '',
+        billDate: formData.billDate,
+        dueDate: formData.dueDate,
+        paymentTerms: formData.paymentTerms,
+        accountsPayable: formData.accountsPayable,
+        subject: formData.subject || '',
+        taxInclusive: Boolean(formData.taxInclusive),
+        discount: discountVal,
+        discountType: formData.discountType,
+        subtotal,
+        tax: taxAmount,
+        total: totalVal,
+        amountPaid: 0,
+        balanceDue: totalVal,
+        notes: formData.notes || '',
         status: saveType === 'draft' ? 'DRAFT' : 'OPEN',
         items: items.map((item, i) => ({
-          id: typeof item.id === 'number' ? item.id : undefined,
-          itemDetails: item.itemDetails,
-          account: item.account,
+          ...(typeof item.id === 'number' ? { id: item.id } : {}),
+          itemDetails: item.itemDetails || '',
+          account: item.account || '',
           quantity: parseFloat(item.quantity) || 0,
           rate: parseFloat(item.rate) || 0,
           taxRate: parseFloat(item.taxRate) || 0,
@@ -220,11 +239,6 @@ const BillFormPage = () => {
           sequence: i,
         })),
       };
-
-      // On create, don't send billNumber — backend auto-generates it
-      if (!isEditMode) {
-        delete payload.billNumber;
-      }
 
       const url = isEditMode ? `${API_BASE}/${id}` : API_BASE;
       const method = isEditMode ? 'PUT' : 'POST';
