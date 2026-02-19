@@ -62,10 +62,20 @@ const BillFormPage = () => {
       const response = await fetch(`${API_BASE_URL}/api/vendors/active`);
       if (!response.ok) return;
       const data = await response.json();
+      // Vendor paymentTerms is stored as days string ("30", "15", etc.)
+      // Map to Bill.PaymentTerms enum values
+      const vendorTermsMap = {
+        '0': 'DUE_ON_RECEIPT',
+        '15': 'NET_15',
+        '30': 'NET_30',
+        '45': 'NET_45',
+        '60': 'NET_60',
+        '90': 'NET_90',
+      };
       setVendors(data.map(v => ({
         id: v.id,
         name: v.vendorDisplayName || v.companyName || `Vendor #${v.id}`,
-        paymentTerms: v.paymentTerms || 'NET_30',
+        paymentTerms: vendorTermsMap[v.paymentTerms] || 'NET_30',
       })));
     } catch (error) {
       console.error('Error fetching vendors:', error);
