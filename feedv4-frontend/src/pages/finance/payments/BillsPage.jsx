@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+const API_BASE = `${API_BASE_URL}/api/bills`;
+
+const getStatusBadge = (status) => {
+  const config = {
+    DRAFT: { cls: 'bg-gray-100 text-gray-800', label: 'DRAFT' },
+    OPEN: { cls: 'bg-blue-100 text-blue-800', label: 'OPEN' },
+    PARTIALLY_PAID: { cls: 'bg-yellow-100 text-yellow-800', label: 'Partially Paid' },
+    PAID: { cls: 'bg-green-100 text-green-800', label: 'PAID' },
+    OVERDUE: { cls: 'bg-red-100 text-red-800', label: 'OVERDUE' },
+    VOID: { cls: 'bg-gray-100 text-gray-600', label: 'VOID' },
+  };
+  const c = config[status] || config.DRAFT;
+  return { className: `px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${c.cls}`, label: c.label };
+};
+
 const BillsPage = () => {
   const navigate = useNavigate();
   const [bills, setBills] = useState([]);
@@ -17,140 +33,57 @@ const BillsPage = () => {
   const fetchBills = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/bills');
-      // const data = await response.json();
-      
-      // Mock data
-      const mockData = [
-        {
-          id: 1,
-          date: '2024-12-15',
-          billNumber: 'BILL-2024-001',
-          referenceNumber: 'REF-001',
-          vendorName: 'Global Feed Supplies Ltd',
-          status: 'OPEN',
-          dueDate: '2025-01-14',
-          amount: 478800,
-          balanceDue: 478800
-        },
-        {
-          id: 2,
-          date: '2024-12-10',
-          billNumber: 'BILL-2024-002',
-          referenceNumber: 'REF-002',
-          vendorName: 'Premium Ingredients Co.',
-          status: 'PARTIALLY_PAID',
-          dueDate: '2025-01-09',
-          amount: 315600,
-          balanceDue: 150000
-        },
-        {
-          id: 3,
-          date: '2024-12-08',
-          billNumber: 'BILL-2024-003',
-          referenceNumber: '',
-          vendorName: 'ABC Raw Materials',
-          status: 'PAID',
-          dueDate: '2025-01-07',
-          amount: 140000,
-          balanceDue: 0
-        },
-        {
-          id: 4,
-          date: '2024-11-28',
-          billNumber: 'BILL-2024-004',
-          referenceNumber: 'REF-004',
-          vendorName: 'Quality Nutrients Inc',
-          status: 'OVERDUE',
-          dueDate: '2024-12-28',
-          amount: 392000,
-          balanceDue: 392000
-        },
-        {
-          id: 5,
-          date: '2024-11-20',
-          billNumber: 'BILL-2024-005',
-          referenceNumber: 'REF-005',
-          vendorName: 'Local Supplier Network',
-          status: 'DRAFT',
-          dueDate: '2024-12-20',
-          amount: 106400,
-          balanceDue: 106400
-        },
-        {
-          id: 6,
-          date: '2024-11-15',
-          billNumber: 'BILL-2024-006',
-          referenceNumber: '',
-          vendorName: 'Global Feed Supplies Ltd',
-          status: 'VOID',
-          dueDate: '2024-12-15',
-          amount: 225000,
-          balanceDue: 0
-        }
-      ];
-      
-      setBills(mockData);
-      setLoading(false);
+      const response = await fetch(API_BASE);
+      if (!response.ok) throw new Error('Failed to fetch bills');
+      const data = await response.json();
+      setBills(data);
     } catch (error) {
       console.error('Error fetching bills:', error);
+    } finally {
       setLoading(false);
     }
   };
 
+  const handleClone = async (id) => {
+    try {
+      const response = await fetch(`${API_BASE}/${id}/clone`, { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to clone bill');
+      const cloned = await response.json();
+      navigate(`/finance/payments/bills/${cloned.id}/edit`);
+    } catch (error) {
+      alert('Error cloning bill: ' + error.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this bill?')) return;
+    try {
+      const response = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to delete bill');
+      }
+      fetchBills();
+    } catch (error) {
+      alert('Error deleting bill: ' + error.message);
+    }
+  };
+
   const filteredBills = bills.filter(bill => {
-    const matchesSearch = 
-      bill.billNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      bill.referenceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      bill.vendorName.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    const billNum = bill.billNumber || '';
+    const ref = bill.referenceNumber || '';
+    const vendor = bill.vendorName || '';
+    const matchesSearch =
+      billNum.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ref.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      vendor.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || bill.status === statusFilter;
-    
     return matchesSearch && matchesStatus;
   });
 
   const totalPages = Math.ceil(filteredBills.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedBills = filteredBills.slice(startIndex, startIndex + itemsPerPage);
-
-  const handleView = (id) => {
-    navigate(`/finance/payments/bills/${id}`);
-  };
-
-  const handleEdit = (id) => {
-    navigate(`/finance/payments/bills/${id}/edit`);
-  };
-
-  const handleClone = (id) => {
-    // TODO: Implement clone API call
-    console.log('Cloning bill:', id);
-    navigate('/finance/payments/bills/new');
-  };
-
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this bill?')) {
-      // TODO: Implement delete API call
-      console.log('Deleting bill:', id);
-      setBills(bills.filter(b => b.id !== id));
-    }
-  };
-
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      DRAFT: { bg: 'bg-gray-100', text: 'text-gray-800' },
-      OPEN: { bg: 'bg-blue-100', text: 'text-blue-800' },
-      PARTIALLY_PAID: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Partially Paid' },
-      PAID: { bg: 'bg-green-100', text: 'text-green-800' },
-      OVERDUE: { bg: 'bg-red-100', text: 'text-red-800' },
-      VOID: { bg: 'bg-gray-100', text: 'text-gray-600' }
-    };
-    const config = statusConfig[status] || statusConfig.DRAFT;
-    return { 
-      className: `px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${config.bg} ${config.text}`,
-      label: config.label || status
-    };
-  };
 
   return (
     <div className="p-6">
@@ -190,12 +123,12 @@ const BillsPage = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <p className="text-gray-600 text-sm">Total Balance Due</p>
           <p className="text-2xl font-bold text-red-600 mt-1">
-            LKR {bills.reduce((sum, b) => sum + b.balanceDue, 0).toLocaleString()}
+            LKR {bills.reduce((sum, b) => sum + (parseFloat(b.balanceDue) || 0), 0).toLocaleString()}
           </p>
         </div>
       </div>
 
-      {/* Filters and Search */}
+      {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
@@ -203,16 +136,13 @@ const BillsPage = () => {
               type="text"
               placeholder="Search by bill number, reference, or vendor name..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <div className="w-full md:w-48">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
+            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
               <option value="all">All Status</option>
               <option value="DRAFT">Draft</option>
               <option value="OPEN">Open</option>
@@ -225,14 +155,14 @@ const BillsPage = () => {
         </div>
       </div>
 
-      {/* Bills Table */}
+      {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-500">Loading bills...</div>
         ) : paginatedBills.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            {searchQuery || statusFilter !== 'all' 
-              ? 'No bills found matching your filters.' 
+            {searchQuery || statusFilter !== 'all'
+              ? 'No bills found matching your filters.'
               : 'No bills yet. Create your first bill!'}
           </div>
         ) : (
@@ -241,90 +171,61 @@ const BillsPage = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bill Number</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance Due</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    {['Date', 'Bill Number', 'Reference', 'Vendor Name', 'Status', 'Due Date', 'Amount', 'Balance Due', 'Actions'].map(h => (
+                      <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {paginatedBills.map((bill) => {
-                    const statusBadge = getStatusBadge(bill.status);
-                    const isOverdue = new Date(bill.dueDate) < new Date() && bill.balanceDue > 0 && bill.status !== 'PAID' && bill.status !== 'VOID';
-                    
+                    const badge = getStatusBadge(bill.status);
+                    const balanceDue = parseFloat(bill.balanceDue) || 0;
+                    const isOverdue = bill.dueDate && new Date(bill.dueDate) < new Date() && balanceDue > 0
+                      && bill.status !== 'PAID' && bill.status !== 'VOID';
                     return (
                       <tr key={bill.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-800">
-                            {new Date(bill.date).toLocaleDateString()}
-                          </div>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                          {bill.billDate ? new Date(bill.billDate).toLocaleDateString() : '—'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-blue-600 cursor-pointer hover:text-blue-800"
-                               onClick={() => handleView(bill.id)}>
+                            onClick={() => navigate(`/finance/payments/bills/${bill.id}`)}>
                             {bill.billNumber}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-600">
-                            {bill.referenceNumber || '-'}
-                          </div>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {bill.referenceNumber || '—'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                          {bill.vendorName || `Vendor #${bill.vendorId}`}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-800">{bill.vendorName}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={statusBadge.className}>
-                            {statusBadge.label}
-                          </span>
+                          <span className={badge.className}>{badge.label}</span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className={`text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
-                            {new Date(bill.dueDate).toLocaleDateString()}
+                            {bill.dueDate ? new Date(bill.dueDate).toLocaleDateString() : '—'}
                             {isOverdue && <span className="ml-1">⚠</span>}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-800">
-                            LKR {bill.amount.toLocaleString()}
-                          </div>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                          LKR {(parseFloat(bill.total) || 0).toLocaleString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className={`text-sm font-medium ${bill.balanceDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                            LKR {bill.balanceDue.toLocaleString()}
+                          <div className={`text-sm font-medium ${balanceDue > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            LKR {balanceDue.toLocaleString()}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <div className="flex gap-2">
-                            <button
-                              onClick={() => handleView(bill.id)}
-                              className="text-blue-600 hover:text-blue-800 font-medium"
-                            >
-                              View
-                            </button>
-                            <button
-                              onClick={() => handleEdit(bill.id)}
-                              className="text-green-600 hover:text-green-800 font-medium"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleClone(bill.id)}
-                              className="text-purple-600 hover:text-purple-800 font-medium"
-                            >
-                              Clone
-                            </button>
-                            <button
-                              onClick={() => handleDelete(bill.id)}
-                              className="text-red-600 hover:text-red-800 font-medium"
-                            >
-                              Delete
-                            </button>
+                            <button onClick={() => navigate(`/finance/payments/bills/${bill.id}`)}
+                              className="text-blue-600 hover:text-blue-800 font-medium">View</button>
+                            <button onClick={() => navigate(`/finance/payments/bills/${bill.id}/edit`)}
+                              className="text-green-600 hover:text-green-800 font-medium">Edit</button>
+                            <button onClick={() => handleClone(bill.id)}
+                              className="text-purple-600 hover:text-purple-800 font-medium">Clone</button>
+                            <button onClick={() => handleDelete(bill.id)}
+                              className="text-red-600 hover:text-red-800 font-medium">Delete</button>
                           </div>
                         </td>
                       </tr>
@@ -334,42 +235,24 @@ const BillsPage = () => {
               </table>
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
                 <div className="text-sm text-gray-600">
                   Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredBills.length)} of {filteredBills.length} bills
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
+                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
                   <div className="flex gap-1">
                     {[...Array(totalPages)].map((_, i) => (
-                      <button
-                        key={i + 1}
-                        onClick={() => setCurrentPage(i + 1)}
-                        className={`px-3 py-1 border rounded ${
-                          currentPage === i + 1
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
+                      <button key={i + 1} onClick={() => setCurrentPage(i + 1)}
+                        className={`px-3 py-1 border rounded ${currentPage === i + 1 ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 hover:bg-gray-50'}`}>
                         {i + 1}
                       </button>
                     ))}
                   </div>
-                  <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
                 </div>
               </div>
             )}
