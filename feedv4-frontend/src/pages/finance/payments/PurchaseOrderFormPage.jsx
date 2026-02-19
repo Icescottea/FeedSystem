@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+const API_BASE = `${API_BASE_URL}/api/purchase-orders`;
+
 const PurchaseOrderFormPage = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -11,32 +14,23 @@ const PurchaseOrderFormPage = () => {
     vendorName: '',
     purchaseOrderNumber: '',
     referenceNumber: '',
-    date: new Date().toISOString().split('T')[0],
+    orderDate: new Date().toISOString().split('T')[0],
     deliveryDate: '',
     deliveryAddress: '',
     shipmentPreference: 'ROAD',
     paymentTerms: 'NET_30',
     taxInclusive: false,
     discount: 0,
-    discountType: 'PERCENTAGE', // PERCENTAGE or AMOUNT
+    discountType: 'PERCENTAGE',
     notes: '',
     termsAndConditions: '',
-    status: 'DRAFT'
+    status: 'DRAFT',
   });
 
   const [items, setItems] = useState([
-    {
-      id: 1,
-      itemDetails: '',
-      account: '',
-      quantity: 1,
-      rate: 0,
-      tax: '0',
-      amount: 0
-    }
+    { tempId: Date.now(), itemDetails: '', account: '', quantity: 1, rate: 0, taxRate: 0, amount: 0, sequence: 0 },
   ]);
 
-  const [attachments, setAttachments] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -44,228 +38,199 @@ const PurchaseOrderFormPage = () => {
     fetchVendors();
     if (isEditMode) {
       fetchPurchaseOrder();
-    } else {
-      generatePONumber();
     }
   }, [id]);
 
+  // ─── DATA FETCHING ────────────────────────────────────────────────────────
+
   const fetchVendors = async () => {
     try {
-      // TODO: Replace with actual API call
-      const mockVendors = [
-        { id: 1, name: 'Global Feed Supplies Ltd', address: '123 Industrial Zone, Colombo' },
-        { id: 2, name: 'Premium Ingredients Co.', address: '456 Commerce Street, Negombo' },
-        { id: 3, name: 'ABC Raw Materials', address: '789 Trade Center, Kandy' },
-        { id: 4, name: 'Quality Nutrients Inc', address: '321 Business Park, Galle' },
-        { id: 5, name: 'Local Supplier Network', address: '654 Market Road, Matara' }
-      ];
-      setVendors(mockVendors);
+      const response = await fetch(`${API_BASE_URL}/api/vendors/active`);
+      if (!response.ok) return;
+      const data = await response.json();
+      setVendors(data.map(v => ({
+        id: v.id,
+        name: v.vendorDisplayName || v.companyName || `Vendor #${v.id}`,
+        address: [v.billingStreet, v.billingCity, v.billingState, v.billingCountry].filter(Boolean).join(', '),
+      })));
     } catch (error) {
       console.error('Error fetching vendors:', error);
-    }
-  };
-
-  const generatePONumber = async () => {
-    try {
-      // TODO: Replace with actual API call to generate PO number
-      const poNumber = `PO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
-      setFormData(prev => ({ ...prev, purchaseOrderNumber: poNumber }));
-    } catch (error) {
-      console.error('Error generating PO number:', error);
     }
   };
 
   const fetchPurchaseOrder = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      const mockData = {
-        vendorId: '1',
-        vendorName: 'Global Feed Supplies Ltd',
-        purchaseOrderNumber: 'PO-2024-001',
-        referenceNumber: 'REF-001',
-        date: '2024-12-15',
-        deliveryDate: '2024-12-25',
-        deliveryAddress: '123 Industrial Zone, Colombo',
-        shipmentPreference: 'SEA',
-        paymentTerms: 'NET_30',
-        taxInclusive: false,
-        discount: 5,
-        discountType: 'PERCENTAGE',
-        notes: 'Urgent order - please expedite',
-        termsAndConditions: 'Standard terms apply',
-        status: 'DRAFT'
-      };
+      const response = await fetch(`${API_BASE}/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch purchase order');
+      const data = await response.json();
 
-      const mockItems = [
-        {
-          id: 1,
-          itemDetails: 'Corn - Yellow Grade A',
-          account: 'Raw Materials',
-          quantity: 1000,
-          rate: 250,
-          tax: '12',
-          amount: 250000
-        },
-        {
-          id: 2,
-          itemDetails: 'Wheat Bran',
-          account: 'Raw Materials',
-          quantity: 500,
-          rate: 400,
-          tax: '12',
-          amount: 200000
-        }
-      ];
+      setFormData({
+        vendorId: data.vendorId?.toString() || '',
+        vendorName: data.vendorName || '',
+        purchaseOrderNumber: data.purchaseOrderNumber || '',
+        referenceNumber: data.referenceNumber || '',
+        orderDate: data.orderDate || new Date().toISOString().split('T')[0],
+        deliveryDate: data.deliveryDate || '',
+        deliveryAddress: data.deliveryAddress || '',
+        shipmentPreference: data.shipmentPreference || 'ROAD',
+        paymentTerms: data.paymentTerms || 'NET_30',
+        taxInclusive: data.taxInclusive || false,
+        discount: parseFloat(data.discount) || 0,
+        discountType: data.discountType || 'PERCENTAGE',
+        notes: data.notes || '',
+        termsAndConditions: data.termsAndConditions || '',
+        status: data.status || 'DRAFT',
+      });
 
-      setFormData(mockData);
-      setItems(mockItems);
-      setLoading(false);
+      if (data.items && data.items.length > 0) {
+        setItems(data.items.map((item, i) => ({
+          ...item,
+          tempId: item.id || i,
+          quantity: parseFloat(item.quantity) || 1,
+          rate: parseFloat(item.rate) || 0,
+          taxRate: parseFloat(item.taxRate) || 0,
+          amount: parseFloat(item.amount) || 0,
+        })));
+      }
     } catch (error) {
       console.error('Error fetching purchase order:', error);
-      setLoading(false);
-    }
-  };
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
-
-  const handleVendorChange = (e) => {
-    const vendorId = e.target.value;
-    const vendor = vendors.find(v => v.id === parseInt(vendorId));
-    
-    setFormData(prev => ({
-      ...prev,
-      vendorId: vendorId,
-      vendorName: vendor ? vendor.name : '',
-      deliveryAddress: vendor ? vendor.address : prev.deliveryAddress
-    }));
-  };
-
-  const handleItemChange = (index, field, value) => {
-    const newItems = [...items];
-    newItems[index][field] = value;
-
-    // Calculate amount
-    if (field === 'quantity' || field === 'rate') {
-      const quantity = parseFloat(newItems[index].quantity) || 0;
-      const rate = parseFloat(newItems[index].rate) || 0;
-      newItems[index].amount = quantity * rate;
-    }
-
-    setItems(newItems);
-  };
-
-  const addItem = () => {
-    setItems([...items, {
-      id: Date.now(),
-      itemDetails: '',
-      account: '',
-      quantity: 1,
-      rate: 0,
-      tax: '0',
-      amount: 0
-    }]);
-  };
-
-  const removeItem = (index) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index));
-    }
-  };
-
-  const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-  };
-
-  const calculateDiscount = () => {
-    const subtotal = calculateSubtotal();
-    if (formData.discountType === 'PERCENTAGE') {
-      return (subtotal * parseFloat(formData.discount || 0)) / 100;
-    }
-    return parseFloat(formData.discount || 0);
-  };
-
-  const calculateTax = () => {
-    const subtotal = calculateSubtotal();
-    const discount = calculateDiscount();
-    const taxableAmount = subtotal - discount;
-    
-    return items.reduce((sum, item) => {
-      const itemAmount = parseFloat(item.amount) || 0;
-      const itemTaxRate = parseFloat(item.tax) || 0;
-      const itemPortion = taxableAmount > 0 ? itemAmount / subtotal : 0;
-      return sum + (taxableAmount * itemPortion * itemTaxRate / 100);
-    }, 0);
-  };
-
-  const calculateTotal = () => {
-    const subtotal = calculateSubtotal();
-    const discount = calculateDiscount();
-    const tax = formData.taxInclusive ? 0 : calculateTax();
-    return subtotal - discount + tax;
-  };
-
-  const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files);
-    const newAttachments = files.map(file => ({
-      id: Date.now() + Math.random(),
-      name: file.name,
-      size: file.size,
-      file: file
-    }));
-    setAttachments([...attachments, ...newAttachments]);
-  };
-
-  const removeAttachment = (id) => {
-    setAttachments(attachments.filter(a => a.id !== id));
-  };
-
-  const handleSubmit = async (saveType) => {
-    try {
-      setLoading(true);
-
-      const purchaseOrderData = {
-        ...formData,
-        items,
-        attachments: attachments.map(a => a.name),
-        subtotal: calculateSubtotal(),
-        discount: calculateDiscount(),
-        tax: calculateTax(),
-        total: calculateTotal(),
-        status: saveType === 'draft' ? 'DRAFT' : 'SENT'
-      };
-
-      // TODO: Replace with actual API call
-      console.log('Saving purchase order:', purchaseOrderData);
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      alert(
-        isEditMode 
-          ? 'Purchase order updated successfully!' 
-          : saveType === 'draft'
-            ? 'Purchase order saved as draft!'
-            : 'Purchase order saved and sent!'
-      );
-      navigate('/finance/payments/purchase-orders');
-
-    } catch (error) {
-      console.error('Error saving purchase order:', error);
-      alert('Error saving purchase order. Please try again.');
+      alert('Failed to load purchase order data.');
     } finally {
       setLoading(false);
     }
   };
 
+  // ─── HANDLERS ─────────────────────────────────────────────────────────────
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const handleVendorChange = (e) => {
+    const vendorId = e.target.value;
+    const vendor = vendors.find(v => v.id.toString() === vendorId);
+    setFormData(prev => ({
+      ...prev,
+      vendorId,
+      vendorName: vendor ? vendor.name : '',
+      deliveryAddress: vendor && vendor.address ? vendor.address : prev.deliveryAddress,
+    }));
+  };
+
+  const handleItemChange = (index, field, value) => {
+    const updated = [...items];
+    updated[index][field] = value;
+    // Recalculate amount when quantity or rate changes
+    if (field === 'quantity' || field === 'rate') {
+      const qty = parseFloat(updated[index].quantity) || 0;
+      const rate = parseFloat(updated[index].rate) || 0;
+      updated[index].amount = qty * rate;
+    }
+    setItems(updated);
+  };
+
+  const addItem = () => {
+    setItems([...items, {
+      tempId: Date.now(),
+      itemDetails: '', account: '',
+      quantity: 1, rate: 0, taxRate: 0, amount: 0,
+      sequence: items.length,
+    }]);
+  };
+
+  const removeItem = (index) => {
+    if (items.length > 1) setItems(items.filter((_, i) => i !== index));
+  };
+
+  // ─── CALCULATIONS ─────────────────────────────────────────────────────────
+
+  const calcSubtotal = () => items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+
+  const calcDiscountAmount = () => {
+    const subtotal = calcSubtotal();
+    const d = parseFloat(formData.discount) || 0;
+    return formData.discountType === 'PERCENTAGE' ? (subtotal * d) / 100 : d;
+  };
+
+  const calcTax = () => {
+    if (formData.taxInclusive) return 0;
+    const subtotal = calcSubtotal();
+    const afterDiscount = subtotal - calcDiscountAmount();
+    return items.reduce((sum, item) => {
+      const itemAmount = parseFloat(item.amount) || 0;
+      const taxRate = parseFloat(item.taxRate) || 0;
+      const portion = subtotal > 0 ? itemAmount / subtotal : 0;
+      return sum + (afterDiscount * portion * taxRate / 100);
+    }, 0);
+  };
+
+  const calcTotal = () => calcSubtotal() - calcDiscountAmount() + calcTax();
+
+  // ─── SUBMIT ───────────────────────────────────────────────────────────────
+
+  const handleSubmit = async (saveType) => {
+    if (!formData.vendorId) { alert('Please select a vendor.'); return; }
+    if (!formData.deliveryDate) { alert('Please enter a delivery date.'); return; }
+
+    try {
+      setLoading(true);
+
+      const payload = {
+        ...formData,
+        // Backend expects orderDate not date
+        orderDate: formData.orderDate,
+        vendorId: parseInt(formData.vendorId),
+        discount: parseFloat(formData.discount) || 0,
+        subtotal: calcSubtotal(),
+        tax: calcTax(),
+        total: calcTotal(),
+        status: saveType === 'draft' ? 'DRAFT' : 'SENT',
+        items: items.map((item, i) => ({
+          id: typeof item.id === 'number' ? item.id : undefined,
+          itemDetails: item.itemDetails,
+          account: item.account,
+          quantity: parseFloat(item.quantity) || 0,
+          rate: parseFloat(item.rate) || 0,
+          taxRate: parseFloat(item.taxRate) || 0,
+          amount: parseFloat(item.amount) || 0,
+          sequence: i,
+        })),
+      };
+
+      // On create, don't send purchaseOrderNumber — backend auto-generates it
+      if (!isEditMode) {
+        delete payload.purchaseOrderNumber;
+      }
+
+      const url = isEditMode ? `${API_BASE}/${id}` : API_BASE;
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to save purchase order');
+      }
+
+      navigate('/finance/payments/purchase-orders');
+    } catch (error) {
+      console.error('Error saving purchase order:', error);
+      alert('Error saving purchase order: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── RENDER ───────────────────────────────────────────────────────────────
+
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">
           {isEditMode ? 'Edit Purchase Order' : 'New Purchase Order'}
@@ -275,9 +240,9 @@ const PurchaseOrderFormPage = () => {
         </p>
       </div>
 
-      {/* Form */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 space-y-6">
+
           {/* Basic Information */}
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h3>
@@ -286,102 +251,63 @@ const PurchaseOrderFormPage = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Vendor Name <span className="text-red-500">*</span>
                 </label>
-                <select
-                  name="vendorId"
-                  value={formData.vendorId}
-                  onChange={handleVendorChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
+                <select name="vendorId" value={formData.vendorId} onChange={handleVendorChange} required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   <option value="">Select Vendor</option>
-                  {vendors.map(vendor => (
-                    <option key={vendor.id} value={vendor.id}>{vendor.name}</option>
+                  {vendors.map(v => (
+                    <option key={v.id} value={v.id.toString()}>{v.name}</option>
                   ))}
                 </select>
               </div>
+
+              {isEditMode && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Purchase Order Number</label>
+                  <input type="text" name="purchaseOrderNumber" value={formData.purchaseOrderNumber}
+                    onChange={handleChange} readOnly
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed" />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Reference Number</label>
+                <input type="text" name="referenceNumber" value={formData.referenceNumber}
+                  onChange={handleChange} placeholder="REF-001"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Purchase Order Number <span className="text-red-500">*</span>
+                  Order Date <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  name="purchaseOrderNumber"
-                  value={formData.purchaseOrderNumber}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="PO-2024-001"
-                />
+                <input type="date" name="orderDate" value={formData.orderDate} onChange={handleChange} required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Reference Number
-                </label>
-                <input
-                  type="text"
-                  name="referenceNumber"
-                  value={formData.referenceNumber}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="REF-001"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Delivery Date <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
-                  name="deliveryDate"
-                  value={formData.deliveryDate}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                <input type="date" name="deliveryDate" value={formData.deliveryDate} onChange={handleChange} required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
             </div>
           </div>
 
-          {/* Delivery & Payment Details */}
+          {/* Delivery & Payment */}
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Delivery & Payment Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Delivery Address
-                </label>
-                <textarea
-                  name="deliveryAddress"
-                  value={formData.deliveryAddress}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Address</label>
+                <textarea name="deliveryAddress" value={formData.deliveryAddress} onChange={handleChange} rows={3}
                   placeholder="Enter delivery address..."
-                />
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Shipment Preference
-                </label>
-                <select
-                  name="shipmentPreference"
-                  value={formData.shipmentPreference}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-2">Shipment Preference</label>
+                <select name="shipmentPreference" value={formData.shipmentPreference} onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   <option value="ROAD">Road</option>
                   <option value="AIR">Air</option>
                   <option value="SEA">Sea</option>
@@ -389,15 +315,9 @@ const PurchaseOrderFormPage = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Terms
-                </label>
-                <select
-                  name="paymentTerms"
-                  value={formData.paymentTerms}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
+                <label className="block text-sm font-medium text-gray-700 mb-2">Payment Terms</label>
+                <select name="paymentTerms" value={formData.paymentTerms} onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                   <option value="DUE_ON_RECEIPT">Due on Receipt</option>
                   <option value="NET_15">Net 15</option>
                   <option value="NET_30">Net 30</option>
@@ -407,118 +327,74 @@ const PurchaseOrderFormPage = () => {
                 </select>
               </div>
               <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="taxInclusive"
-                  name="taxInclusive"
-                  checked={formData.taxInclusive}
-                  onChange={handleChange}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="taxInclusive" className="ml-2 block text-sm text-gray-700">
-                  Tax Inclusive
-                </label>
+                <input type="checkbox" id="taxInclusive" name="taxInclusive"
+                  checked={formData.taxInclusive} onChange={handleChange}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded" />
+                <label htmlFor="taxInclusive" className="ml-2 text-sm text-gray-700">Tax Inclusive</label>
               </div>
             </div>
           </div>
 
-          {/* Items Section */}
+          {/* Items */}
           <div>
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-800">Items</h3>
-              <button
-                type="button"
-                onClick={addItem}
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-              >
+              <button type="button" onClick={addItem}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium">
                 + Add Item
               </button>
             </div>
-            
             <div className="overflow-x-auto">
               <table className="w-full border border-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item Details</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Account</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rate</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tax (%)</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                    {['Item Details', 'Account', 'Quantity', 'Rate', 'Tax (%)', 'Amount', 'Action'].map(h => (
+                      <th key={h} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {items.map((item, index) => (
-                    <tr key={item.id}>
+                    <tr key={item.tempId || index}>
                       <td className="px-4 py-2">
-                        <input
-                          type="text"
-                          value={item.itemDetails}
+                        <input type="text" value={item.itemDetails}
                           onChange={(e) => handleItemChange(index, 'itemDetails', e.target.value)}
                           className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                          placeholder="Item description"
-                        />
+                          placeholder="Item description" />
                       </td>
                       <td className="px-4 py-2">
-                        <select
-                          value={item.account}
+                        <input type="text" value={item.account}
                           onChange={(e) => handleItemChange(index, 'account', e.target.value)}
                           className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">Select Account</option>
-                          <option value="Raw Materials">Raw Materials</option>
-                          <option value="Packaging">Packaging</option>
-                          <option value="Equipment">Equipment</option>
-                          <option value="Supplies">Supplies</option>
-                          <option value="Other">Other</option>
-                        </select>
+                          placeholder="Account" />
                       </td>
                       <td className="px-4 py-2">
-                        <input
-                          type="number"
-                          value={item.quantity}
+                        <input type="number" value={item.quantity} min="0"
                           onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                          className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                          min="1"
-                        />
+                          className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
                       </td>
                       <td className="px-4 py-2">
-                        <input
-                          type="number"
-                          value={item.rate}
+                        <input type="number" value={item.rate} min="0" step="0.01"
                           onChange={(e) => handleItemChange(index, 'rate', e.target.value)}
-                          className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                          min="0"
-                          step="0.01"
-                        />
+                          className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500" />
                       </td>
                       <td className="px-4 py-2">
-                        <select
-                          value={item.tax}
-                          onChange={(e) => handleItemChange(index, 'tax', e.target.value)}
-                          className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                        >
+                        <select value={item.taxRate}
+                          onChange={(e) => handleItemChange(index, 'taxRate', e.target.value)}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
                           <option value="0">0%</option>
                           <option value="5">5%</option>
                           <option value="12">12%</option>
                           <option value="18">18%</option>
                         </select>
                       </td>
-                      <td className="px-4 py-2">
-                        <div className="text-sm font-medium text-gray-800">
-                          LKR {item.amount.toLocaleString()}
-                        </div>
+                      <td className="px-4 py-2 text-sm font-medium text-gray-800">
+                        LKR {(parseFloat(item.amount) || 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-2">
                         {items.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeItem(index)}
-                            className="text-red-600 hover:text-red-800 text-sm"
-                          >
-                            Remove
-                          </button>
+                          <button type="button" onClick={() => removeItem(index)}
+                            className="text-red-600 hover:text-red-800 text-sm">Remove</button>
                         )}
                       </td>
                     </tr>
@@ -528,50 +404,38 @@ const PurchaseOrderFormPage = () => {
             </div>
           </div>
 
-          {/* Calculation Section */}
-          <div>
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <div className="max-w-md ml-auto space-y-3">
+          {/* Totals */}
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div className="max-w-md ml-auto space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-700">Subtotal:</span>
+                <span className="font-medium text-gray-800">LKR {calcSubtotal().toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center gap-4">
+                <span className="text-gray-700">Discount:</span>
+                <div className="flex gap-2 items-center">
+                  <input type="number" name="discount" value={formData.discount} onChange={handleChange}
+                    className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                    min="0" step="0.01" />
+                  <select name="discountType" value={formData.discountType} onChange={handleChange}
+                    className="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500">
+                    <option value="PERCENTAGE">%</option>
+                    <option value="AMOUNT">LKR</option>
+                  </select>
+                  <span className="font-medium text-gray-800 w-24 text-right">
+                    LKR {calcDiscountAmount().toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              {!formData.taxInclusive && (
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-700">Subtotal:</span>
-                  <span className="font-medium text-gray-800">LKR {calculateSubtotal().toLocaleString()}</span>
+                  <span className="text-gray-700">Tax:</span>
+                  <span className="font-medium text-gray-800">LKR {calcTax().toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between items-center gap-4">
-                  <span className="text-gray-700">Discount:</span>
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="number"
-                      name="discount"
-                      value={formData.discount}
-                      onChange={handleChange}
-                      className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                      min="0"
-                      step="0.01"
-                    />
-                    <select
-                      name="discountType"
-                      value={formData.discountType}
-                      onChange={handleChange}
-                      className="px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="PERCENTAGE">%</option>
-                      <option value="AMOUNT">LKR</option>
-                    </select>
-                    <span className="font-medium text-gray-800 w-24 text-right">
-                      LKR {calculateDiscount().toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-                {!formData.taxInclusive && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-700">Tax:</span>
-                    <span className="font-medium text-gray-800">LKR {calculateTax().toLocaleString()}</span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center pt-3 border-t border-gray-300">
-                  <span className="text-lg font-semibold text-gray-800">Total:</span>
-                  <span className="text-lg font-bold text-gray-800">LKR {calculateTotal().toLocaleString()}</span>
-                </div>
+              )}
+              <div className="flex justify-between items-center pt-3 border-t border-gray-300">
+                <span className="text-lg font-semibold text-gray-800">Total:</span>
+                <span className="text-lg font-bold text-gray-800">LKR {calcTotal().toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -581,86 +445,34 @@ const PurchaseOrderFormPage = () => {
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Additional Information</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notes
-                </label>
-                <textarea
-                  name="notes"
-                  value={formData.notes}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                <textarea name="notes" value={formData.notes} onChange={handleChange} rows={3}
                   placeholder="Add any notes..."
-                />
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Terms and Conditions
-                </label>
-                <textarea
-                  name="termsAndConditions"
-                  value={formData.termsAndConditions}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                <label className="block text-sm font-medium text-gray-700 mb-2">Terms and Conditions</label>
+                <textarea name="termsAndConditions" value={formData.termsAndConditions} onChange={handleChange} rows={3}
                   placeholder="Enter terms and conditions..."
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload Files
-                </label>
-                <input
-                  type="file"
-                  onChange={handleFileUpload}
-                  multiple
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                {attachments.length > 0 && (
-                  <div className="mt-2 space-y-2">
-                    {attachments.map(file => (
-                      <div key={file.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                        <span className="text-sm text-gray-700">{file.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeAttachment(file.id)}
-                          className="text-red-600 hover:text-red-800 text-sm"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Form Actions */}
+        {/* Actions */}
         <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => navigate('/finance/payments/purchase-orders')}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-          >
+          <button type="button" onClick={() => navigate('/finance/payments/purchase-orders')}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
             Cancel
           </button>
-          <button
-            type="button"
-            onClick={() => handleSubmit('draft')}
-            disabled={loading}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <button type="button" onClick={() => handleSubmit('draft')} disabled={loading}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
             {loading ? 'Saving...' : 'Save as Draft'}
           </button>
-          <button
-            type="button"
-            onClick={() => handleSubmit('send')}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Saving...' : (isEditMode ? 'Update and Send' : 'Save and Send')}
+          <button type="button" onClick={() => handleSubmit('send')} disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            {loading ? 'Saving...' : isEditMode ? 'Update and Send' : 'Save and Send'}
           </button>
         </div>
       </div>

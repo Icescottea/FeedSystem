@@ -1,6 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
+const API_BASE = `${API_BASE_URL}/api/purchase-orders`;
+
+const getStatusBadge = (status) => {
+  const config = {
+    DRAFT: 'bg-gray-100 text-gray-800',
+    SENT: 'bg-blue-100 text-blue-800',
+    CONFIRMED: 'bg-green-100 text-green-800',
+    CANCELLED: 'bg-red-100 text-red-800',
+  };
+  return `px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${config[status] || config.DRAFT}`;
+};
+
+const getBilledStatusBadge = (status) => {
+  const config = {
+    NOT_BILLED: { cls: 'bg-orange-100 text-orange-800', label: 'Not Billed' },
+    PARTIALLY_BILLED: { cls: 'bg-yellow-100 text-yellow-800', label: 'Partially Billed' },
+    FULLY_BILLED: { cls: 'bg-green-100 text-green-800', label: 'Fully Billed' },
+  };
+  const c = config[status] || config.NOT_BILLED;
+  return { className: `px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${c.cls}`, label: c.label };
+};
+
 const PurchaseOrdersPage = () => {
   const navigate = useNavigate();
   const [purchaseOrders, setPurchaseOrders] = useState([]);
@@ -18,135 +41,58 @@ const PurchaseOrdersPage = () => {
   const fetchPurchaseOrders = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/purchase-orders');
-      // const data = await response.json();
-      
-      // Mock data
-      const mockData = [
-        {
-          id: 1,
-          date: '2024-12-15',
-          purchaseOrderNumber: 'PO-2024-001',
-          referenceNumber: 'REF-001',
-          vendorName: 'Global Feed Supplies Ltd',
-          status: 'CONFIRMED',
-          billedStatus: 'NOT_BILLED',
-          amount: 450000,
-          deliveryDate: '2024-12-25'
-        },
-        {
-          id: 2,
-          date: '2024-12-10',
-          purchaseOrderNumber: 'PO-2024-002',
-          referenceNumber: 'REF-002',
-          vendorName: 'Premium Ingredients Co.',
-          status: 'SENT',
-          billedStatus: 'PARTIALLY_BILLED',
-          amount: 280000,
-          deliveryDate: '2024-12-20'
-        },
-        {
-          id: 3,
-          date: '2024-12-08',
-          purchaseOrderNumber: 'PO-2024-003',
-          referenceNumber: 'REF-003',
-          vendorName: 'ABC Raw Materials',
-          status: 'DRAFT',
-          billedStatus: 'NOT_BILLED',
-          amount: 125000,
-          deliveryDate: '2024-12-18'
-        },
-        {
-          id: 4,
-          date: '2024-11-28',
-          purchaseOrderNumber: 'PO-2024-004',
-          referenceNumber: 'REF-004',
-          vendorName: 'Quality Nutrients Inc',
-          status: 'CONFIRMED',
-          billedStatus: 'FULLY_BILLED',
-          amount: 350000,
-          deliveryDate: '2024-12-05'
-        },
-        {
-          id: 5,
-          date: '2024-11-20',
-          purchaseOrderNumber: 'PO-2024-005',
-          referenceNumber: '',
-          vendorName: 'Local Supplier Network',
-          status: 'CANCELLED',
-          billedStatus: 'NOT_BILLED',
-          amount: 95000,
-          deliveryDate: '2024-12-01'
-        }
-      ];
-      
-      setPurchaseOrders(mockData);
-      setLoading(false);
+      const response = await fetch(API_BASE);
+      if (!response.ok) throw new Error('Failed to fetch purchase orders');
+      const data = await response.json();
+      setPurchaseOrders(data);
     } catch (error) {
       console.error('Error fetching purchase orders:', error);
+    } finally {
       setLoading(false);
     }
   };
 
+  const handleClone = async (id) => {
+    try {
+      const response = await fetch(`${API_BASE}/${id}/clone`, { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to clone purchase order');
+      const cloned = await response.json();
+      navigate(`/finance/payments/purchase-orders/${cloned.id}/edit`);
+    } catch (error) {
+      alert('Error cloning purchase order: ' + error.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this purchase order?')) return;
+    try {
+      const response = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to delete purchase order');
+      }
+      fetchPurchaseOrders();
+    } catch (error) {
+      alert('Error deleting purchase order: ' + error.message);
+    }
+  };
+
   const filteredOrders = purchaseOrders.filter(order => {
-    const matchesSearch = 
-      order.purchaseOrderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.referenceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.vendorName.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    const po = order.purchaseOrderNumber || '';
+    const ref = order.referenceNumber || '';
+    const vendor = order.vendorName || '';
+    const matchesSearch =
+      po.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ref.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      vendor.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    const matchesBilledStatus = billedStatusFilter === 'all' || order.billedStatus === billedStatusFilter;
-    
-    return matchesSearch && matchesStatus && matchesBilledStatus;
+    const matchesBilled = billedStatusFilter === 'all' || order.billedStatus === billedStatusFilter;
+    return matchesSearch && matchesStatus && matchesBilled;
   });
 
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedOrders = filteredOrders.slice(startIndex, startIndex + itemsPerPage);
-
-  const handleView = (id) => {
-    navigate(`/finance/payments/purchase-orders/${id}`);
-  };
-
-  const handleEdit = (id) => {
-    navigate(`/finance/payments/purchase-orders/${id}/edit`);
-  };
-
-  const handleClone = (id) => {
-    // TODO: Implement clone API call
-    console.log('Cloning purchase order:', id);
-    navigate('/finance/payments/purchase-orders/new');
-  };
-
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this purchase order?')) {
-      // TODO: Implement delete API call
-      console.log('Deleting purchase order:', id);
-      setPurchaseOrders(purchaseOrders.filter(po => po.id !== id));
-    }
-  };
-
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      DRAFT: { bg: 'bg-gray-100', text: 'text-gray-800' },
-      SENT: { bg: 'bg-blue-100', text: 'text-blue-800' },
-      CONFIRMED: { bg: 'bg-green-100', text: 'text-green-800' },
-      CANCELLED: { bg: 'bg-red-100', text: 'text-red-800' }
-    };
-    const config = statusConfig[status] || statusConfig.DRAFT;
-    return `px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${config.bg} ${config.text}`;
-  };
-
-  const getBilledStatusBadge = (status) => {
-    const statusConfig = {
-      NOT_BILLED: { bg: 'bg-orange-100', text: 'text-orange-800', label: 'Not Billed' },
-      PARTIALLY_BILLED: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Partially Billed' },
-      FULLY_BILLED: { bg: 'bg-green-100', text: 'text-green-800', label: 'Fully Billed' }
-    };
-    const config = statusConfig[status] || statusConfig.NOT_BILLED;
-    return { className: `px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${config.bg} ${config.text}`, label: config.label };
-  };
 
   return (
     <div className="p-6">
@@ -184,14 +130,14 @@ const PurchaseOrdersPage = () => {
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <p className="text-gray-600 text-sm">Total Amount (Current)</p>
+          <p className="text-gray-600 text-sm">Total Amount</p>
           <p className="text-2xl font-bold text-green-600 mt-1">
-            LKR {purchaseOrders.reduce((sum, o) => sum + o.amount, 0).toLocaleString()}
+            LKR {purchaseOrders.reduce((sum, o) => sum + (parseFloat(o.total) || 0), 0).toLocaleString()}
           </p>
         </div>
       </div>
 
-      {/* Filters and Search */}
+      {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
@@ -199,16 +145,13 @@ const PurchaseOrdersPage = () => {
               type="text"
               placeholder="Search by PO number, reference, or vendor name..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <div className="w-full md:w-48">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
+            <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
               <option value="all">All Status</option>
               <option value="DRAFT">Draft</option>
               <option value="SENT">Sent</option>
@@ -217,11 +160,8 @@ const PurchaseOrdersPage = () => {
             </select>
           </div>
           <div className="w-full md:w-48">
-            <select
-              value={billedStatusFilter}
-              onChange={(e) => setBilledStatusFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
+            <select value={billedStatusFilter} onChange={(e) => { setBilledStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
               <option value="all">All Billed Status</option>
               <option value="NOT_BILLED">Not Billed</option>
               <option value="PARTIALLY_BILLED">Partially Billed</option>
@@ -231,14 +171,14 @@ const PurchaseOrdersPage = () => {
         </div>
       </div>
 
-      {/* Purchase Orders Table */}
+      {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-500">Loading purchase orders...</div>
         ) : paginatedOrders.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
-            {searchQuery || statusFilter !== 'all' || billedStatusFilter !== 'all' 
-              ? 'No purchase orders found matching your filters.' 
+            {searchQuery || statusFilter !== 'all' || billedStatusFilter !== 'all'
+              ? 'No purchase orders found matching your filters.'
               : 'No purchase orders yet. Create your first purchase order!'}
           </div>
         ) : (
@@ -247,15 +187,9 @@ const PurchaseOrdersPage = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">PO Number</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vendor Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Billed Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivery Date</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    {['Date', 'PO Number', 'Reference', 'Vendor Name', 'Status', 'Billed Status', 'Amount', 'Delivery Date', 'Actions'].map(h => (
+                      <th key={h} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -263,71 +197,43 @@ const PurchaseOrdersPage = () => {
                     const billedBadge = getBilledStatusBadge(order.billedStatus);
                     return (
                       <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-800">
-                            {new Date(order.date).toLocaleDateString()}
-                          </div>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                          {order.orderDate ? new Date(order.orderDate).toLocaleDateString() : '—'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm font-medium text-blue-600 cursor-pointer hover:text-blue-800"
-                               onClick={() => handleView(order.id)}>
+                            onClick={() => navigate(`/finance/payments/purchase-orders/${order.id}`)}>
                             {order.purchaseOrderNumber}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-600">
-                            {order.referenceNumber || '-'}
-                          </div>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {order.referenceNumber || '—'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                          {order.vendorName || `Vendor #${order.vendorId}`}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-800">{order.vendorName}</div>
+                          <span className={getStatusBadge(order.status)}>{order.status}</span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={getStatusBadge(order.status)}>
-                            {order.status}
-                          </span>
+                          <span className={billedBadge.className}>{billedBadge.label}</span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={billedBadge.className}>
-                            {billedBadge.label}
-                          </span>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                          LKR {(parseFloat(order.total) || 0).toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-800">
-                            LKR {order.amount.toLocaleString()}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-600">
-                            {new Date(order.deliveryDate).toLocaleDateString()}
-                          </div>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString() : '—'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                           <div className="flex gap-2">
-                            <button
-                              onClick={() => handleView(order.id)}
-                              className="text-blue-600 hover:text-blue-800 font-medium"
-                            >
-                              View
-                            </button>
-                            <button
-                              onClick={() => handleEdit(order.id)}
-                              className="text-green-600 hover:text-green-800 font-medium"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleClone(order.id)}
-                              className="text-purple-600 hover:text-purple-800 font-medium"
-                            >
-                              Clone
-                            </button>
-                            <button
-                              onClick={() => handleDelete(order.id)}
-                              className="text-red-600 hover:text-red-800 font-medium"
-                            >
-                              Delete
-                            </button>
+                            <button onClick={() => navigate(`/finance/payments/purchase-orders/${order.id}`)}
+                              className="text-blue-600 hover:text-blue-800 font-medium">View</button>
+                            <button onClick={() => navigate(`/finance/payments/purchase-orders/${order.id}/edit`)}
+                              className="text-green-600 hover:text-green-800 font-medium">Edit</button>
+                            <button onClick={() => handleClone(order.id)}
+                              className="text-purple-600 hover:text-purple-800 font-medium">Clone</button>
+                            <button onClick={() => handleDelete(order.id)}
+                              className="text-red-600 hover:text-red-800 font-medium">Delete</button>
                           </div>
                         </td>
                       </tr>
@@ -337,42 +243,24 @@ const PurchaseOrdersPage = () => {
               </table>
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
                 <div className="text-sm text-gray-600">
                   Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredOrders.length)} of {filteredOrders.length} purchase orders
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
+                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
                   <div className="flex gap-1">
                     {[...Array(totalPages)].map((_, i) => (
-                      <button
-                        key={i + 1}
-                        onClick={() => setCurrentPage(i + 1)}
-                        className={`px-3 py-1 border rounded ${
-                          currentPage === i + 1
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
+                      <button key={i + 1} onClick={() => setCurrentPage(i + 1)}
+                        className={`px-3 py-1 border rounded ${currentPage === i + 1 ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 hover:bg-gray-50'}`}>
                         {i + 1}
                       </button>
                     ))}
                   </div>
-                  <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+                    className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
                 </div>
               </div>
             )}
