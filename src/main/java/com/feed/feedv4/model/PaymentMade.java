@@ -31,7 +31,10 @@ public class PaymentMade {
     
     @Column(nullable = false)
     private Long vendorId;
-    
+
+    @Column(length = 200)
+    private String vendorName;
+
     @Column(nullable = false)
     private LocalDate paymentDate;
     
